@@ -20,7 +20,7 @@ set(SOURCES	navier_stokes_fv1.cpp
 add_library(NavierStokesPlugin SHARED ${SOURCES})
 
 if(STATIC)
-	target_link_libraries (SamplePlugin ug4_s)
+	target_link_libraries (NavierStokesPlugin ug4_s)
 else(STATIC)
-	target_link_libraries (SamplePlugin ug4)
+	target_link_libraries (NavierStokesPlugin ug4)
 endif(STATIC)
