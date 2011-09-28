@@ -8,7 +8,7 @@
 #include "navier_stokes.h"
 
 #include "common/util/provider.h"
-#include "lib_discretization/spatial_discretization/disc_util/finite_volume_geometry.h"
+#include "lib_disc/spatial_discretization/disc_util/finite_volume_geometry.h"
 
 namespace ug{
 

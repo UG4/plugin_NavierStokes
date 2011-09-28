@@ -13,8 +13,8 @@
 #include "lib_grid/lg_base.h"
 
 // library intern headers
-#include "lib_discretization/spatial_discretization/elem_disc/elem_disc_interface.h"
-#include "lib_discretization/spatial_discretization/ip_data/data_import_export.h"
+#include "lib_disc/spatial_discretization/elem_disc/elem_disc_interface.h"
+#include "lib_disc/spatial_discretization/ip_data/data_import_export.h"
 
 #include "upwind.h"
 #include "stabilization.h"

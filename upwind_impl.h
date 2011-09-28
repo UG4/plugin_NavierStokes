@@ -13,9 +13,9 @@
 #include <algorithm>
 
 // function space, reference element
-#include "lib_discretization/common/geometry_util.h"
-#include "lib_discretization/local_finite_element/local_shape_function_set.h"
-#include "lib_discretization/local_finite_element/local_shape_function_set.h"
+#include "lib_disc/common/geometry_util.h"
+#include "lib_disc/local_finite_element/local_shape_function_set.h"
+#include "lib_disc/local_finite_element/local_shape_function_set.h"
 #include "common/util/provider.h"
 
 #include "upwind.h"

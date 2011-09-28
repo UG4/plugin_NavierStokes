@@ -8,10 +8,10 @@
 #ifndef __H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__
 #define __H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__
 
-#include "lib_discretization/spatial_discretization/disc_item.h"
+#include "lib_disc/spatial_discretization/disc_item.h"
 
-#include "lib_discretization/spatial_discretization/elem_disc/neumann_boundary/neumann_boundary.h"
-#include "lib_discretization/spatial_discretization/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
+#include "lib_disc/spatial_discretization/elem_disc/neumann_boundary/neumann_boundary.h"
+#include "lib_disc/spatial_discretization/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
 
 namespace ug{
 
