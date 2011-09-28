@@ -7,7 +7,7 @@
 #include <sstream>
 #include <string>
 
-#include "bridge/ug_bridge.h"
+#include "bridge/bridge.h"
 
 #include "navier_stokes.h"
 #include "upwind.h"
