@@ -5,13 +5,13 @@
  *      Author: andreasvogel
  */
 
-#ifndef __H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__
-#define __H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__
+#ifndef __H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__
+#define __H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__
 
-#include "lib_disc/spatial_discretization/disc_item.h"
+#include "lib_disc/spatial_disc/disc_item.h"
 
-#include "lib_disc/spatial_discretization/elem_disc/neumann_boundary/neumann_boundary.h"
-#include "lib_disc/spatial_discretization/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
+#include "lib_disc/spatial_disc/elem_disc/neumann_boundary/neumann_boundary.h"
+#include "lib_disc/spatial_disc/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
 
 namespace ug{
 
@@ -181,4 +181,4 @@ class NavierStokesWall
 
 } // end namespace ug
 
-#endif /* __H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__ */
+#endif /* __H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__ */

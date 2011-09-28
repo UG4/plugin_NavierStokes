@@ -5,13 +5,13 @@
  *      Author: andreasvogel
  */
 
-#ifndef NEW_STABILIZATION_IMPL_H___H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
-#define NEW_STABILIZATION_IMPL_H___H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
+#ifndef NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
+#define NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
 
 #include <vector>
 
 #include "lib_disc/common/local_algebra.h"
-#include "lib_disc/spatial_discretization/disc_util/finite_volume_geometry.h"
+#include "lib_disc/spatial_disc/disc_util/finite_volume_geometry.h"
 
 namespace ug{
 
@@ -549,4 +549,4 @@ class NavierStokesPositiveUpwind
 // include implementation
 #include "upwind_impl.h"
 
-#endif /* NEW_STABILIZATION_IMPL_H___H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__ */
+#endif /* NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__ */

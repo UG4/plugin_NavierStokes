@@ -5,16 +5,16 @@
  *      Author: andreasvogel
  */
 
-#ifndef __H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__NAVIER_STOKES__
-#define __H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__NAVIER_STOKES__
+#ifndef __H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__NAVIER_STOKES__
+#define __H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__NAVIER_STOKES__
 
 // other ug4 modules
 #include "common/common.h"
 #include "lib_grid/lg_base.h"
 
 // library intern headers
-#include "lib_disc/spatial_discretization/elem_disc/elem_disc_interface.h"
-#include "lib_disc/spatial_discretization/ip_data/data_import_export.h"
+#include "lib_disc/spatial_disc/elem_disc/elem_disc_interface.h"
+#include "lib_disc/spatial_disc/ip_data/data_import_export.h"
 
 #include "upwind.h"
 #include "stabilization.h"
@@ -562,4 +562,4 @@ class FVNavierStokesElemDisc
 
 } // end namespace ug
 
-#endif /*__H__LIB_DISCRETIZATION__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__NAVIER_STOKES__*/
+#endif /*__H__UG__LIB_DISC__SPATIAL_DISCRETIZATION__ELEM_DISC__NAVIER_STOKES__FV__NAVIER_STOKES__*/
