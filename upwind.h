@@ -24,9 +24,6 @@ template <int dim>
 class INavierStokesUpwind
 {
 	public:
-	/// Local vector type
-		typedef LocalVector LocalVector;
-
 	/// Abbreviation for own type
 		typedef INavierStokesUpwind<dim> this_type;
 
@@ -195,9 +192,6 @@ class NavierStokesNoUpwind
 	///	This class
 		typedef NavierStokesNoUpwind<TDim> this_type;
 
-	/// Local vector type
-		typedef typename base_type::LocalVector LocalVector;
-
 	///	Dimension
 		static const int dim = TDim;
 
@@ -267,9 +261,6 @@ class NavierStokesFullUpwind
 
 	///	This class
 		typedef NavierStokesFullUpwind<TDim> this_type;
-
-	/// Local vector type
-		typedef typename base_type::LocalVector LocalVector;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -341,9 +332,6 @@ class NavierStokesSkewedUpwind
 	///	This class
 		typedef NavierStokesSkewedUpwind<TDim> this_type;
 
-	/// Local vector type
-		typedef typename base_type::LocalVector LocalVector;
-
 	///	Dimension
 		static const int dim = TDim;
 
@@ -413,9 +401,6 @@ class NavierStokesLinearProfileSkewedUpwind
 
 	///	This class
 		typedef NavierStokesLinearProfileSkewedUpwind<TDim> this_type;
-
-	/// Local vector type
-		typedef typename base_type::LocalVector LocalVector;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -487,9 +472,6 @@ class NavierStokesPositiveUpwind
 
 	///	This class
 		typedef NavierStokesPositiveUpwind<TDim> this_type;
-
-	/// Local vector type
-		typedef typename base_type::LocalVector LocalVector;
 
 	///	Dimension
 		static const int dim = TDim;

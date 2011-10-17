@@ -19,7 +19,7 @@
 #include "common/util/provider.h"
 
 #include "upwind.h"
-#include "lib_algebra/algebra_selector.h"
+#include "lib_algebra/algebra_type.h"
 
 namespace ug {
 

@@ -23,9 +23,6 @@ template <int dim>
 class INavierStokesStabilization
 {
 	public:
-	/// Local vector type
-		typedef LocalVector LocalVector;
-
 	/// Abbreviation for own type
 		typedef INavierStokesStabilization<dim> this_type;
 
@@ -253,9 +250,6 @@ class NavierStokesFIELDSStabilization
 
 	///	This class
 		typedef NavierStokesFIELDSStabilization<TDim> this_type;
-
-	/// Local vector type
-		typedef typename base_type::LocalVector LocalVector;
 
 	///	Dimension
 		static const int dim = TDim;
