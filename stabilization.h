@@ -24,17 +24,17 @@ class INavierStokesStabilization
 {
 	public:
 	/// Local vector type
-		typedef LocalVector local_vector_type;
+		typedef LocalVector LocalVector;
 
 	/// Abbreviation for own type
 		typedef INavierStokesStabilization<dim> this_type;
 
 	///	type of update function
 		typedef bool (this_type::*UpdateFunc)(	const FVGeometryBase* geo,
-												const local_vector_type& vCornerValue,
+												const LocalVector& vCornerValue,
 												const DataImport<number, dim>& kinVisco,
 									            const DataImport<MathVector<dim>, dim>* pSource,
-												const local_vector_type* pvCornerValueOldTime, number dt);
+												const LocalVector* pvCornerValueOldTime, number dt);
 
 	public:
 	///	constructor
@@ -102,10 +102,10 @@ class INavierStokesStabilization
 
 	///	compute values for new geometry and corner velocities
 		bool update(const FVGeometryBase* geo,
-		            const local_vector_type& vCornerValue,
+		            const LocalVector& vCornerValue,
 		            const DataImport<number, dim>& kinVisco,
 		            const DataImport<MathVector<dim>, dim>* pSource,
-		            const local_vector_type* pvCornerValueOldTime, number dt)
+		            const LocalVector* pvCornerValueOldTime, number dt)
 			{return (this->*(m_vUpdateFunc[m_id]))(	geo, vCornerValue,
 													kinVisco, pSource,
 													pvCornerValueOldTime, dt);}
@@ -162,7 +162,7 @@ class INavierStokesStabilization
 
 	///	computes the diffusion length
 		template <typename TFVGeom>
-		bool compute_upwind(const TFVGeom& geo, const local_vector_type& vCornerValue);
+		bool compute_upwind(const TFVGeom& geo, const LocalVector& vCornerValue);
 
 	///	type of diffusion length computation
 		int m_diffLengthType;
@@ -255,7 +255,7 @@ class NavierStokesFIELDSStabilization
 		typedef NavierStokesFIELDSStabilization<TDim> this_type;
 
 	/// Local vector type
-		typedef typename base_type::local_vector_type local_vector_type;
+		typedef typename base_type::LocalVector LocalVector;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -289,10 +289,10 @@ class NavierStokesFIELDSStabilization
 	///	update of values for FV1Geometry
 		template <typename TElem>
 		bool update(const FV1Geometry<TElem, dim>* geo,
-		            const local_vector_type& vCornerValue,
+		            const LocalVector& vCornerValue,
 		            const DataImport<number, dim>& kinVisco,
 		            const DataImport<MathVector<dim>, dim>* pSource,
-		            const local_vector_type* pvCornerValueOldTime, number dt);
+		            const LocalVector* pvCornerValueOldTime, number dt);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -315,10 +315,10 @@ class NavierStokesFIELDSStabilization
 		{
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef bool (this_type::*TFunc)(const TGeom* geo,
-											 const local_vector_type& vCornerValue,
+											 const LocalVector& vCornerValue,
 											 const DataImport<number, dim>& kinVisco,
 											 const DataImport<MathVector<dim>, dim>* pSource,
-											 const local_vector_type* pvCornerValueOldTime, number dt);
+											 const LocalVector* pvCornerValueOldTime, number dt);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
 		}

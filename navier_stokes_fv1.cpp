@@ -132,7 +132,7 @@ template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 bool
 FVNavierStokesElemDisc<TDomain>::
-prepare_element(TElem* elem, const local_vector_type& u)
+prepare_element(TElem* elem, const LocalVector& u)
 {
 //	get corners
 	m_vCornerCoords = this->template get_element_corners<TElem>(elem);
@@ -172,7 +172,7 @@ template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 bool
 FVNavierStokesElemDisc<TDomain>::
-assemble_JA(local_matrix_type& J, const local_vector_type& u)
+assemble_JA(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -185,7 +185,7 @@ assemble_JA(local_matrix_type& J, const local_vector_type& u)
 	if(m_imSource.data_given())	pSource = &m_imSource;
 
 //	check for solutions to pass to stabilization in time-dependent case
-	const local_vector_type *pSol = &u, *pOldSol = NULL;
+	const LocalVector *pSol = &u, *pOldSol = NULL;
 	number dt = 0.0;
 	if(this->is_time_dependent())
 	{
@@ -503,7 +503,7 @@ template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 bool
 FVNavierStokesElemDisc<TDomain>::
-assemble_A(local_vector_type& d, const local_vector_type& u)
+assemble_A(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -516,7 +516,7 @@ assemble_A(local_vector_type& d, const local_vector_type& u)
 	if(m_imSource.data_given())	pSource = &m_imSource;
 
 //	check for solutions to pass to stabilization in time-dependent case
-	const local_vector_type *pSol = &u, *pOldSol = NULL;
+	const LocalVector *pSol = &u, *pOldSol = NULL;
 	number dt = 0.0;
 	if(this->is_time_dependent())
 	{
@@ -701,7 +701,7 @@ template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 bool
 FVNavierStokesElemDisc<TDomain>::
-assemble_JM(local_matrix_type& J, const local_vector_type& u)
+assemble_JM(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -735,7 +735,7 @@ template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 bool
 FVNavierStokesElemDisc<TDomain>::
-assemble_M(local_vector_type& d, const local_vector_type& u)
+assemble_M(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -769,7 +769,7 @@ template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 bool
 FVNavierStokesElemDisc<TDomain>::
-assemble_f(local_vector_type& d)
+assemble_f(LocalVector& d)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -804,7 +804,7 @@ inline
 number
 FVNavierStokesElemDisc<TDomain>::
 peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
-             const local_vector_type& u, number kinVisco)
+             const LocalVector& u, number kinVisco)
 {
 //	Interpolate velocity at ip
 	MathVector<dim> InterpolVel; VecSet(InterpolVel, 0.0);

@@ -132,7 +132,7 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesNoUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const local_vector_type& vCornerValue)
+update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 {
 //	set shapes
 	for(size_t i = 0; i < geo->num_scvf(); ++i)
@@ -172,7 +172,7 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesFullUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const local_vector_type& vCornerValue)
+update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 {
 //	two help vectors
 	MathVector<dim> dist;
@@ -279,7 +279,7 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesSkewedUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const local_vector_type& vCornerValue)
+update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 {
 // 	corners of geometry
 	const MathVector<dim>* vCornerCoords = geo->corners();
@@ -327,7 +327,7 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesLinearProfileSkewedUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const local_vector_type& vCornerValue)
+update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 {
 // 	corners of geometry
 	const MathVector<dim>* vCornerCoords = geo->corners();
@@ -415,7 +415,7 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesPositiveUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const local_vector_type& vCornerValue)
+update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 {
 
 //	1. Reset values and compute ip velocities and Compute mass fluxes at ip's

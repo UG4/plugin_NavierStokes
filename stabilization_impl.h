@@ -146,7 +146,7 @@ template <int dim>
 template <typename TFVGeom>
 bool
 INavierStokesStabilization<dim>::
-compute_upwind(const TFVGeom& geo, const local_vector_type& vCornerValue)
+compute_upwind(const TFVGeom& geo, const LocalVector& vCornerValue)
 {
 //	check, that upwind has been set
 	if(m_pUpwind == NULL)
@@ -168,10 +168,10 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesFIELDSStabilization<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const local_vector_type& vCornerValue,
+update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
        const DataImport<number, dim>& kinVisco,
        const DataImport<MathVector<dim>, dim>* pSource,
-       const local_vector_type* pvCornerValueOldTime, number dt)
+       const LocalVector* pvCornerValueOldTime, number dt)
 {
 //	abbreviation for pressure
 	static const size_t _P_ = dim;

@@ -137,13 +137,13 @@ class FVNavierStokesElemDisc
 		typedef typename base_type::position_type position_type;
 
 	///	Local matrix type
-		typedef typename base_type::local_matrix_type local_matrix_type;
+		typedef typename base_type::LocalMatrix LocalMatrix;
 
 	///	Local vector type
-		typedef typename base_type::local_vector_type local_vector_type;
+		typedef typename base_type::LocalVector LocalVector;
 
 	///	Local index type
-		typedef typename base_type::local_index_type local_index_type;
+		typedef typename base_type::LocalIndices LocalIndices;
 
 	public:
 	///	Constructor (setting default values)
@@ -258,7 +258,7 @@ class FVNavierStokesElemDisc
 	 * \param[in]	glob_ind	global indices of the local vector components
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool prepare_element(TElem* elem, const local_vector_type& u);
+		bool prepare_element(TElem* elem, const LocalVector& u);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
@@ -329,7 +329,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_JA(local_matrix_type& J, const local_vector_type& u);
+		bool assemble_JA(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the stiffness part to the local defect
 	/**
@@ -399,7 +399,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_A(local_vector_type& d, const local_vector_type& u);
+		bool assemble_A(LocalVector& d, const LocalVector& u);
 
 	///	adds the mass part to the local jacobian
 	/**
@@ -425,7 +425,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_JM(local_matrix_type& J, const local_vector_type& u);
+		bool assemble_JM(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the mass part to the local defect
 	/**
@@ -453,7 +453,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_M(local_vector_type& d, const local_vector_type& u);
+		bool assemble_M(LocalVector& d, const LocalVector& u);
 
 	///	adds the source part to the local defect
 	/**
@@ -476,7 +476,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_f(local_vector_type& d);
+		bool assemble_f(LocalVector& d);
 
 	///	computes the pecled blended Upwind veloctity
 	/**
@@ -512,7 +512,7 @@ class FVNavierStokesElemDisc
 	 */
 		template <typename SCVF>
 		inline number peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
-		                        const local_vector_type& u, number kinVisco);
+		                        const LocalVector& u, number kinVisco);
 
 	private:
 	///	flag if using Peclet Blending
