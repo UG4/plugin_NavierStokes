@@ -136,15 +136,6 @@ class FVNavierStokesElemDisc
 	///	Position type
 		typedef typename base_type::position_type position_type;
 
-	///	Local matrix type
-		typedef typename base_type::LocalMatrix LocalMatrix;
-
-	///	Local vector type
-		typedef typename base_type::LocalVector LocalVector;
-
-	///	Local index type
-		typedef typename base_type::LocalIndices LocalIndices;
-
 	public:
 	///	Constructor (setting default values)
 		FVNavierStokesElemDisc();
