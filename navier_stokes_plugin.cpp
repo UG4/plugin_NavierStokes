@@ -61,7 +61,6 @@ void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg
 			.add_constructor()
 			.add_method("set_functions", &T::set_functions)
 			.add_method("set_subsets", &T::set_subsets)
-			.add_method("set_approximation_space", &T::set_approximation_space)
 			.add_method("add", static_cast<bool (T::*)(VectorFunctor&, const char*)>(&T::add));
 		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgDDTag);
 	}
@@ -74,7 +73,6 @@ void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
 			.add_method("set_functions", &T::set_functions)
-			.add_method("set_approximation_space", &T::set_approximation_space)
 			.add_method("add", &T::add);
 		reg.add_class_to_group(name, "NavierStokesWall", dimAlgDDTag);
 	}

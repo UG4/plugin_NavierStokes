@@ -36,7 +36,7 @@ class NavierStokesInflow
 		virtual size_t num_constraint() const {return 1;}
 
 	///	returns an element disc
-		virtual IConstraint<TDoFDistribution, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
+		virtual IDomainConstraint<TDomain, TDoFDistribution, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
 
 	public:
 	///	sets the symbolic names for velocity and pressure
@@ -85,12 +85,6 @@ class NavierStokesInflow
 	///	sets the subsets reguarded as inner
 		void set_subsets(const char* subsetInner){m_NeumannDisc.set_subsets(subsetInner);}
 
-	///	sets the approximation space
-		void set_approximation_space(IApproximationSpace<TDomain>& approxSpace)
-		{
-			m_DirichletConstraint.set_approximation_space(approxSpace);
-		}
-
 	protected:
 	///	neumann disc for pressure equation
 		FV1NeumannBoundaryElemDisc<TDomain> m_NeumannDisc;
@@ -122,7 +116,7 @@ class NavierStokesWall
 		virtual size_t num_constraint() const {return 1;}
 
 	///	returns an element disc
-		virtual IConstraint<TDoFDistribution, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
+		virtual IDomainConstraint<TDomain, TDoFDistribution, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
 
 	///	virtual destructor
 		~NavierStokesWall() {}
@@ -163,12 +157,6 @@ class NavierStokesWall
 			}
 
 			return true;
-		}
-
-	///	sets the approximation space
-		void set_approximation_space(IApproximationSpace<TDomain>& approxSpace)
-		{
-			m_DirichletConstraint.set_approximation_space(approxSpace);
 		}
 
 	protected:
