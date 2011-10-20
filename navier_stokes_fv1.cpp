@@ -836,8 +836,9 @@ peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename TDomain>
-FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc()
-: m_bExactJacobian(true), m_pStab(NULL),
+FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc(const char* functions, const char* subsets)
+: IDomainElemDisc<TDomain>(dim+1, functions, subsets),
+  m_bExactJacobian(true), m_pStab(NULL),
   m_pConvStab(NULL), m_pConvUpwind(NULL)
 {
 //	set default options

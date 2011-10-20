@@ -58,9 +58,7 @@ void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg
 		typedef IDiscretizationItem<TDomain, TDoFDistribution, TAlgebra> TBase;
 		string name = string("NavierStokesInflow").append(dimAlgDDSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor()
-			.add_method("set_functions", &T::set_functions)
-			.add_method("set_subsets", &T::set_subsets)
+			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
 			.add_method("add", static_cast<bool (T::*)(VectorFunctor&, const char*)>(&T::add));
 		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgDDTag);
 	}
@@ -71,8 +69,7 @@ void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg
 		typedef IDiscretizationItem<TDomain, TDoFDistribution, TAlgebra> TBase;
 		string name = string("NavierStokesWall").append(dimAlgDDSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor()
-			.add_method("set_functions", &T::set_functions)
+			.template add_constructor<void (*)(const char*)>("Function(s)")
 			.add_method("add", &T::add);
 		reg.add_class_to_group(name, "NavierStokesWall", dimAlgDDTag);
 	}
@@ -96,7 +93,7 @@ void RegisterIElemDiscs(bridge::Registry& reg, string grp)
 		typedef IDomainElemDisc<TDomain> TBase;
 		string name = string("FV1NavierStokes").append(dimSuffix);
 		reg.add_class_<T, TBase >(name, grp)
-			.add_constructor()
+			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.add_method("set_kinematic_viscosity", &T::set_kinematic_viscosity)
 			.add_method("set_stabilization", &T::set_stabilization)
 			.add_method("set_conv_upwind",  static_cast<void (T::*)(INavierStokesStabilization<dim>&)>(&T::set_conv_upwind))

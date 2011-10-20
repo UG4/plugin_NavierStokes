@@ -138,7 +138,7 @@ class FVNavierStokesElemDisc
 
 	public:
 	///	Constructor (setting default values)
-		FVNavierStokesElemDisc();
+		FVNavierStokesElemDisc(const char* functions, const char* subsets);
 
 	///	sets the kinematic viscosity
 	/**
@@ -179,14 +179,11 @@ class FVNavierStokesElemDisc
         void set_exact_jacobian(bool bExactJacobian) {m_bExactJacobian = bExactJacobian;}
 
 	public:
-	///	returns number of functions needed for this elem disc
-		virtual size_t num_fct(){return dim+1;}
-
 	///	type of trial space for each function used
 		virtual bool request_finite_element_id(const std::vector<LFEID>& vLfeID)
 		{
 		//	check number
-			if(vLfeID.size() != num_fct()) return false;
+			if(vLfeID.size() != dim+1) return false;
 
 		//	check that Lagrange 1st order
 			for(size_t i = 0; i < vLfeID.size(); ++i)

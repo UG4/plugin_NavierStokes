@@ -39,32 +39,10 @@ class NavierStokesInflow
 		virtual IDomainConstraint<TDomain, TDoFDistribution, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
 
 	public:
-	///	sets the symbolic names for velocity and pressure
-		bool set_functions(const char* functions)
+		NavierStokesInflow(const char* functions, const char* subsets)
+			: m_NeumannDisc(subsets)
 		{
-			std::string strFunctions(functions);
-			std::vector<std::string> tokens;
-
-			TokenizeString(strFunctions, tokens, ',');
-
-			if(tokens.size() != TDomain::dim + 1)
-			{
-				UG_LOG("ERROR in 'NavierStokesInflow::set_functions': This Boundary "
-						"Condition works on exactly dim+1 (velocity+pressure) "
-						"components, but "<<tokens.size()<<"components given.\n");
-				return false;
-			}
-
-			m_velNames.clear();
-			for(int i=0;i<TDomain::dim; ++i)
-			{
-				if(i>0) m_velNames.append(",");
-				m_velNames.append(tokens[i]);
-			}
-
-			m_pressureName = tokens[TDomain::dim];
-
-			return true;
+			set_functions(functions);
 		}
 
 	///	sets the velocity to a given value
@@ -82,10 +60,32 @@ class NavierStokesInflow
 			return true;
 		}
 
-	///	sets the subsets reguarded as inner
-		void set_subsets(const char* subsetInner){m_NeumannDisc.set_subsets(subsetInner);}
-
 	protected:
+	///	sets the symbolic names for velocity and pressure
+		void set_functions(const char* functions)
+		{
+			std::string strFunctions(functions);
+			std::vector<std::string> tokens;
+
+			TokenizeString(strFunctions, tokens, ',');
+
+			if(tokens.size() != TDomain::dim + 1)
+			{
+				UG_THROW("ERROR in 'NavierStokesInflow::set_functions': This Boundary "
+						"Condition works on exactly dim+1 (velocity+pressure) "
+						"components, but "<<tokens.size()<<"components given.\n");
+			}
+
+			m_velNames.clear();
+			for(int i=0;i<TDomain::dim; ++i)
+			{
+				if(i>0) m_velNames.append(",");
+				m_velNames.append(tokens[i]);
+			}
+
+			m_pressureName = tokens[TDomain::dim];
+		}
+
 	///	neumann disc for pressure equation
 		FV1NeumannBoundaryElemDisc<TDomain> m_NeumannDisc;
 
@@ -122,8 +122,29 @@ class NavierStokesWall
 		~NavierStokesWall() {}
 
 	public:
+		NavierStokesWall(const char* functions)
+		{
+			set_functions(functions);
+		}
+
+	///	sets the velocity to a given value
+		void add(const char* subsetsBND)
+		{
+			if(m_velNames.empty())
+			{
+				UG_THROW("ERROR in 'NavierStokesWall::add': Symbolic names for"
+						" velocity and pressure not set. Please set them first.\n");
+			}
+
+			for(int i = 0; i < TDomain::dim; ++i)
+			{
+				m_DirichletConstraint.add(0.0, m_velNames[i].c_str(), subsetsBND);
+			}
+		}
+
+	protected:
 	///	sets the symbolic names for velocity and pressure
-		bool set_functions(const char* functions)
+		void set_functions(const char* functions)
 		{
 			std::string strFunctions(functions);
 
@@ -132,34 +153,12 @@ class NavierStokesWall
 
 			if(m_velNames.size() != TDomain::dim + 1)
 			{
-				UG_LOG("ERROR in 'NavierStokesWall::set_functions': This Boundary "
+				UG_THROW("ERROR in 'NavierStokesWall::set_functions': This Boundary "
 						"Condition works on exactly dim+1 (velocity+pressure) "
 						"components, but "<<m_velNames.size()<<"components given.\n");
-				return false;
 			}
-
-			return true;
 		}
 
-	///	sets the velocity to a given value
-		bool add(const char* subsetsBND)
-		{
-			if(m_velNames.empty())
-			{
-				UG_LOG("ERROR in 'NavierStokesWall::add': Symbolic names for"
-						" velocity and pressure not set. Please set them first.\n");
-				return false;
-			}
-
-			for(int i = 0; i < TDomain::dim; ++i)
-			{
-				m_DirichletConstraint.add(0.0, m_velNames[i].c_str(), subsetsBND);
-			}
-
-			return true;
-		}
-
-	protected:
 	///	dirichlet disc for velocity components
 		LagrangeDirichletBoundary<TDomain,TDoFDistribution,TAlgebra> m_DirichletConstraint;
 
