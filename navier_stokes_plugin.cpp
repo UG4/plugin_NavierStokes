@@ -24,7 +24,7 @@ namespace ug{
 using namespace ug::bridge;
 
 template <typename TDomain, typename TAlgebra, typename TDoFDistribution>
-void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg, string parentGroup)
+static void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg, string parentGroup)
 {
 //	typedef
 	static const int dim = TDomain::dim;
@@ -77,7 +77,7 @@ void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg
 }
 
 template <typename TDomain>
-void RegisterIElemDiscs(bridge::Registry& reg, string grp)
+static void RegisterIElemDiscs(bridge::Registry& reg, string grp)
 {
 
 //	dimension of domain
