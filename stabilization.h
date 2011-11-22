@@ -29,6 +29,7 @@ class INavierStokesStabilization
 	///	type of update function
 		typedef bool (this_type::*UpdateFunc)(	const FVGeometryBase* geo,
 												const LocalVector& vCornerValue,
+												const bool bStokes,
 												const DataImport<number, dim>& kinVisco,
 									            const DataImport<MathVector<dim>, dim>* pSource,
 												const LocalVector* pvCornerValueOldTime, number dt);
@@ -100,11 +101,12 @@ class INavierStokesStabilization
 	///	compute values for new geometry and corner velocities
 		bool update(const FVGeometryBase* geo,
 		            const LocalVector& vCornerValue,
+		            const bool bStokes,
 		            const DataImport<number, dim>& kinVisco,
 		            const DataImport<MathVector<dim>, dim>* pSource,
 		            const LocalVector* pvCornerValueOldTime, number dt)
 			{return (this->*(m_vUpdateFunc[m_id]))(	geo, vCornerValue,
-													kinVisco, pSource,
+													bStokes, kinVisco, pSource,
 													pvCornerValueOldTime, dt);}
 
 	/////////////////////////////////////////
@@ -284,6 +286,7 @@ class NavierStokesFIELDSStabilization
 		template <typename TElem>
 		bool update(const FV1Geometry<TElem, dim>* geo,
 		            const LocalVector& vCornerValue,
+		            const bool bStokes,
 		            const DataImport<number, dim>& kinVisco,
 		            const DataImport<MathVector<dim>, dim>* pSource,
 		            const LocalVector* pvCornerValueOldTime, number dt);
@@ -310,6 +313,7 @@ class NavierStokesFIELDSStabilization
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef bool (this_type::*TFunc)(const TGeom* geo,
 											 const LocalVector& vCornerValue,
+											 const bool bStokes,
 											 const DataImport<number, dim>& kinVisco,
 											 const DataImport<MathVector<dim>, dim>* pSource,
 											 const LocalVector* pvCornerValueOldTime, number dt);

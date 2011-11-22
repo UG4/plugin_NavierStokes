@@ -169,6 +169,7 @@ template <typename TElem>
 bool
 NavierStokesFIELDSStabilization<TDim>::
 update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
+       const bool bStokes,
        const DataImport<number, dim>& kinVisco,
        const DataImport<MathVector<dim>, dim>* pSource,
        const LocalVector* pvCornerValueOldTime, number dt)
@@ -180,13 +181,16 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	static const size_t numIp = FV1Geometry<TElem, dim>::numSCVF;
 	static const size_t numSh = FV1Geometry<TElem, dim>::numSCV;
 
-//	compute upwind
-	if(!compute_upwind(geo, vCornerValue))
+	if (! bStokes) // no convective terms for the Stokes eq. => no upwind
 	{
-       	UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-       			" Cannot compute upwind.\n");
-       	return false;
- 	}
+	//	compute upwind
+		if(!compute_upwind(geo, vCornerValue))
+		{
+			UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
+					" Cannot compute upwind.\n");
+			return false;
+		}
+	}
 
 //	compute diffusion length
 	if(!compute_diff_length(*geo))
@@ -200,8 +204,8 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 //	we have to solve a matrix system. Else the system is diagonal and we can
 //	compute the inverse directly
 
-//	diagonal case (i.e. upwind vel depend only on corner vel)
-	if(!non_zero_shape_ip())
+//	diagonal case (i.e. upwind vel depend only on corner vel or no upwind)
+	if(bStokes || !non_zero_shape_ip())
 	{
 	//	Loop integration points
 		for(size_t ip = 0; ip < numIp; ++ip)
@@ -234,7 +238,8 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 				diag += kinVisco[ip] * diff_length_sq_inv(ip);
 
 			//	Convective Term
-				diag += VecTwoNorm(vIPVelCurrent) / conv_length(ip);
+				if (! bStokes) // no convective terms in the Stokes eq.
+					diag += VecTwoNorm(vIPVelCurrent) / conv_length(ip);
 
 
 			//	Now, we can assemble the rhs. This rhs is assembled by all
@@ -265,9 +270,10 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 				//	Diffusion part
 					number sum = kinVisco[ip] * diff_length_sq_inv(ip) * scvf.shape(k);
 
-				//	Convection part
-					sum += VecTwoNorm(vIPVelCurrent) * upwind_shape_sh(ip, k) /
-																conv_length(ip);
+				//	Convective term
+					if (! bStokes) // no convective terms in the Stokes eq.
+						sum += VecTwoNorm(vIPVelCurrent) * upwind_shape_sh(ip, k) /
+																	conv_length(ip);
 
 				//	Add to rhs
 					rhs += sum * vCornerValue(d, k);

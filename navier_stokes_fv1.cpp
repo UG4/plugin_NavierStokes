@@ -51,31 +51,34 @@ prepare_element_loop()
 		return false;
 	}
 
-//	check, that convective upwinding has been set
-	if(m_pConvStab == NULL  && m_pConvUpwind == NULL)
+	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
-		UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-				" Upwinding for convective Term in Momentum eq. not set.\n");
-		return false;
+	//	check, that convective upwinding has been set
+		if(m_pConvStab == NULL  && m_pConvUpwind == NULL)
+		{
+			UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
+					" Upwinding for convective Term in Momentum eq. not set.\n");
+			return false;
+		}
+	
+	//	init convection stabilization for element type
+		if(m_pConvStab != NULL)
+			if(!m_pConvStab->template set_geometry_type<TFVGeom<TElem, dim> >())
+			{
+				UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
+						" Cannot init upwind (PAC) for element type.\n");
+				return false;
+			}
+	
+	//	init convection stabilization for element type
+		if(m_pConvUpwind != NULL)
+			if(!m_pConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >())
+			{
+				UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
+						" Cannot init upwind for element type.\n");
+				return false;
+			}
 	}
-
-//	init convection stabilization for element type
-	if(m_pConvStab != NULL)
-		if(!m_pConvStab->template set_geometry_type<TFVGeom<TElem, dim> >())
-		{
-			UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-					" Cannot init upwind (PAC) for element type.\n");
-			return false;
-		}
-
-//	init convection stabilization for element type
-	if(m_pConvUpwind != NULL)
-		if(!m_pConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >())
-		{
-			UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-					" Cannot init upwind for element type.\n");
-			return false;
-		}
 
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
@@ -205,32 +208,35 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 	}
 
 //	compute stabilized velocities and shapes for continuity equation
-	if(!m_pStab->update(&geo, *pSol, m_imKinViscosity, pSource, pOldSol, dt))
+	if(!m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt))
 	{
 		UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
 				"Cannot compute stabilized velocities and shapes.\n");
 		return false;
 	}
 
-//	compute stabilized velocities and shapes for convection upwind
-	if(m_pConvStab != NULL)
-		if(m_pConvStab != m_pStab)
-			if(!m_pConvStab->update(&geo, *pSol, m_imKinViscosity, pSource, pOldSol, dt))
-			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-						"Cannot compute upwind (PAC) velocities and shapes.\n");
-				return false;
-			}
-
-//	compute upwind shapes
-	if(m_pConvUpwind != NULL)
-		if(m_pStab->get_upwind() != m_pConvUpwind)
-			if(!m_pConvUpwind->update(&geo, *pSol))
-			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-						"Cannot compute upwind velocities and shapes.\n");
-				return false;
-			}
+	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
+	{
+	//	compute stabilized velocities and shapes for convection upwind
+		if(m_pConvStab != NULL)
+			if(m_pConvStab != m_pStab)
+				if(!m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt))
+				{
+					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
+							"Cannot compute upwind (PAC) velocities and shapes.\n");
+					return false;
+				}
+	
+	//	compute upwind shapes
+		if(m_pConvUpwind != NULL)
+			if(m_pStab->get_upwind() != m_pConvUpwind)
+				if(!m_pConvUpwind->update(&geo, *pSol))
+				{
+					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
+							"Cannot compute upwind velocities and shapes.\n");
+					return false;
+				}
+	}
 
 //	get a const (!!) reference to the stabilization
 	const INavierStokesStabilization<dim>& stab
@@ -298,160 +304,164 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			// Convective Term (Momentum Equation)
 			////////////////////////////////////////////////////
 
-		//	compute upwind velocity
-			MathVector<dim> UpwindVel;
-
-		//	switch PAC
-			if(m_pConvUpwind != NULL)  UpwindVel = m_pConvUpwind->upwind_vel(i);
-			else if (m_pConvStab != NULL) UpwindVel = convStab.stab_vel(i);
-			else
+			if (! m_bStokes) // no convective terms in the Stokes equation
 			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-						" Cannot find upwind for convective term.\n");
-				return false;
-			}
-
-		//	peclet blend
-			number w = 1.0;
-			if(m_bPecletBlend)
-				w = peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[i]);
-
-		//	compute product of stabilized vel and normal
-			const number prod = VecProd(UpwindVel, scvf.normal());
-
-		///////////////////////////////////
-		//	Add fixpoint linearization
-		///////////////////////////////////
-
-		//	Stabilization used as upwind
-			if(m_pConvStab != NULL)
-			{
-			//	velocity derivatives
-				if(stab.vel_comp_connected())
-					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						{
-							const number convFlux_vel = prod * w * convStab.stab_shape_vel(i, d1, d2, sh);
-							J(d1, scvf.from(), d2, sh) += convFlux_vel;
-							J(d1, scvf.to()  , d2, sh) -= convFlux_vel;
-						}
+			//	compute upwind velocity
+				MathVector<dim> UpwindVel;
+	
+			//	switch PAC
+				if(m_pConvUpwind != NULL)  UpwindVel = m_pConvUpwind->upwind_vel(i);
+				else if (m_pConvStab != NULL) UpwindVel = convStab.stab_vel(i);
 				else
-					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					{
-						const number convFlux_vel = prod * w * convStab.stab_shape_vel(i, d1, d1, sh);
-						J(d1, scvf.from(), d1, sh) += convFlux_vel;
-						J(d1, scvf.to()  , d1, sh) -= convFlux_vel;
-					}
-
-			//	pressure derivative
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				{
-					const number convFlux_p = prod * w * convStab.stab_shape_p(i, d1, sh);
-
-					J(d1, scvf.from(), _P_, sh) += convFlux_p;
-					J(d1, scvf.to()  , _P_, sh) -= convFlux_p;
+					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
+							" Cannot find upwind for convective term.\n");
+					return false;
 				}
-			}
-
-		//	Upwind used as upwind
-			if(m_pConvUpwind != NULL)
-			{
-				const number convFlux_vel = prod * w * upwind.upwind_shape_sh(i, sh);
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				{
-					J(d1, scvf.from(), d1, sh) += convFlux_vel;
-					J(d1, scvf.to()  , d1, sh) -= convFlux_vel;
-				}
-			}
-
-		//	derivative due to peclet blending
-			if(m_bPecletBlend)
-			{
-				const number convFluxPe = prod * (1.0-w) * scvf.shape(sh);
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				{
-					J(d1, scvf.from(), d1, sh) += convFluxPe;
-					J(d1, scvf.to()  , d1, sh) -= convFluxPe;
-				}
-			}
-
-		/////////////////////////////////////////
-		//	Add full jacobian (remaining part)
-		/////////////////////////////////////////
-
-		//	Add remaining term for exact jacobian
-			if(m_bExactJacobian)
-			{
+	
+			//	peclet blend
+				number w = 1.0;
+				if(m_bPecletBlend)
+					w = peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[i]);
+	
+			//	compute product of stabilized vel and normal
+				const number prod = VecProd(UpwindVel, scvf.normal());
+	
+			///////////////////////////////////
+			//	Add fixpoint linearization
+			///////////////////////////////////
+	
 			//	Stabilization used as upwind
 				if(m_pConvStab != NULL)
 				{
-				//	loop defect components
+				//	velocity derivatives
+					if(stab.vel_comp_connected())
+						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+							{
+								const number convFlux_vel = prod * w * convStab.stab_shape_vel(i, d1, d2, sh);
+								J(d1, scvf.from(), d2, sh) += convFlux_vel;
+								J(d1, scvf.to()  , d2, sh) -= convFlux_vel;
+							}
+					else
+						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						{
+							const number convFlux_vel = prod * w * convStab.stab_shape_vel(i, d1, d1, sh);
+							J(d1, scvf.from(), d1, sh) += convFlux_vel;
+							J(d1, scvf.to()  , d1, sh) -= convFlux_vel;
+						}
+	
+				//	pressure derivative
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					{
-						for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						{
-					//	derivatives w.r.t. velocity
-					//	Compute n * derivs
-						number prod_vel = 0.0;
-
-					//	Compute sum_j n_j * \partial_{u_i^sh} u_j
-						if(stab.vel_comp_connected())
-							for(size_t k = 0; k < (size_t)dim; ++k)
-								prod_vel += w * convStab.stab_shape_vel(i, k, d2, sh)
-												* scvf.normal()[k];
-						else
-							prod_vel = convStab.stab_shape_vel(i, d1, d1, sh)
-												* scvf.normal()[d1];
-
-						J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
-						J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
-						}
-
-					//	derivative w.r.t pressure
-					//	Compute n * derivs
-						number prod_p = 0.0;
-
-					//	Compute sum_j n_j * \parial_{u_i^sh} u_j
-						for(size_t k = 0; k < (size_t)dim; ++k)
-							prod_p += convStab.stab_shape_p(i, k, sh)
-												* scvf.normal()[k];
-
-						J(d1, scvf.from(), _P_, sh) += prod_p * UpwindVel[d1];
-						J(d1, scvf.to()  , _P_, sh) -= prod_p * UpwindVel[d1];
+						const number convFlux_p = prod * w * convStab.stab_shape_p(i, d1, sh);
+	
+						J(d1, scvf.from(), _P_, sh) += convFlux_p;
+						J(d1, scvf.to()  , _P_, sh) -= convFlux_p;
 					}
 				}
-
+	
 			//	Upwind used as upwind
 				if(m_pConvUpwind != NULL)
 				{
-				//	loop defect components
+					const number convFlux_vel = prod * w * upwind.upwind_shape_sh(i, sh);
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					{
-						for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						{
-					//	derivatives w.r.t. velocity
-						number prod_vel = w * upwind.upwind_shape_sh(i,sh)	* scvf.normal()[d2];
-
-						J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
-						J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
-						}
+						J(d1, scvf.from(), d1, sh) += convFlux_vel;
+						J(d1, scvf.to()  , d1, sh) -= convFlux_vel;
 					}
 				}
-
+	
 			//	derivative due to peclet blending
 				if(m_bPecletBlend)
 				{
+					const number convFluxPe = prod * (1.0-w) * scvf.shape(sh);
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						{
-							const number convFluxPe = UpwindVel[d1] * (1.0-w)
-													  * scvf.shape(sh)
-													  * scvf.normal()[d2];
-							J(d1, scvf.from(), d2, sh) += convFluxPe;
-							J(d1, scvf.to()  , d2, sh) -= convFluxPe;
-						}
+					{
+						J(d1, scvf.from(), d1, sh) += convFluxPe;
+						J(d1, scvf.to()  , d1, sh) -= convFluxPe;
+					}
 				}
-			} // end exact jacobian part
+	
+			/////////////////////////////////////////
+			//	Add full jacobian (remaining part)
+			/////////////////////////////////////////
+	
+			//	Add remaining term for exact jacobian
+				if(m_bExactJacobian)
+				{
+				//	Stabilization used as upwind
+					if(m_pConvStab != NULL)
+					{
+					//	loop defect components
+						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						{
+							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+							{
+						//	derivatives w.r.t. velocity
+						//	Compute n * derivs
+							number prod_vel = 0.0;
+	
+						//	Compute sum_j n_j * \partial_{u_i^sh} u_j
+							if(stab.vel_comp_connected())
+								for(size_t k = 0; k < (size_t)dim; ++k)
+									prod_vel += w * convStab.stab_shape_vel(i, k, d2, sh)
+													* scvf.normal()[k];
+							else
+								prod_vel = convStab.stab_shape_vel(i, d1, d1, sh)
+													* scvf.normal()[d1];
+	
+							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
+							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
+							}
+	
+						//	derivative w.r.t pressure
+						//	Compute n * derivs
+							number prod_p = 0.0;
+	
+						//	Compute sum_j n_j * \parial_{u_i^sh} u_j
+							for(size_t k = 0; k < (size_t)dim; ++k)
+								prod_p += convStab.stab_shape_p(i, k, sh)
+													* scvf.normal()[k];
+	
+							J(d1, scvf.from(), _P_, sh) += prod_p * UpwindVel[d1];
+							J(d1, scvf.to()  , _P_, sh) -= prod_p * UpwindVel[d1];
+						}
+					}
+	
+				//	Upwind used as upwind
+					if(m_pConvUpwind != NULL)
+					{
+					//	loop defect components
+						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						{
+							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+							{
+						//	derivatives w.r.t. velocity
+							number prod_vel = w * upwind.upwind_shape_sh(i,sh)	* scvf.normal()[d2];
+	
+							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
+							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
+							}
+						}
+					}
+	
+				//	derivative due to peclet blending
+					if(m_bPecletBlend)
+					{
+						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+							{
+								const number convFluxPe = UpwindVel[d1] * (1.0-w)
+														  * scvf.shape(sh)
+														  * scvf.normal()[d2];
+								J(d1, scvf.from(), d2, sh) += convFluxPe;
+								J(d1, scvf.to()  , d2, sh) -= convFluxPe;
+							}
+					}
+				} // end exact jacobian part
+			
+			} // end of if (! m_bStokes) for the convective terms
 
 			////////////////////////////////////////////////////
 			////////////////////////////////////////////////////
@@ -537,32 +547,35 @@ assemble_A(LocalVector& d, const LocalVector& u)
 
 //	compute stabilized velocities and shapes for continuity equation
 	// \todo: (optional) Here we can skip the computation of shapes, implement?
-	if(!m_pStab->update(&geo, *pSol, m_imKinViscosity, pSource, pOldSol, dt))
+	if(!m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt))
 	{
 		UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
 				"Cannot compute stabilized velocities and shapes.\n");
 		return false;
 	}
 
-//	compute stabilized velocities and shapes for convection upwind
-	if(m_pConvStab != NULL)
-		if(m_pConvStab != m_pStab)
-			if(!m_pConvStab->update(&geo, *pSol, m_imKinViscosity, pSource, pOldSol, dt))
-			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-						"Cannot compute upwind (PAC) velocities and shapes.\n");
-				return false;
-			}
-
-//	compute upwind shapes
-	if(m_pConvUpwind != NULL)
-		if(m_pStab->get_upwind() != m_pConvUpwind)
-			if(!m_pConvUpwind->update(&geo, *pSol))
-			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-						"Cannot compute upwind velocities and shapes.\n");
-				return false;
-			}
+	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
+	{
+	//	compute stabilized velocities and shapes for convection upwind
+		if(m_pConvStab != NULL)
+			if(m_pConvStab != m_pStab)
+				if(!m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt))
+				{
+					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
+							"Cannot compute upwind (PAC) velocities and shapes.\n");
+					return false;
+				}
+	
+	//	compute upwind shapes
+		if(m_pConvUpwind != NULL)
+			if(m_pStab->get_upwind() != m_pConvUpwind)
+				if(!m_pConvUpwind->update(&geo, *pSol))
+				{
+					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
+							"Cannot compute upwind velocities and shapes.\n");
+					return false;
+				}
+	}
 
 //	get a const (!!) reference to the stabilization
 	const INavierStokesStabilization<dim>& stab
@@ -626,40 +639,43 @@ assemble_A(LocalVector& d, const LocalVector& u)
 		// Convective Term (Momentum Equation)
 		////////////////////////////////////////////////////
 
-	//	find the upwind velocity at ip
-		MathVector<dim> UpwindVel;
-
-	//	switch PAC
-		if(m_pConvUpwind != NULL)  UpwindVel = m_pConvUpwind->upwind_vel(i);
-		else if (m_pConvStab != NULL) UpwindVel = convStab.stab_vel(i);
-		else
+		if (! m_bStokes) // no convective terms in the Stokes equation
 		{
-			UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-					" Cannot find upwind for convective term.\n");
-			return false;
-		}
-
-	//	Peclet Blend
-		if(m_bPecletBlend)
-			peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[i]);
-
-
-//	\todo: implement the linearization in a clean way
-        MathVector<dim> StdVel; VecSet(StdVel, 0.0);
-        for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-            for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-                StdVel[d1] += u(d1, sh) * scvf.shape(sh);
-
-
-	//	compute product of upwinded (and blended) velocity and normal
-		//const number prod = VecProd(UpwindVel, scvf.normal());
-		const number prod = VecProd(StdVel, scvf.normal());
-
-	//	Add contributions to local velocity components
-		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-		{
-			d(d1, scvf.from()) += UpwindVel[d1] * prod;
-			d(d1, scvf.to()  ) -= UpwindVel[d1] * prod;
+		//	find the upwind velocity at ip
+			MathVector<dim> UpwindVel;
+	
+		//	switch PAC
+			if(m_pConvUpwind != NULL)  UpwindVel = m_pConvUpwind->upwind_vel(i);
+			else if (m_pConvStab != NULL) UpwindVel = convStab.stab_vel(i);
+			else
+			{
+				UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
+						" Cannot find upwind for convective term.\n");
+				return false;
+			}
+	
+		//	Peclet Blend
+			if(m_bPecletBlend)
+				peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[i]);
+	
+	
+	//	\todo: implement the linearization in a clean way
+			MathVector<dim> StdVel; VecSet(StdVel, 0.0);
+			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					StdVel[d1] += u(d1, sh) * scvf.shape(sh);
+	
+	
+		//	compute product of upwinded (and blended) velocity and normal
+			//const number prod = VecProd(UpwindVel, scvf.normal());
+			const number prod = VecProd(StdVel, scvf.normal());
+	
+		//	Add contributions to local velocity components
+			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			{
+				d(d1, scvf.from()) += UpwindVel[d1] * prod;
+				d(d1, scvf.to()  ) -= UpwindVel[d1] * prod;
+			}
 		}
 
 		////////////////////////////////////////////////////
@@ -838,11 +854,12 @@ peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
 template<typename TDomain>
 FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc(const char* functions, const char* subsets)
 : IDomainElemDisc<TDomain>(dim+1, functions, subsets),
-  m_bExactJacobian(true), m_pStab(NULL),
-  m_pConvStab(NULL), m_pConvUpwind(NULL)
+  m_pStab(NULL), m_pConvStab(NULL), m_pConvUpwind(NULL)
 {
 //	set default options
+	set_Stokes(false);
 	set_peclet_blend(false);
+	set_exact_jacobian(false);
 
 //	register imports
 	register_import(m_imSource);

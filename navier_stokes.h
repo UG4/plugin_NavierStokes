@@ -163,6 +163,13 @@ class FVNavierStokesElemDisc
 	 */
 		void set_stabilization(INavierStokesStabilization<dim>& stab)
 			{m_pStab = & stab;}
+	
+	/// switches the convective terms off (to solve the Stokes equation)
+	/**
+	 * \param[in]	Stokes		true to solve Stokes (i.e. without the convective terms)
+	 */
+		void set_Stokes(bool Stokes)
+			{m_bStokes = Stokes;}
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)
         void set_conv_upwind(INavierStokesStabilization<dim>& stab)
@@ -508,6 +515,9 @@ class FVNavierStokesElemDisc
 
 	///	flag if computing exact jacobian
 		bool m_bExactJacobian;
+
+	/// flag if solving the Stokes equation
+		bool m_bStokes;
 
 	///	Data import for source
 		DataImport<MathVector<dim>, dim> m_imSource;

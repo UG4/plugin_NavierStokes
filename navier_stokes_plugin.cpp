@@ -19,6 +19,8 @@
 #include "lib_disc/dof_manager/conform/conform.h"
 #include "lib_disc/dof_manager/p1conform/p1conform.h"
 
+using namespace std;
+
 namespace ug{
 
 using namespace ug::bridge;
