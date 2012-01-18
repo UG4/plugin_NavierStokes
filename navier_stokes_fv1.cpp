@@ -853,9 +853,14 @@ peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
 
 template<typename TDomain>
 FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc(const char* functions, const char* subsets)
-: IDomainElemDisc<TDomain>(dim+1, functions, subsets),
+: IDomainElemDisc<TDomain>(functions, subsets),
   m_pStab(NULL), m_pConvStab(NULL), m_pConvUpwind(NULL)
 {
+//	check number of functions
+	if(this->num_fct() != dim+1)
+		UG_THROW_FATAL("Wrong number of functions: The ElemDisc 'NavierStokes'"
+					   " needs exactly "<<dim+1<<" symbolic function.");
+
 //	set default options
 	set_Stokes(false);
 	set_peclet_blend(false);
