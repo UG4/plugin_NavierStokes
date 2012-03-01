@@ -16,70 +16,56 @@
 
 #include "lib_algebra/cpu_algebra_types.h"
 
-#include "lib_disc/dof_manager/conform/conform.h"
-#include "lib_disc/dof_manager/p1conform/p1conform.h"
-
 using namespace std;
 
 namespace ug{
 
 using namespace ug::bridge;
 
-template <typename TDomain, typename TAlgebra, typename TDoFDistribution>
-static void RegisterLibDiscDomain__Algebra_DoFDistribution_Domain(bridge::Registry& reg, string parentGroup)
+template <typename TDomain, typename TAlgebra>
+static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
 {
 //	typedef
 	static const int dim = TDomain::dim;
-	typedef typename TAlgebra::vector_type vector_type;
-	typedef typename TAlgebra::matrix_type matrix_type;
-	typedef ApproximationSpace<TDomain, TDoFDistribution, TAlgebra> approximation_space_type;
-
-#ifdef UG_PARALLEL
-		typedef ParallelGridFunction<GridFunction<TDomain, TDoFDistribution, TAlgebra> > function_type;
-#else
-		typedef GridFunction<TDomain, TDoFDistribution, TAlgebra> function_type;
-#endif
 
 //	group string
 	stringstream grpSS; grpSS << parentGroup << "/" << dim << "d";
 	string grp = grpSS.str();
 
 //	suffix and tag
-	string dimAlgDDSuffix = bridge::GetDomainSuffix<TDomain>();
-	dimAlgDDSuffix.append(GetAlgebraSuffix<TAlgebra>());
-	dimAlgDDSuffix.append(GetDoFDistributionSuffix<TDoFDistribution>());
+	string dimAlgSuffix = bridge::GetDomainSuffix<TDomain>();
+	dimAlgSuffix.append(GetAlgebraSuffix<TAlgebra>());
 
-	string dimAlgDDTag = GetDomainTag<TDomain>();
-	dimAlgDDTag.append(GetAlgebraTag<TAlgebra>());
-	dimAlgDDTag.append(GetDoFDistributionTag<TDoFDistribution>());
+	string dimAlgTag = GetDomainTag<TDomain>();
+	dimAlgTag.append(GetAlgebraTag<TAlgebra>());
 
 //	NavierStokesInflow
 	{
 		typedef boost::function<void (MathVector<dim>& value, const MathVector<dim>& x, number time)> VectorFunctor;
-		typedef NavierStokesInflow<TDomain, TDoFDistribution, TAlgebra> T;
-		typedef IDiscretizationItem<TDomain, TDoFDistribution, TAlgebra> TBase;
-		string name = string("NavierStokesInflow").append(dimAlgDDSuffix);
+		typedef NavierStokesInflow<TDomain, TAlgebra> T;
+		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
+		string name = string("NavierStokesInflow").append(dimAlgSuffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
 			.add_method("add", static_cast<bool (T::*)(VectorFunctor&, const char*)>(&T::add));
-		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgDDTag);
+		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgTag);
 	}
 
 //	NavierStokesInflow
 	{
-		typedef NavierStokesWall<TDomain, TDoFDistribution, TAlgebra> T;
-		typedef IDiscretizationItem<TDomain, TDoFDistribution, TAlgebra> TBase;
-		string name = string("NavierStokesWall").append(dimAlgDDSuffix);
+		typedef NavierStokesWall<TDomain, TAlgebra> T;
+		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
+		string name = string("NavierStokesWall").append(dimAlgSuffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*)>("Function(s)")
 			.add_method("add", &T::add);
-		reg.add_class_to_group(name, "NavierStokesWall", dimAlgDDTag);
+		reg.add_class_to_group(name, "NavierStokesWall", dimAlgTag);
 	}
 
 }
 
 template <typename TDomain>
-static void RegisterIElemDiscs(bridge::Registry& reg, string grp)
+static void Register__Domain(bridge::Registry& reg, string grp)
 {
 
 //	dimension of domain
@@ -196,8 +182,8 @@ static void RegisterIElemDiscs(bridge::Registry& reg, string grp)
 }
 
 
-template <typename TAlgebra, typename TDoFDistribution>
-static bool RegisterLibDiscDomain__Algebra_DoFDistribution(bridge::Registry& reg, string parentGroup)
+template <typename TAlgebra>
+static bool Register__Algebra(bridge::Registry& reg, string parentGroup)
 {
 //	get group string
 	string grp = parentGroup; grp.append("/Discretization");
@@ -209,7 +195,7 @@ static bool RegisterLibDiscDomain__Algebra_DoFDistribution(bridge::Registry& reg
 //	Domain dependent part 1D
 	{
 		typedef Domain<1, MultiGrid, MGSubsetHandler> domain_type;
-		RegisterLibDiscDomain__Algebra_DoFDistribution_Domain<domain_type, TAlgebra, TDoFDistribution>(reg, grp);
+		Register__Algebra_Domain<domain_type, TAlgebra>(reg, grp);
 	}
 #endif
 
@@ -217,7 +203,7 @@ static bool RegisterLibDiscDomain__Algebra_DoFDistribution(bridge::Registry& reg
 //	Domain dependent part 2D
 	{
 		typedef Domain<2, MultiGrid, MGSubsetHandler> domain_type;
-		RegisterLibDiscDomain__Algebra_DoFDistribution_Domain<domain_type, TAlgebra, TDoFDistribution>(reg, grp);
+		Register__Algebra_Domain<domain_type, TAlgebra>(reg, grp);
 	}
 #endif
 
@@ -225,14 +211,14 @@ static bool RegisterLibDiscDomain__Algebra_DoFDistribution(bridge::Registry& reg
 //	Domain dependent part 3D
 	{
 		typedef Domain<3, MultiGrid, MGSubsetHandler> domain_type;
-		RegisterLibDiscDomain__Algebra_DoFDistribution_Domain<domain_type, TAlgebra, TDoFDistribution>(reg, grp);
+		Register__Algebra_Domain<domain_type, TAlgebra>(reg, grp);
 	}
 #endif
 
 	}
 	catch(UG_REGISTRY_ERROR_RegistrationFailed ex)
 	{
-		UG_LOG("### ERROR in RegisterLibDiscDomain__Algebra_DoFDistribution: "
+		UG_LOG("### ERROR in Register__Algebra_DoFDistribution: "
 				"Registration failed (using name " << ex.name << ").\n");
 		return false;
 	}
@@ -240,57 +226,37 @@ static bool RegisterLibDiscDomain__Algebra_DoFDistribution(bridge::Registry& reg
 	return true;
 }
 
-template <typename TAlgebra>
-static bool RegisterLibDiscDomain__Algebra(bridge::Registry& reg, string parentGroup)
-{
-	bool bReturn = true;
-#ifdef DOF_P1
-	bReturn &= RegisterLibDiscDomain__Algebra_DoFDistribution<TAlgebra, P1DoFDistribution>(reg, parentGroup);
-#endif
-#ifdef DOF_GEN
-	bReturn &= RegisterLibDiscDomain__Algebra_DoFDistribution<TAlgebra, DoFDistribution >(reg, parentGroup);
-#endif
-
-	return bReturn;
-}
-
-
 extern "C" void InitUGPlugin(ug::bridge::Registry* reg, std::string parentGroup)
 {
 	std::string grp(parentGroup); grp.append("NavierStokes/");
 
 	bool bReturn = true;
 #ifdef UG_CPU_1
-	bReturn &= RegisterLibDiscDomain__Algebra<CPUAlgebra>(*reg, grp);
+	bReturn &= Register__Algebra<CPUAlgebra>(*reg, grp);
 #endif
 #ifdef UG_CPU_2
-	bReturn &= RegisterLibDiscDomain__Algebra<CPUBlockAlgebra<2> >(*reg, grp);
+	bReturn &= Register__Algebra<CPUBlockAlgebra<2> >(*reg, grp);
 #endif
 #ifdef UG_CPU_3
-	bReturn &= RegisterLibDiscDomain__Algebra<CPUBlockAlgebra<3> >(*reg, grp);
+	bReturn &= Register__Algebra<CPUBlockAlgebra<3> >(*reg, grp);
 #endif
 #ifdef UG_CPU_4
-	bReturn &= RegisterLibDiscDomain__Algebra<CPUBlockAlgebra<4> >(*reg, grp);
+	bReturn &= Register__Algebra<CPUBlockAlgebra<4> >(*reg, grp);
 #endif
 #ifdef UG_CPU_VAR
-	bReturn &= RegisterLibDiscDomain__Algebra<CPUVariableBlockAlgebra >(*reg, grp);
+	bReturn &= Register__Algebra<CPUVariableBlockAlgebra >(*reg, grp);
 #endif
 
 	try
 	{
 #ifdef UG_DIM_1
-	//	Domain dependend part 1D
-			RegisterIElemDiscs<Domain1d>(*reg, grp);
+			Register__Domain<Domain1d>(*reg, grp);
 #endif
-
 #ifdef UG_DIM_2
-	//	Domain dependend part 2D
-			RegisterIElemDiscs<Domain2d>(*reg, grp);
+			Register__Domain<Domain2d>(*reg, grp);
 #endif
-
 #ifdef UG_DIM_3
-	//	Domain dependend part 3D
-			RegisterIElemDiscs<Domain3d>(*reg, grp);
+			Register__Domain<Domain3d>(*reg, grp);
 #endif
 	}
 	catch(UG_REGISTRY_ERROR_RegistrationFailed ex)

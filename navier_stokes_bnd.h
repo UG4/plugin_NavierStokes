@@ -16,10 +16,9 @@
 namespace ug{
 
 template <	typename TDomain,
-			typename TDoFDistribution,
 			typename TAlgebra>
 class NavierStokesInflow
-	: public IDiscretizationItem<TDomain,TDoFDistribution,TAlgebra>
+	: public IDiscretizationItem<TDomain, TAlgebra>
 {
 	private:
 		const static int dim = TDomain::dim;
@@ -36,7 +35,7 @@ class NavierStokesInflow
 		virtual size_t num_constraint() const {return 1;}
 
 	///	returns an element disc
-		virtual IDomainConstraint<TDomain, TDoFDistribution, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
+		virtual IDomainConstraint<TDomain, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
 
 	public:
 		NavierStokesInflow(const char* functions, const char* subsets)
@@ -90,7 +89,7 @@ class NavierStokesInflow
 		FV1NeumannBoundaryElemDisc<TDomain> m_NeumannDisc;
 
 	///	dirichlet disc for velocity components
-		LagrangeDirichletBoundary<TDomain,TDoFDistribution,TAlgebra> m_DirichletConstraint;
+		LagrangeDirichletBoundary<TDomain,TAlgebra> m_DirichletConstraint;
 
 	///	name of velocity components
 		std::string m_velNames;
@@ -100,10 +99,9 @@ class NavierStokesInflow
 };
 
 template <	typename TDomain,
-			typename TDoFDistribution,
 			typename TAlgebra>
 class NavierStokesWall
-	: public IDiscretizationItem<TDomain,TDoFDistribution,TAlgebra>
+	: public IDiscretizationItem<TDomain,TAlgebra>
 {
 	public:
 	///	returns the number of element discs
@@ -116,7 +114,7 @@ class NavierStokesWall
 		virtual size_t num_constraint() const {return 1;}
 
 	///	returns an element disc
-		virtual IDomainConstraint<TDomain, TDoFDistribution, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
+		virtual IDomainConstraint<TDomain, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
 
 	///	virtual destructor
 		~NavierStokesWall() {}
@@ -160,7 +158,7 @@ class NavierStokesWall
 		}
 
 	///	dirichlet disc for velocity components
-		LagrangeDirichletBoundary<TDomain,TDoFDistribution,TAlgebra> m_DirichletConstraint;
+		LagrangeDirichletBoundary<TDomain,TAlgebra> m_DirichletConstraint;
 
 	///	name of velocity components
 		std::vector<std::string> m_velNames;
