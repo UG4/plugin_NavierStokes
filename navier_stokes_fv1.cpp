@@ -870,6 +870,8 @@ FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc(const char* functions, c
 	register_import(m_imSource);
 	register_import(m_imKinViscosity);
 
+	m_imSource.set_rhs_part(true);
+
 //	register assemble functions
 	register_all_fv1_funcs(false);
 }
