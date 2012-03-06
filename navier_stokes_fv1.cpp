@@ -138,7 +138,7 @@ FVNavierStokesElemDisc<TDomain>::
 prepare_element(TElem* elem, const LocalVector& u)
 {
 //	get corners
-	m_vCornerCoords = this->template get_element_corners<TElem>(elem);
+	m_vCornerCoords = this->template element_corners<TElem>(elem);
 
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
