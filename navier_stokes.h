@@ -146,7 +146,7 @@ class FVNavierStokesElemDisc
 	 *
 	 * \param[in]	data		kinematic Viscosity
 	 */
-		void set_kinematic_viscosity(IPData<number, dim>& data)
+		void set_kinematic_viscosity(SmartPtr<IPData<number, dim> > data)
 			{m_imKinViscosity.set_data(data);}
 
 	///	sets the source function
@@ -154,7 +154,7 @@ class FVNavierStokesElemDisc
 	 * This method sets the source value. A zero value is assumed as default.
 	 * \param[in]	data		source data
 	 */
-		void set_source(IPData<MathVector<dim>, dim>& data)
+		void set_source(SmartPtr<IPData<MathVector<dim>, dim> > data)
 			{m_imSource.set_data(data);}
 
 	///	sets the stabilization used to compute the stabilized velocities
