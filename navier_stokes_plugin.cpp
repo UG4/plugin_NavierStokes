@@ -47,7 +47,8 @@ static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
 		string name = string("NavierStokesInflow").append(dimAlgSuffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
-			.add_method("add", static_cast<bool (T::*)(VectorFunctor&, const char*)>(&T::add));
+			.add_method("add", static_cast<bool (T::*)(VectorFunctor&, const char*)>(&T::add))
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgTag);
 	}
 
@@ -58,7 +59,8 @@ static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
 		string name = string("NavierStokesWall").append(dimAlgSuffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*)>("Function(s)")
-			.add_method("add", &T::add);
+			.add_method("add", &T::add)
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWall", dimAlgTag);
 	}
 
@@ -87,7 +89,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 			.add_method("set_conv_upwind",  static_cast<void (T::*)(INavierStokesStabilization<dim>&)>(&T::set_conv_upwind))
 			.add_method("set_conv_upwind",  static_cast<void (T::*)(INavierStokesUpwind<dim>&)>(&T::set_conv_upwind))
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
-			.add_method("set_exact_jacobian", &T::set_exact_jacobian);
+			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "FV1NavierStokes", dimTag);
 	}
 

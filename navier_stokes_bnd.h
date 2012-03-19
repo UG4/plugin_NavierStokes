@@ -29,17 +29,18 @@ class NavierStokesInflow
 		virtual size_t num_elem_disc() const {return 1;}
 
 	///	returns the element disc
-		virtual IDomainElemDisc<TDomain>* get_elem_disc(size_t i) {return &m_NeumannDisc;}
+		virtual SmartPtr<IDomainElemDisc<TDomain> > elem_disc(size_t i) {return m_spNeumannDisc;}
 
 	///	returns the number of constraints
 		virtual size_t num_constraint() const {return 1;}
 
 	///	returns an element disc
-		virtual IDomainConstraint<TDomain, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
+		virtual SmartPtr<IDomainConstraint<TDomain, TAlgebra> > constraint(size_t i) {return m_spDirichletConstraint;}
 
 	public:
 		NavierStokesInflow(const char* functions, const char* subsets)
-			: m_NeumannDisc(subsets)
+			: m_spNeumannDisc(new FV1NeumannBoundaryElemDisc<TDomain>(subsets)),
+			  m_spDirichletConstraint(new LagrangeDirichletBoundary<TDomain,TAlgebra>)
 		{
 			set_functions(functions);
 		}
@@ -53,8 +54,8 @@ class NavierStokesInflow
 						" velocity and pressure not set. Please set them first.\n");
 				return false;
 			}
-			m_NeumannDisc.add(user, m_pressureName.c_str(), subsetsBND);
-			m_DirichletConstraint.add(user, m_velNames.c_str(), subsetsBND);
+			m_spNeumannDisc->add(user, m_pressureName.c_str(), subsetsBND);
+			m_spDirichletConstraint->add(user, m_velNames.c_str(), subsetsBND);
 
 			return true;
 		}
@@ -86,10 +87,10 @@ class NavierStokesInflow
 		}
 
 	///	neumann disc for pressure equation
-		FV1NeumannBoundaryElemDisc<TDomain> m_NeumannDisc;
+		SmartPtr<FV1NeumannBoundaryElemDisc<TDomain> > m_spNeumannDisc;
 
 	///	dirichlet disc for velocity components
-		LagrangeDirichletBoundary<TDomain,TAlgebra> m_DirichletConstraint;
+		SmartPtr<LagrangeDirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
 	///	name of velocity components
 		std::string m_velNames;
@@ -108,19 +109,20 @@ class NavierStokesWall
 		virtual size_t num_elem_disc() const {return 0;}
 
 	///	returns the element disc
-		virtual IDomainElemDisc<TDomain>* get_elem_disc(size_t i) {return NULL;}
+		virtual SmartPtr<IDomainElemDisc<TDomain> > elem_disc(size_t i) {return NULL;}
 
 	///	returns the number of constraints
 		virtual size_t num_constraint() const {return 1;}
 
 	///	returns an element disc
-		virtual IDomainConstraint<TDomain, TAlgebra>* get_constraint(size_t i) {return &m_DirichletConstraint;}
+		virtual SmartPtr<IDomainConstraint<TDomain, TAlgebra> > constraint(size_t i) {return m_spDirichletConstraint;}
 
 	///	virtual destructor
 		~NavierStokesWall() {}
 
 	public:
 		NavierStokesWall(const char* functions)
+			: m_spDirichletConstraint(new LagrangeDirichletBoundary<TDomain,TAlgebra>)
 		{
 			set_functions(functions);
 		}
@@ -136,7 +138,7 @@ class NavierStokesWall
 
 			for(int i = 0; i < TDomain::dim; ++i)
 			{
-				m_DirichletConstraint.add(0.0, m_velNames[i].c_str(), subsetsBND);
+				m_spDirichletConstraint->add(0.0, m_velNames[i].c_str(), subsetsBND);
 			}
 		}
 
@@ -158,7 +160,7 @@ class NavierStokesWall
 		}
 
 	///	dirichlet disc for velocity components
-		LagrangeDirichletBoundary<TDomain,TAlgebra> m_DirichletConstraint;
+		SmartPtr<LagrangeDirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
 	///	name of velocity components
 		std::vector<std::string> m_velNames;
