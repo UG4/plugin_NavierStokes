@@ -114,10 +114,17 @@ class INavierStokesStabilization
 	/////////////////////////////////////////
 
 	///	Convection Length
-		number conv_length(size_t scvf) const
+		number upwind_conv_length(size_t scvf) const
 		{
 			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->conv_length(scvf);
+			return m_pConstUpwind->upwind_conv_length(scvf);
+		}
+
+	///	Convection Length
+		number downwind_conv_length(size_t scvf) const
+		{
+			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			return m_pConstUpwind->downwind_conv_length(scvf);
 		}
 
 	///	upwind shape for corner vel
@@ -125,6 +132,13 @@ class INavierStokesStabilization
 		{
 			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->upwind_shape_sh(scvf, sh);
+		}
+
+	///	upwind shape for corner vel
+		number downwind_shape_sh(size_t scvf, size_t sh) const
+		{
+			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			return m_pConstUpwind->downwind_shape_sh(scvf, sh);
 		}
 
 	///	returns if upwind shape w.r.t. ip vel is non-zero
@@ -139,6 +153,13 @@ class INavierStokesStabilization
 		{
 			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->upwind_shape_ip(scvf, scvf2);
+		}
+
+	///	upwind shapes for ip vel
+		number downwind_shape_ip(size_t scvf, size_t scvf2) const
+		{
+			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			return m_pConstUpwind->downwind_shape_ip(scvf, scvf2);
 		}
 
 	//////////////////////////
@@ -162,6 +183,10 @@ class INavierStokesStabilization
 	///	computes the diffusion length
 		template <typename TFVGeom>
 		bool compute_upwind(const TFVGeom& geo, const LocalVector& vCornerValue);
+
+	///	computes the diffusion length
+		template <typename TFVGeom>
+		bool compute_downwind(const TFVGeom& geo);
 
 	///	type of diffusion length computation
 		int m_diffLengthType;
@@ -266,10 +291,13 @@ class NavierStokesFIELDSStabilization
 		using base_type::set_vel_comp_connected;
 
 	//	functions from upwind
-		using base_type::conv_length;
+		using base_type::upwind_conv_length;
+		using base_type::downwind_conv_length;
 		using base_type::upwind_shape_sh;
+		using base_type::downwind_shape_sh;
 		using base_type::non_zero_shape_ip;
 		using base_type::upwind_shape_ip;
+		using base_type::downwind_shape_ip;
 
 	public:
 	///	constructor
@@ -290,6 +318,94 @@ class NavierStokesFIELDSStabilization
 		            const DataImport<number, dim>& kinVisco,
 		            const DataImport<MathVector<dim>, dim>* pSource,
 		            const LocalVector* pvCornerValueOldTime, number dt);
+
+	private:
+		void register_func(Int2Type<1>)
+		{register_func<Edge>();}
+
+		void register_func(Int2Type<2>)
+		{	register_func(Int2Type<1>());
+			register_func<Triangle>();
+			register_func<Quadrilateral>();}
+
+		void register_func(Int2Type<3>)
+		{	register_func(Int2Type<2>());
+			register_func<Tetrahedron>();
+			register_func<Pyramid>();
+			register_func<Prism>();
+			register_func<Hexahedron>();}
+
+		template <typename TElem>
+		void register_func()
+		{
+			typedef FV1Geometry<TElem, dim> TGeom;
+			typedef bool (this_type::*TFunc)(const TGeom* geo,
+											 const LocalVector& vCornerValue,
+											 const bool bStokes,
+											 const DataImport<number, dim>& kinVisco,
+											 const DataImport<MathVector<dim>, dim>* pSource,
+											 const LocalVector* pvCornerValueOldTime, number dt);
+
+			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+		}
+};
+
+
+/////////////////////////////////////////////////////////////////////////////
+// FLOW
+/////////////////////////////////////////////////////////////////////////////
+
+template <int TDim>
+class NavierStokesFLOWStabilization
+	: public INavierStokesStabilization<TDim>
+{
+	public:
+	///	Base class
+		typedef INavierStokesStabilization<TDim> base_type;
+
+	///	This class
+		typedef NavierStokesFLOWStabilization<TDim> this_type;
+
+	///	Dimension
+		static const int dim = TDim;
+
+	protected:
+	//	explicitly forward some function
+		using base_type::register_update_func;
+		using base_type::diff_length_sq_inv;
+		using base_type::stab_shape_vel;
+		using base_type::stab_shape_p;
+		using base_type::stab_vel;
+		using base_type::set_vel_comp_connected;
+
+	//	functions from upwind
+		using base_type::upwind_conv_length;
+		using base_type::downwind_conv_length;
+		using base_type::upwind_shape_sh;
+		using base_type::downwind_shape_sh;
+		using base_type::non_zero_shape_ip;
+		using base_type::upwind_shape_ip;
+		using base_type::downwind_shape_ip;
+
+	public:
+	///	constructor
+		NavierStokesFLOWStabilization()
+		{
+		//	vel comp not interconnected
+			set_vel_comp_connected(true);
+
+		//	register evaluation function
+			register_func(Int2Type<dim>());
+		}
+
+	///	update of values for FV1Geometry
+		template <typename TElem>
+		bool update(const FV1Geometry<TElem, dim>* geo,
+					const LocalVector& vCornerValue,
+					const bool bStokes,
+					const DataImport<number, dim>& kinVisco,
+					const DataImport<MathVector<dim>, dim>* pSource,
+					const LocalVector* pvCornerValueOldTime, number dt);
 
 	private:
 		void register_func(Int2Type<1>)

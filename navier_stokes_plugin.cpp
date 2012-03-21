@@ -182,7 +182,18 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesFIELDSStabilization", dimTag);
 	}
 
+//	NavierStokesFLOWStabilization
+	{
+		typedef NavierStokesFLOWStabilization<dim> T;
+		typedef INavierStokesStabilization<dim> TBase;
+		string name = string("NavierStokesFLOWStabilization").append(dimSuffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.add_constructor();
+		reg.add_class_to_group(name, "NavierStokesFLOWStabilization", dimTag);
+	}
+
 }
+
 
 
 template <typename TAlgebra>

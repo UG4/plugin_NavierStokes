@@ -27,20 +27,25 @@ class INavierStokesUpwind
 	/// Abbreviation for own type
 		typedef INavierStokesUpwind<dim> this_type;
 
-	///	type of update function
-		typedef bool (this_type::*UpdateFunc)(	const FVGeometryBase* obj,
-												const LocalVector& vCornerVels);
-
 	public:
 	///	constructor
 		INavierStokesUpwind()
 			: m_pCornerValue(NULL), m_numScvf(0), m_numSh(0), m_bNonZeroShapeIp(true)
 		{
-			m_vUpdateFunc.clear();
-			m_vConvLength.clear();
+			m_vComputeFunc.clear();
+			m_vUpdateIPVelFunc.clear();
+
 			m_vIPVel.clear();
+
+			m_vUpConvLength.clear();
+			m_vDownConvLength.clear();
 			m_vUpShapeSh.clear();
+			m_vDownShapeSh.clear();
 			m_vUpShapeIp.clear();
+			m_vDownShapeIp.clear();
+
+		//	register evaluation function
+			register_func(Int2Type<dim>());
 		}
 
 	///	returns number of shapes
@@ -50,10 +55,17 @@ class INavierStokesUpwind
 		size_t num_scvf() const {return m_numScvf;}
 
 	///	Convection Length
-		number conv_length(size_t scvf) const
+		number upwind_conv_length(size_t scvf) const
 		{
-			UG_ASSERT(scvf < m_vConvLength.size(), "Invalid index");
-			return m_vConvLength[scvf];
+			UG_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
+			return m_vUpConvLength[scvf];
+		}
+
+	///	Convection Length
+		number downwind_conv_length(size_t scvf) const
+		{
+			UG_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
+			return m_vDownConvLength[scvf];
 		}
 
 	///	ip velocity (i.e. interpolated velocity at ip)
@@ -74,6 +86,14 @@ class INavierStokesUpwind
 			return m_vUpShapeSh[scvf][sh];
 		}
 
+	///	upwind shape for corner vel
+		number downwind_shape_sh(size_t scvf, size_t sh) const
+		{
+			UG_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
+			UG_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
+			return m_vDownShapeSh[scvf][sh];
+		}
+
 	///	returns if upwind shape w.r.t. ip vel is non-zero
 		bool non_zero_shape_ip() const {return m_bNonZeroShapeIp;}
 
@@ -85,10 +105,45 @@ class INavierStokesUpwind
 			return m_vUpShapeIp[scvf][scvf2];
 		}
 
+	///	upwind shapes for ip vel
+		number downwind_shape_ip(size_t scvf, size_t scvf2) const
+		{
+			UG_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
+			UG_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
+			return m_vDownShapeIp[scvf][scvf2];
+		}
+
 	///	compute values for new geometry and corner velocities
 		bool update(const FVGeometryBase* geo, const LocalVector& vCornerValue)
-			{	m_pCornerValue = &vCornerValue;
-				return (this->*(m_vUpdateFunc[m_id]))(geo, vCornerValue);}
+		{
+			m_pCornerValue = &vCornerValue;
+			bool bRet = true;
+			bRet &= update_ip_vel(geo, vCornerValue);
+			bRet &= update_upwind(geo);
+			return bRet;
+		}
+
+	///	compute values for new geometry and corner velocities
+		bool update_downwind(const FVGeometryBase* geo)
+		{
+			std::vector<MathVector<dim> > vDownIPVel(m_vIPVel.size());
+			for(size_t ip = 0; ip < vDownIPVel.size(); ++ip)
+				VecScale(vDownIPVel[ip], m_vIPVel[ip], -1.0);
+
+			return compute(geo, vDownIPVel, m_vDownShapeSh, m_vDownShapeIp, m_vDownConvLength);
+		}
+
+	///	compute values for new geometry and corner velocities
+		bool update_upwind(const FVGeometryBase* geo)
+		{
+			return compute(geo, m_vIPVel, m_vUpShapeSh, m_vUpShapeIp, m_vUpConvLength);
+		}
+
+	///	compute values for new geometry and corner velocities
+		bool update_ip_vel(const FVGeometryBase* geo, const LocalVector& vCornerValue)
+		{
+			return (this->*(m_vUpdateIPVelFunc[m_id]))(geo, vCornerValue);
+		}
 
 	//////////////////////////
 	// internal handling
@@ -116,6 +171,14 @@ class INavierStokesUpwind
 			return m_vUpShapeSh[scvf][sh];
 		}
 
+	///	non-const access to upwind shapes for corner vel
+		number& downwind_shape_sh(size_t scvf, size_t sh)
+		{
+			UG_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
+			UG_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
+			return m_vDownShapeSh[scvf][sh];
+		}
+
 	///	non-const access to upwind shapes for ip vel
 		number& upwind_shape_ip(size_t scvf, size_t scvf2)
 		{
@@ -124,11 +187,26 @@ class INavierStokesUpwind
 			return m_vUpShapeIp[scvf][scvf2];
 		}
 
-	///	non-const access to Convection Length
-		number& conv_length(size_t scvf)
+	///	non-const access to upwind shapes for ip vel
+		number& downwind_shape_ip(size_t scvf, size_t scvf2)
 		{
-			UG_ASSERT(scvf < m_vConvLength.size(), "Invalid index");
-			return m_vConvLength[scvf];
+			UG_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
+			UG_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
+			return m_vDownShapeIp[scvf][scvf2];
+		}
+
+	///	non-const access to Convection Length
+		number& upwind_conv_length(size_t scvf)
+		{
+			UG_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
+			return m_vUpConvLength[scvf];
+		}
+
+	///	non-const access to Convection Length
+		number& down_upwind_conv_length(size_t scvf)
+		{
+			UG_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
+			return m_vDownConvLength[scvf];
 		}
 
 	///	pointer to currently used values
@@ -144,33 +222,95 @@ class INavierStokesUpwind
 		size_t m_numSh;
 
 	///	convection length
-		std::vector<number> m_vConvLength;
+		std::vector<number> m_vUpConvLength;
+		std::vector<number> m_vDownConvLength;
 
 	///	upwind shapes for corners shape functions
 		std::vector<std::vector<number> > m_vUpShapeSh;
+		std::vector<std::vector<number> > m_vDownShapeSh;
 
 	///	flag if ip shapes are non-zero
 		bool m_bNonZeroShapeIp;
 
 	///	upwind shapes for ip vels
 		std::vector<std::vector<number> > m_vUpShapeIp;
+		std::vector<std::vector<number> > m_vDownShapeIp;
+
+	///	compute values for new geometry and corner velocities
+		bool compute(const FVGeometryBase* geo,
+		             const std::vector<MathVector<dim> >& vIPVel,
+		             std::vector<std::vector<number> >& vUpShapeSh,
+		             std::vector<std::vector<number> >& vUpShapeIp,
+		             std::vector<number>& vConvLength)
+		{
+			return (this->*(m_vComputeFunc[m_id]))(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
+		}
+
+	protected:
+	///	update of values for FV1Geometry
+		template <typename TElem>
+		bool update_ip_vel(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue);
 
 	//////////////////////////
 	// registering process
 	//////////////////////////
+	private:
+		void register_func(Int2Type<1>)
+		{register_func<Edge>();}
+
+		void register_func(Int2Type<2>)
+		{	register_func(Int2Type<1>());
+			register_func<Triangle>();
+			register_func<Quadrilateral>();}
+
+		void register_func(Int2Type<3>)
+		{	register_func(Int2Type<2>());
+			register_func<Tetrahedron>();
+			register_func<Pyramid>();
+			register_func<Prism>();
+			register_func<Hexahedron>();}
+
+		template <typename TElem>
+		void register_func()
+		{
+			typedef FV1Geometry<TElem, dim> TGeom;
+			typedef bool (this_type::*TFunc)(const TGeom* geo, const LocalVector& vCornerValue);
+
+			this->template register_update_ip_vel_func<TGeom, TFunc>(&this_type::template update_ip_vel<TElem>);
+		}
 
 	public:
 	///	register a update function for a Geometry
 		template <typename TFVGeom, typename TAssFunc>
 		void register_update_func(TAssFunc func);
 
+	///	register a update function for a Geometry
+		template <typename TFVGeom, typename TAssFunc>
+		void register_update_ip_vel_func(TAssFunc func);
+
 	///	set the Geometry type to use for next updates
 		template <typename TFVGeom>
 		bool set_geometry_type();
 
 	protected:
+
+	///	type of update function
+		typedef bool (this_type::*ComputeFunc)(
+								const FVGeometryBase* obj,
+						        const std::vector<MathVector<dim> >& vIPVel,
+								std::vector<std::vector<number> >& vUpShapeSh,
+								std::vector<std::vector<number> >& vUpShapeIp,
+								std::vector<number>& vConvLength);
+
+	///	type of update function
+		typedef bool (this_type::*UpdateIPVelFunc)(const FVGeometryBase* obj,
+													const LocalVector& vCornerVels);
+
 	///	Vector holding all update functions
-		std::vector<UpdateFunc> m_vUpdateFunc;
+		std::vector<ComputeFunc> m_vComputeFunc;
+
+	///	Vector holding all update functions
+		std::vector<UpdateIPVelFunc> m_vUpdateIPVelFunc;
 
 	///	id of current geometry type
 		int m_id;
@@ -198,10 +338,6 @@ class NavierStokesNoUpwind
 	protected:
 	//	explicitly forward some function
 		using base_type::set_shape_ip_flag;
-		using base_type::upwind_shape_sh;
-		using base_type::upwind_shape_ip;
-		using base_type::conv_length;
-		using base_type::ip_vel;
 		using base_type::register_update_func;
 
 	public:
@@ -219,7 +355,11 @@ class NavierStokesNoUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		bool update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue);
+		bool compute(const FV1Geometry<TElem, dim>* geo,
+		             const std::vector<MathVector<dim> >& vIPVel,
+		             std::vector<std::vector<number> >& vUpShapeSh,
+		             std::vector<std::vector<number> >& vUpShapeIp,
+		             std::vector<number>& vConvLength);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -241,9 +381,14 @@ class NavierStokesNoUpwind
 		void register_func()
 		{
 			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef bool (this_type::*TFunc)(const TGeom* geo, const LocalVector& vCornerValue);
+			typedef bool (this_type::*TFunc)(
+									const TGeom* obj,
+									const std::vector<MathVector<dim> >& vIPVel,
+									std::vector<std::vector<number> >& vUpShapeSh,
+									std::vector<std::vector<number> >& vUpShapeIp,
+									std::vector<number>& vConvLength);
 
-			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
 };
 
@@ -268,10 +413,6 @@ class NavierStokesFullUpwind
 	protected:
 	//	explicitly forward some function
 		using base_type::set_shape_ip_flag;
-		using base_type::upwind_shape_sh;
-		using base_type::upwind_shape_ip;
-		using base_type::conv_length;
-		using base_type::ip_vel;
 		using base_type::register_update_func;
 
 	public:
@@ -289,7 +430,11 @@ class NavierStokesFullUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		bool update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue);
+		bool compute(const FV1Geometry<TElem, dim>* geo,
+		             const std::vector<MathVector<dim> >& vIPVel,
+		             std::vector<std::vector<number> >& vUpShapeSh,
+		             std::vector<std::vector<number> >& vUpShapeIp,
+		             std::vector<number>& vConvLength);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -311,9 +456,14 @@ class NavierStokesFullUpwind
 		void register_func()
 		{
 			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef bool (this_type::*TFunc)(const TGeom* geo, const LocalVector& vCornerValue);
+			typedef bool (this_type::*TFunc)(
+									const TGeom* obj,
+									const std::vector<MathVector<dim> >& vIPVel,
+									std::vector<std::vector<number> >& vUpShapeSh,
+									std::vector<std::vector<number> >& vUpShapeIp,
+									std::vector<number>& vConvLength);
 
-			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
 };
 
@@ -338,10 +488,6 @@ class NavierStokesSkewedUpwind
 	protected:
 	//	explicitly forward some function
 		using base_type::set_shape_ip_flag;
-		using base_type::upwind_shape_sh;
-		using base_type::upwind_shape_ip;
-		using base_type::conv_length;
-		using base_type::ip_vel;
 		using base_type::register_update_func;
 
 	public:
@@ -359,7 +505,11 @@ class NavierStokesSkewedUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		bool update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue);
+		bool compute(const FV1Geometry<TElem, dim>* geo,
+		             const std::vector<MathVector<dim> >& vIPVel,
+		             std::vector<std::vector<number> >& vUpShapeSh,
+		             std::vector<std::vector<number> >& vUpShapeIp,
+		             std::vector<number>& vConvLength);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -381,9 +531,14 @@ class NavierStokesSkewedUpwind
 		void register_func()
 		{
 			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef bool (this_type::*TFunc)(const TGeom* geo, const LocalVector& vCornerValue);
+			typedef bool (this_type::*TFunc)(
+									const TGeom* obj,
+									const std::vector<MathVector<dim> >& vIPVel,
+									std::vector<std::vector<number> >& vUpShapeSh,
+									std::vector<std::vector<number> >& vUpShapeIp,
+									std::vector<number>& vConvLength);
 
-			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
 };
 
@@ -408,10 +563,6 @@ class NavierStokesLinearProfileSkewedUpwind
 	protected:
 	//	explicitly forward some function
 		using base_type::set_shape_ip_flag;
-		using base_type::upwind_shape_sh;
-		using base_type::upwind_shape_ip;
-		using base_type::conv_length;
-		using base_type::ip_vel;
 		using base_type::register_update_func;
 
 	public:
@@ -429,7 +580,11 @@ class NavierStokesLinearProfileSkewedUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		bool update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue);
+		bool compute(const FV1Geometry<TElem, dim>* geo,
+		             const std::vector<MathVector<dim> >& vIPVel,
+		             std::vector<std::vector<number> >& vUpShapeSh,
+		             std::vector<std::vector<number> >& vUpShapeIp,
+		             std::vector<number>& vConvLength);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -451,9 +606,14 @@ class NavierStokesLinearProfileSkewedUpwind
 		void register_func()
 		{
 			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef bool (this_type::*TFunc)(const TGeom* geo, const LocalVector& vCornerValue);
+			typedef bool (this_type::*TFunc)(
+									const TGeom* obj,
+									const std::vector<MathVector<dim> >& vIPVel,
+									std::vector<std::vector<number> >& vUpShapeSh,
+									std::vector<std::vector<number> >& vUpShapeIp,
+									std::vector<number>& vConvLength);
 
-			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
 };
 
@@ -479,10 +639,6 @@ class NavierStokesPositiveUpwind
 	protected:
 	//	explicitly forward some function
 		using base_type::set_shape_ip_flag;
-		using base_type::upwind_shape_sh;
-		using base_type::upwind_shape_ip;
-		using base_type::conv_length;
-		using base_type::ip_vel;
 		using base_type::register_update_func;
 
 	public:
@@ -498,7 +654,11 @@ class NavierStokesPositiveUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		bool update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue);
+		bool compute(const FV1Geometry<TElem, dim>* geo,
+		             const std::vector<MathVector<dim> >& vIPVel,
+		             std::vector<std::vector<number> >& vUpShapeSh,
+		             std::vector<std::vector<number> >& vUpShapeIp,
+		             std::vector<number>& vConvLength);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -520,9 +680,14 @@ class NavierStokesPositiveUpwind
 		void register_func()
 		{
 			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef bool (this_type::*TFunc)(const TGeom* geo, const LocalVector& vCornerValue);
+			typedef bool (this_type::*TFunc)(
+									const TGeom* obj,
+									const std::vector<MathVector<dim> >& vIPVel,
+									std::vector<std::vector<number> >& vUpShapeSh,
+									std::vector<std::vector<number> >& vUpShapeIp,
+									std::vector<number>& vConvLength);
 
-			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
 };
 

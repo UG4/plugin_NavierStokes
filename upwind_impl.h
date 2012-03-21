@@ -38,11 +38,28 @@ register_update_func(TAssFunc func)
 	size_t id = GetUniqueFVGeomID<TFVGeom>();
 
 //	make sure that there is enough space
-	if((size_t)id >= m_vUpdateFunc.size())
-		m_vUpdateFunc.resize(id+1, NULL);
+	if((size_t)id >= m_vComputeFunc.size())
+		m_vComputeFunc.resize(id+1, NULL);
 
 //	set pointer
-	m_vUpdateFunc[id] = (UpdateFunc)func;
+	m_vComputeFunc[id] = (ComputeFunc)func;
+}
+
+template <int dim>
+template <typename TFVGeom, typename TAssFunc>
+void
+INavierStokesUpwind<dim>::
+register_update_ip_vel_func(TAssFunc func)
+{
+//	get unique geometry id
+	size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+//	make sure that there is enough space
+	if((size_t)id >= m_vUpdateIPVelFunc.size())
+		m_vUpdateIPVelFunc.resize(id+1, NULL);
+
+//	set pointer
+	m_vUpdateIPVelFunc[id] = (UpdateIPVelFunc)func;
 }
 
 //	set the Geometry type to use for next updates
@@ -56,10 +73,17 @@ set_geometry_type()
 	size_t id = GetUniqueFVGeomID<TFVGeom>();
 
 //	check that function exists
-	if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == NULL)
+	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
 	{
 		UG_LOG("ERROR in 'INavierStokesUpwind::set_geometry_type':"
 				" No update function registered for this Geometry.\n");
+		return false;
+	}
+
+	if(id >= m_vUpdateIPVelFunc.size() || m_vUpdateIPVelFunc[id] == NULL)
+	{
+		UG_LOG("ERROR in 'INavierStokesUpwind::set_geometry_type':"
+				" No update ip vel function registered for this Geometry.\n");
 		return false;
 	}
 
@@ -85,15 +109,22 @@ set_sizes(size_t numScvf, size_t numSh)
 	m_numSh = numSh;
 
 //	adjust arrays
-	m_vConvLength.resize(m_numScvf, 0);
 	m_vIPVel.resize(m_numScvf);
+
+	m_vUpConvLength.resize(m_numScvf, 0);
+	m_vDownConvLength.resize(m_numScvf, 0);
+
 	m_vUpShapeSh.resize(m_numScvf);
+	m_vDownShapeSh.resize(m_numScvf);
 	m_vUpShapeIp.resize(m_numScvf);
+	m_vDownShapeIp.resize(m_numScvf);
 
 	for(size_t i = 0; i < m_numScvf; ++i)
 	{
 		m_vUpShapeSh[i].resize(m_numSh, 0);
+		m_vDownShapeSh[i].resize(m_numSh, 0);
 		m_vUpShapeIp[i].resize(m_numScvf, 0);
+		m_vDownShapeIp[i].resize(m_numScvf, 0);
 	}
 }
 
@@ -124,15 +155,11 @@ upwind_vel(size_t scvf) const
 	return vel;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// No Upwind
-/////////////////////////////////////////////////////////////////////////////
-
-template <int TDim>
+template <int dim>
 template <typename TElem>
 bool
-NavierStokesNoUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
+INavierStokesUpwind<dim>::
+update_ip_vel(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 {
 //	set shapes
 	for(size_t i = 0; i < geo->num_scvf(); ++i)
@@ -143,21 +170,46 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 	//  reset IP velocity values to zero
 	    VecSet(ip_vel(i), 0.0);
 
+	// 	Compute the Velocity in IPs
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+			for(size_t d = 0; d < (size_t)dim; ++d)
+				ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
+	}
+
+	return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// No Upwind
+/////////////////////////////////////////////////////////////////////////////
+
+template <int TDim>
+template <typename TElem>
+bool
+NavierStokesNoUpwind<TDim>::
+compute(const FV1Geometry<TElem, dim>* geo,
+        const std::vector<MathVector<dim> >& vIPVel,
+      	std::vector<std::vector<number> >& vUpShapeSh,
+       	std::vector<std::vector<number> >& vUpShapeIp,
+       	std::vector<number>& vConvLength)
+{
+//	set shapes
+	for(size_t i = 0; i < geo->num_scvf(); ++i)
+	{
+	//	get SubControlVolumeFace
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 		{
 		//	set upwind shape
-			upwind_shape_sh(i,sh) = scvf.shape(sh);
-
-		// 	Compute the Velocity in IPs
-			for(size_t d = 0; d < (size_t)dim; ++d)
-				ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
+			vUpShapeSh[i][sh] = scvf.shape(sh);
 		}
 
 	//	compute convection length
 	//  \todo: (optional) A convection length is not really defined for no upwind.
 	//	       but in the computation of a stabilization the term cancels, so
 	//   	   we only have to ensure that the conv_lengh is non-zero
-        conv_length(i) = 1.0;
+        vConvLength[i] = 1.0;
 	}
 
 //	we're done
@@ -172,7 +224,11 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesFullUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
+compute(const FV1Geometry<TElem, dim>* geo,
+        const std::vector<MathVector<dim> >& vIPVel,
+       	std::vector<std::vector<number> >& vUpShapeSh,
+       	std::vector<std::vector<number> >& vUpShapeIp,
+       	std::vector<number>& vConvLength)
 {
 //	two help vectors
 	MathVector<dim> dist;
@@ -186,35 +242,26 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
     //	get SubControlVolumeFace
 		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
 
-    //  reset IP velocity values to zero
-        VecSet(ip_vel(i), 0.0);
-    //  reset shapes to zero for all IPs and get Velocity in IPs
+    //  reset shapes to zero for all IPs
         for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
-        {
-        // 	for all components in corners
-        	upwind_shape_sh(i,sh)=0.0;
-
-        // 	Compute the Velocity in IPs
-        	for(size_t d = 0; d < (size_t)dim; ++d)
-        		ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
-        }
+        	vUpShapeSh[i][sh]=0.0;
 
     // 	switch upwind
-        const number flux = VecDot(scvf.normal(), ip_vel(i));
+        const number flux = VecDot(scvf.normal(), vIPVel[i]);
         if(flux > 0.0)
         {
-        	upwind_shape_sh(i,scvf.from()) = 1.0;
+        	vUpShapeSh[i][scvf.from()] = 1.0;
             VecSubtract(dist, scvf.global_ip(), corners[scvf.from()]);
         }
         else
         {
-        	upwind_shape_sh(i,scvf.to()) = 1.0;
+        	vUpShapeSh[i][scvf.to()] = 1.0;
             VecSubtract(dist, scvf.global_ip(), corners[scvf.to()]);
         }
 
      // compute convection length as distance between upwind point and
      // integration point
-        conv_length(i) = VecTwoNorm(dist);
+        vConvLength[i] = VecTwoNorm(dist);
     }
 
 //	we're done
@@ -279,7 +326,11 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesSkewedUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
+compute(const FV1Geometry<TElem, dim>* geo,
+        const std::vector<MathVector<dim> >& vIPVel,
+      	std::vector<std::vector<number> >& vUpShapeSh,
+       	std::vector<std::vector<number> >& vUpShapeIp,
+       	std::vector<number>& vConvLength)
 {
 // 	corners of geometry
 	const MathVector<dim>* vCornerCoords = geo->corners();
@@ -290,33 +341,28 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
     //	get SubControlVolumeFace
 		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
 
-	// 	reset shapes to zero and extract ip vel
-		VecSet(ip_vel(i), 0.0);
+	// 	reset shapes to zero
  		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-		{
-			upwind_shape_sh(i,sh) = 0.0;
-	      	for(size_t d = 0; d < (size_t)dim; ++d)
-	      		ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
-		}
+ 			vUpShapeSh[i][sh] = 0.0;
 
 	// 	upwind corner
 		size_t sh = 0;
 
 	// 	find upwind node
 		if(!GetNodeNextToCut<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
-					(sh, scvf.global_ip(), ip_vel(i), vCornerCoords))
+					(sh, scvf.global_ip(), vIPVel[i], vCornerCoords))
 		{
 			UG_LOG("ERROR in GetSkewedUpwindShapes: Cannot find upwind node.\n");
 			return false;
 		}
 
 	// 	set upwind corner
-		upwind_shape_sh(i,sh) = 1.0;
+		vUpShapeSh[i][sh] = 1.0;
 
 	//	compute convection length
 		MathVector<dim> dist;
 	    VecSubtract(dist, scvf.global_ip(), vCornerCoords[sh]);
-        conv_length(i) = VecTwoNorm(dist);
+	    vConvLength[i] = VecTwoNorm(dist);
 	}
 
 //	we're done
@@ -327,7 +373,11 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesLinearProfileSkewedUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
+compute(const FV1Geometry<TElem, dim>* geo,
+        const std::vector<MathVector<dim> >& vIPVel,
+       	std::vector<std::vector<number> >& vUpShapeSh,
+       	std::vector<std::vector<number> >& vUpShapeIp,
+       	std::vector<number>& vConvLength)
 {
 // 	corners of geometry
 	const MathVector<dim>* vCornerCoords = geo->corners();
@@ -338,26 +388,21 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
     //	get SubControlVolumeFace
 		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
 
-	// 	reset shapes to zero and extract ip vel
-		VecSet(ip_vel(i), 0.0);
+	// 	reset shapes to zero
  		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-		{
-			upwind_shape_sh(i,sh) = 0.0;
-	      	for(size_t d = 0; d < (size_t)dim; ++d)
-	      		ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
-		}
+ 			vUpShapeSh[i][sh] = 0.0;
 
- 		if(VecTwoNorm(ip_vel(i)) == 0.0)
+ 		if(VecTwoNorm(vIPVel[i]) == 0.0)
  		{
  		//	no upwind -> central differences
  			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
- 				upwind_shape_sh(i,sh) = scvf.shape(sh);
+ 				vUpShapeSh[i][sh] = scvf.shape(sh);
 
  		//	compute convection length
  		//  \todo: (optional) A convection length is not really defined for no upwind.
  		//	       but in the computation of a stabilization the term cancels, so
  		//   	   we only have to ensure that the conv_lengh is non-zero
- 	        conv_length(i) = 1.0;
+ 			vConvLength[i] = 1.0;
 
  	    //	next ip
  			continue;
@@ -372,7 +417,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
  	// 	find local intersection and side
  		if(!ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
  			(	side, globalIntersection, localIntersection,
- 				scvf.global_ip(), ip_vel(i), false /* search upwind */, vCornerCoords))
+ 				scvf.global_ip(), vIPVel[i], false /* search upwind */, vCornerCoords))
  		{
  			UG_LOG("ERROR in GetLinearProfileSkewedUpwindShapes: Cannot find cut side.\n");
  			return false;
@@ -396,13 +441,13 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
  			const size_t co = rRefElem.id(dim-1, side, 0, j);
 
  		//	evaluate trial space
- 			upwind_shape_sh(j,co) = TrialSpace.shape(co, localIntersection);
+ 			vUpShapeSh[j][co] = TrialSpace.shape(co, localIntersection);
  		}
 
  	//	compute conv length
 		MathVector<dim> dist;
 	    VecSubtract(dist, scvf.global_ip(), globalIntersection);
-        conv_length(i) = VecTwoNorm(dist);
+        vConvLength[i] = VecTwoNorm(dist);
 	}
 
 //	we're done
@@ -415,7 +460,11 @@ template <int TDim>
 template <typename TElem>
 bool
 NavierStokesPositiveUpwind<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
+compute(const FV1Geometry<TElem, dim>* geo,
+        const std::vector<MathVector<dim> >& vIPVel,
+       	std::vector<std::vector<number> >& vUpShapeSh,
+       	std::vector<std::vector<number> >& vUpShapeIp,
+       	std::vector<number>& vConvLength)
 {
 
 //	1. Reset values and compute ip velocities and Compute mass fluxes at ip's
@@ -429,21 +478,16 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 	//	get SubControlVolumeFace
 		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
 
-	// 	reset shapes w.r.t corner value to zero and extract ip vel
-		VecSet(ip_vel(i), 0.0);
+	// 	reset shapes w.r.t corner value to zero
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-		{
-			upwind_shape_sh(i,sh) = 0.0;
-			for(size_t d = 0; d < (size_t)dim; ++d)
-				ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
-		}
+			vUpShapeSh[i][sh] = 0.0;
 
 	// 	reset shapes w.r.t. ip value to zero and extract ip vel
 		for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-			upwind_shape_ip(i,ip) = 0.0;
+			vUpShapeIp[i][ip] = 0.0;
 
 	//	compute flux
-		vMassFlux[i] = VecProd(ip_vel(i), scvf.normal());
+		vMassFlux[i] = VecProd(vIPVel[i], scvf.normal());
 	}
 
 
@@ -495,12 +539,12 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 					if(vFlux[j] < 0)
 					{
 					//	set ip shapes
-						upwind_shape_ip(i, j) = -1.0 * vFlux[j] / F;
-						sum += upwind_shape_ip(i, j);
+						vUpShapeIp[i][j] = -1.0 * vFlux[j] / F;
+						sum += vUpShapeIp[i][j];
 					}
 				}
 			//	set nodal shapes
-				upwind_shape_sh(i, sh) = 1.0 - sum;
+				vUpShapeIp[i][sh] = 1.0 - sum;
 			}
 		}
 	}
@@ -519,14 +563,14 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 
 	//	sum up contributions
         for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
-        	VecScaleAppend(upPos, upwind_shape_sh(i, sh), vCornerCoords[sh]);
+        	VecScaleAppend(upPos, vUpShapeSh[i][sh], vCornerCoords[sh]);
         for (size_t j = 0; j < geo->num_scvf(); ++j)
-        	VecScaleAppend(upPos, upwind_shape_sh(i, j), geo->scvf(j).global_ip());
+        	VecScaleAppend(upPos, vUpShapeIp[i][j], geo->scvf(j).global_ip());
 
     //	save convection length
 		MathVector<dim> dist;
 	    VecSubtract(dist, scvf.global_ip(), upPos);
-        conv_length(i) = VecTwoNorm(dist);
+        vConvLength[i] = VecTwoNorm(dist);
 	}
 
 //	we're done
