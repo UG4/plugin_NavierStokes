@@ -571,11 +571,16 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 					vIPVelCurrent[d] += scvf.shape(sh) * vCornerValue(d, sh);
 
 		//	cache values
-			const number normIPVelCurrent = VecTwoNorm(vIPVelCurrent);
 			const number viscoPerDiffLenSq = kinVisco[ip] * diff_length_sq_inv(ip);
-			const number normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
-			const number normIPVelPerDownLen = normIPVelCurrent /
-											(downwind_conv_length(ip) + upwind_conv_length(ip));
+
+			number normIPVelCurrent = 0.0, normIPVelPerConvLen = 0.0, normIPVelPerDownLen = 0.0;
+			if(!bStokes)
+			{
+				normIPVelCurrent = VecTwoNorm(vIPVelCurrent);
+				normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
+				normIPVelPerDownLen = normIPVelCurrent /
+									  (downwind_conv_length(ip) + upwind_conv_length(ip));
+			}
 
 		// 	Loop components of velocity
 			for(int d = 0; d < dim; d++)
@@ -629,10 +634,12 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 
 				//	Convective term (no convective terms in the Stokes eq.)
 					if (! bStokes)
+					{
 						sum += normIPVelPerConvLen * upwind_shape_sh(ip, k);
 
-				//	\todo: think about, if used in stokes case
-					sum += normIPVelPerDownLen * (downwind_shape_sh(ip, k) - upwind_shape_sh(ip, k));
+						sum += normIPVelPerDownLen *
+								(downwind_shape_sh(ip, k) - upwind_shape_sh(ip, k));
+					}
 
 					for(int d2 = 0; d2 < dim; ++d2)
 					{
@@ -651,11 +658,11 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 					{
 						if(d2 == d) continue;
 
-						number sum2 = vIPVelCurrent[d2] * (scvf.global_grad(k))[d2];
-
-						stab_shape_vel(ip, d, d2, k) = sum2 / diag;
+						const number sum2 = vIPVelCurrent[d] * (scvf.global_grad(k))[d2];
 
 						rhs += sum2 * vCornerValue(d2, k);
+
+						stab_shape_vel(ip, d, d2, k) = sum2 / diag;
 					}
 
 				//	Pressure part
