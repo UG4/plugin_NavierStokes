@@ -278,8 +278,11 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			{
 				J(d1, scvf.from(), d1, sh) += flux_sh;
 				J(d1, scvf.to()  , d1, sh) -= flux_sh;
+			}
 
-				if(!m_bLaplace)
+			if(!m_bLaplace)
+			{
+				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					{
 						const number flux2_sh = -1.0 * m_imKinViscosity[i]
