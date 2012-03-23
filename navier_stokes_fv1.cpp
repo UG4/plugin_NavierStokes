@@ -324,8 +324,14 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				if(m_bPecletBlend)
 					w = peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[i]);
 	
+		//	\todo: implement the linearization in a clean way
+				MathVector<dim> StdVel; VecSet(StdVel, 0.0);
+				for(size_t sh2 = 0; sh2 < scvf.num_sh(); ++sh2)
+					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						StdVel[d1] += u(d1, sh2) * scvf.shape(sh2);
+
 			//	compute product of stabilized vel and normal
-				const number prod = VecProd(UpwindVel, scvf.normal());
+				const number prod = VecProd(StdVel, scvf.normal());
 	
 			///////////////////////////////////
 			//	Add fixpoint linearization
