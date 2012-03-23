@@ -279,13 +279,14 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				J(d1, scvf.from(), d1, sh) += flux_sh;
 				J(d1, scvf.to()  , d1, sh) -= flux_sh;
 
-				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-				{
-					const number flux2_sh = -1.0 * m_imKinViscosity[i]
-											* scvf.global_grad(sh)[d1] * scvf.normal()[d2];
-					J(d1, scvf.from(), d2, sh) += flux2_sh;
-					J(d1, scvf.to()  , d2, sh) -= flux2_sh;
-				}
+				if(!m_bLaplace)
+					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+					{
+						const number flux2_sh = -1.0 * m_imKinViscosity[i]
+												* scvf.global_grad(sh)[d1] * scvf.normal()[d2];
+						J(d1, scvf.from(), d2, sh) += flux2_sh;
+						J(d1, scvf.to()  , d2, sh) -= flux2_sh;
+					}
 			}
 
 			////////////////////////////////////////////////////
@@ -629,7 +630,8 @@ assemble_A(LocalVector& d, const LocalVector& u)
 		MatVecMult(diffFlux, gradVel, scvf.normal());
 
 	//	Add (\nabla u)^T \cdot \vec{n}
-		TransposedMatVecMultAdd(diffFlux, gradVel, scvf.normal());
+		if(!m_bLaplace)
+			TransposedMatVecMultAdd(diffFlux, gradVel, scvf.normal());
 
 	//	scale by viscosity
 		VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[i]);
@@ -859,7 +861,11 @@ peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
 template<typename TDomain>
 FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc(const char* functions, const char* subsets)
 : IDomainElemDisc<TDomain>(functions, subsets),
-  m_pStab(NULL), m_pConvStab(NULL), m_pConvUpwind(NULL)
+  m_bStokes(false),
+  m_bLaplace(false),
+  m_pStab(NULL),
+  m_pConvStab(NULL),
+  m_pConvUpwind(NULL)
 {
 //	check number of functions
 	if(this->num_fct() != dim+1)

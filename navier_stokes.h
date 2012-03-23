@@ -171,6 +171,21 @@ class FVNavierStokesElemDisc
 		void set_stokes(bool Stokes)
 			{m_bStokes = Stokes;}
 
+		//\todo: handle internally
+	///	sets assembling of diffusive term to laplace
+	/**
+	 * Flag to indicate, that in the diffusive term only the laplacian should
+	 * be computed. This is valid only in cases, where the viscosity is
+	 * constant, since then it holds that
+	 *
+	 *  div ( \nu (grad) v + (grad v)^T )
+	 *  	=  \nu laplace v + \nu grad( div v )
+	 *  	=  \nu laplace v
+	 *
+	 * for incompressible flow (i.e. div v = 0).
+	 */
+		void set_laplace(bool bLaplace) {m_bLaplace = bLaplace;}
+
 	///	sets a stabilization for upwinding (Physical Advection Correction)
         void set_conv_upwind(INavierStokesStabilization<dim>& stab)
         	{m_pConvStab = &stab; m_pConvUpwind = NULL;}
@@ -518,6 +533,9 @@ class FVNavierStokesElemDisc
 
 	/// flag if solving the Stokes equation
 		bool m_bStokes;
+
+	///	flag if using only laplace term
+		bool m_bLaplace;
 
 	///	Data import for source
 		DataImport<MathVector<dim>, dim> m_imSource;
