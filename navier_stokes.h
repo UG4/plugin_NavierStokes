@@ -168,7 +168,7 @@ class FVNavierStokesElemDisc
 	/**
 	 * \param[in]	Stokes		true to solve Stokes (i.e. without the convective terms)
 	 */
-		void set_Stokes(bool Stokes)
+		void set_stokes(bool Stokes)
 			{m_bStokes = Stokes;}
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)

@@ -664,8 +664,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					StdVel[d1] += u(d1, sh) * scvf.shape(sh);
-	
-	
+
 		//	compute product of upwinded (and blended) velocity and normal
 			//const number prod = VecProd(UpwindVel, scvf.normal());
 			const number prod = VecProd(StdVel, scvf.normal());
@@ -862,7 +861,7 @@ FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc(const char* functions, c
 					   " needs exactly "<<dim+1<<" symbolic function.");
 
 //	set default options
-	set_Stokes(false);
+	set_stokes(false);
 	set_peclet_blend(false);
 	set_exact_jacobian(false);
 

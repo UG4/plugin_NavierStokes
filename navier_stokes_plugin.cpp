@@ -90,6 +90,7 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 			.add_method("set_conv_upwind",  static_cast<void (T::*)(INavierStokesUpwind<dim>&)>(&T::set_conv_upwind))
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
+			.add_method("set_stokes", &T::set_stokes)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "FV1NavierStokes", dimTag);
 	}
