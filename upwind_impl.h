@@ -134,7 +134,7 @@ MathVector<dim>
 INavierStokesUpwind<dim>::
 upwind_vel(size_t scvf) const
 {
-	UG_ASSERT(m_pCornerValue != NULL, "corner vals not set.");
+	UG_NSUPWIND_ASSERT(m_pCornerValue != NULL, "corner vals not set.");
 
 //	reset result
 	MathVector<dim> vel; VecSet(vel, 0.0);

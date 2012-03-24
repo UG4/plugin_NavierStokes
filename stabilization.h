@@ -8,6 +8,10 @@
 #ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__STABILIZATION__
 #define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__STABILIZATION__
 
+#define UG_NSSTAB_ASSERT(cond, exp)
+// include define below to assert arrays used in stabilization
+//#define UG_NSSTAB_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
+
 #include "upwind.h"
 
 namespace ug{
@@ -63,14 +67,14 @@ class INavierStokesStabilization
 	///	diff length
 		number diff_length_sq_inv(size_t scvf) const
 		{
-			UG_ASSERT(scvf < m_vDiffLengthSqInv.size(), "Invalid index");
+			UG_NSSTAB_ASSERT(scvf < m_vDiffLengthSqInv.size(), "Invalid index");
 			return m_vDiffLengthSqInv[scvf];
 		}
 
 	/// stabilized velocity
 		const MathVector<dim>& stab_vel(size_t scvf) const
 		{
-			UG_ASSERT(scvf < m_vStabVel.size(), "Invalid index");
+			UG_NSSTAB_ASSERT(scvf < m_vStabVel.size(), "Invalid index");
 			return m_vStabVel[scvf];
 		}
 
@@ -81,19 +85,19 @@ class INavierStokesStabilization
 	/// w.r.t velocity unknowns in the corner for each component
 		number stab_shape_vel(size_t scvf, size_t compOut, size_t compIn, size_t sh) const
 		{
-			UG_ASSERT(scvf < m_vvvvStabShapeVel.size(), "Invalid index.");
-			UG_ASSERT(compOut < m_vvvvStabShapeVel[scvf].size(), "Invalid index.");
-			UG_ASSERT(compIn < m_vvvvStabShapeVel[scvf][compOut].size(), "Invalid index.");
-			UG_ASSERT(sh < m_vvvvStabShapeVel[scvf][compOut][compIn].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapeVel.size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapeVel[scvf].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(compIn < m_vvvvStabShapeVel[scvf][compOut].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapeVel[scvf][compOut][compIn].size(), "Invalid index.");
 			return m_vvvvStabShapeVel[scvf][compOut][compIn][sh];
 		}
 
 	///	computed stab shape for pressure.
 		number stab_shape_p(size_t scvf, size_t compOut, size_t sh) const
 		{
-			UG_ASSERT(scvf < m_vvvvStabShapePressure.size(), "Invalid index.");
-			UG_ASSERT(compOut < m_vvvvStabShapePressure[scvf].size(), "Invalid index.");
-			UG_ASSERT(sh < m_vvvvStabShapePressure[scvf][compOut].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapePressure.size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapePressure[scvf].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapePressure[scvf][compOut].size(), "Invalid index.");
 			return m_vvvvStabShapePressure[scvf][compOut][sh];
 		}
 
@@ -116,49 +120,49 @@ class INavierStokesStabilization
 	///	Convection Length
 		number upwind_conv_length(size_t scvf) const
 		{
-			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->upwind_conv_length(scvf);
 		}
 
 	///	Convection Length
 		number downwind_conv_length(size_t scvf) const
 		{
-			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->downwind_conv_length(scvf);
 		}
 
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->upwind_shape_sh(scvf, sh);
 		}
 
 	///	upwind shape for corner vel
 		number downwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->downwind_shape_sh(scvf, sh);
 		}
 
 	///	returns if upwind shape w.r.t. ip vel is non-zero
 		bool non_zero_shape_ip() const
 		{
-			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->non_zero_shape_ip();
 		}
 
 	///	upwind shapes for ip vel
 		number upwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->upwind_shape_ip(scvf, scvf2);
 		}
 
 	///	upwind shapes for ip vel
 		number downwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_ASSERT(m_pConstUpwind != NULL, "No upwind object");
+			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
 			return m_pConstUpwind->downwind_shape_ip(scvf, scvf2);
 		}
 
@@ -216,7 +220,7 @@ class INavierStokesStabilization
 	/// stabilized velocity
 		MathVector<dim>& stab_vel(size_t scvf)
 		{
-			UG_ASSERT(scvf < m_vStabVel.size(), "Invalid index");
+			UG_NSSTAB_ASSERT(scvf < m_vStabVel.size(), "Invalid index");
 			return m_vStabVel[scvf];
 		}
 
@@ -224,19 +228,19 @@ class INavierStokesStabilization
 	/// w.r.t velocity unknowns in the corner for each component
 		number& stab_shape_vel(size_t scvf, size_t compOut, size_t compIn, size_t sh)
 		{
-			UG_ASSERT(scvf < m_vvvvStabShapeVel.size(), "Invalid index.");
-			UG_ASSERT(compOut < m_vvvvStabShapeVel[scvf].size(), "Invalid index.");
-			UG_ASSERT(compIn < m_vvvvStabShapeVel[scvf][compOut].size(), "Invalid index.");
-			UG_ASSERT(sh < m_vvvvStabShapeVel[scvf][compOut][compIn].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapeVel.size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapeVel[scvf].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(compIn < m_vvvvStabShapeVel[scvf][compOut].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapeVel[scvf][compOut][compIn].size(), "Invalid index.");
 			return m_vvvvStabShapeVel[scvf][compOut][compIn][sh];
 		}
 
 	///	computed stab shape for pressure.
 		number& stab_shape_p(size_t scvf, size_t compOut, size_t sh)
 		{
-			UG_ASSERT(scvf < m_vvvvStabShapePressure.size(), "Invalid index.");
-			UG_ASSERT(compOut < m_vvvvStabShapePressure[scvf].size(), "Invalid index.");
-			UG_ASSERT(sh < m_vvvvStabShapePressure[scvf][compOut].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapePressure.size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapePressure[scvf].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapePressure[scvf][compOut].size(), "Invalid index.");
 			return m_vvvvStabShapePressure[scvf][compOut][sh];
 		}
 

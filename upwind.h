@@ -8,6 +8,10 @@
 #ifndef NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
 #define NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
 
+#define UG_NSUPWIND_ASSERT(cond, exp)
+// include define below to assert arrays used in stabilization
+//#define UG_NSUPWIND_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
+
 #include <vector>
 
 #include "lib_disc/common/local_algebra.h"
@@ -57,21 +61,21 @@ class INavierStokesUpwind
 	///	Convection Length
 		number upwind_conv_length(size_t scvf) const
 		{
-			UG_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
 			return m_vUpConvLength[scvf];
 		}
 
 	///	Convection Length
 		number downwind_conv_length(size_t scvf) const
 		{
-			UG_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
 			return m_vDownConvLength[scvf];
 		}
 
 	///	ip velocity (i.e. interpolated velocity at ip)
 		const MathVector<dim>& ip_vel(size_t scvf) const
 		{
-			UG_ASSERT(scvf < m_vIPVel.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vIPVel.size(), "Invalid index");
 			return m_vIPVel[scvf];
 		}
 
@@ -81,16 +85,16 @@ class INavierStokesUpwind
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_ASSERT(scvf < m_vUpShapeSh.size(), "Invalid index");
-			UG_ASSERT(sh < m_vUpShapeSh[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeSh.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_vUpShapeSh[scvf].size(), "Invalid index");
 			return m_vUpShapeSh[scvf][sh];
 		}
 
 	///	upwind shape for corner vel
 		number downwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
-			UG_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
 			return m_vDownShapeSh[scvf][sh];
 		}
 
@@ -100,16 +104,16 @@ class INavierStokesUpwind
 	///	upwind shapes for ip vel
 		number upwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_ASSERT(scvf < m_vUpShapeIp.size(), "Invalid index");
-			UG_ASSERT(scvf2 < m_vUpShapeIp[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeIp.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_vUpShapeIp[scvf].size(), "Invalid index");
 			return m_vUpShapeIp[scvf][scvf2];
 		}
 
 	///	upwind shapes for ip vel
 		number downwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
-			UG_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
 			return m_vDownShapeIp[scvf][scvf2];
 		}
 
@@ -159,53 +163,53 @@ class INavierStokesUpwind
 	/// non-const access to ip velocity (i.e. interpolated velocity at ip)
 		MathVector<dim>& ip_vel(size_t scvf)
 		{
-			UG_ASSERT(scvf < m_vIPVel.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vIPVel.size(), "Invalid index");
 			return m_vIPVel[scvf];
 		}
 
 	///	non-const access to upwind shapes for corner vel
 		number& upwind_shape_sh(size_t scvf, size_t sh)
 		{
-			UG_ASSERT(scvf < m_vUpShapeSh.size(), "Invalid index");
-			UG_ASSERT(sh < m_vUpShapeSh[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeSh.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_vUpShapeSh[scvf].size(), "Invalid index");
 			return m_vUpShapeSh[scvf][sh];
 		}
 
 	///	non-const access to upwind shapes for corner vel
 		number& downwind_shape_sh(size_t scvf, size_t sh)
 		{
-			UG_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
-			UG_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
 			return m_vDownShapeSh[scvf][sh];
 		}
 
 	///	non-const access to upwind shapes for ip vel
 		number& upwind_shape_ip(size_t scvf, size_t scvf2)
 		{
-			UG_ASSERT(scvf < m_vUpShapeIp.size(), "Invalid index");
-			UG_ASSERT(scvf2 < m_vUpShapeIp[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeIp.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_vUpShapeIp[scvf].size(), "Invalid index");
 			return m_vUpShapeIp[scvf][scvf2];
 		}
 
 	///	non-const access to upwind shapes for ip vel
 		number& downwind_shape_ip(size_t scvf, size_t scvf2)
 		{
-			UG_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
-			UG_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
 			return m_vDownShapeIp[scvf][scvf2];
 		}
 
 	///	non-const access to Convection Length
 		number& upwind_conv_length(size_t scvf)
 		{
-			UG_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
 			return m_vUpConvLength[scvf];
 		}
 
 	///	non-const access to Convection Length
 		number& down_upwind_conv_length(size_t scvf)
 		{
-			UG_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
 			return m_vDownConvLength[scvf];
 		}
 
