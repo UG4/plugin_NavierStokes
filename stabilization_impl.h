@@ -63,7 +63,7 @@ set_geometry_type()
 	m_numSh = geo.num_scv();
 
 //	set sizes in upwind
-	if(m_pUpwind != NULL) m_pUpwind->set_geometry_type<TFVGeom>();
+	if(m_spUpwind != NULL) m_spUpwind->set_geometry_type<TFVGeom>();
 	else UG_THROW_FATAL("Upwind missing.");
 }
 
@@ -103,11 +103,11 @@ INavierStokesStabilization<dim>::
 compute_upwind(const TFVGeom& geo, const LocalVector& vCornerValue)
 {
 //	check, that upwind has been set
-	if(m_pUpwind == NULL)
+	if(m_spUpwind == NULL)
        	UG_THROW_FATAL("No upwind method has been specified.");
 
 //	compute upwind
-	m_pUpwind->update(geo, vCornerValue);
+	m_spUpwind->update(geo, vCornerValue);
 }
 
 template <int dim>
@@ -117,11 +117,11 @@ INavierStokesStabilization<dim>::
 compute_downwind(const TFVGeom& geo)
 {
 //	check, that upwind has been set
-	if(m_pUpwind == NULL)
+	if(m_spUpwind == NULL)
        	UG_THROW_FATAL("No upwind method has been specified.");
 
 //	compute downwind
-	m_pUpwind->update_downwind(geo);
+	m_spUpwind->update_downwind(geo);
 }
 
 /////////////////////////////////////////////////////////////////////////////

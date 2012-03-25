@@ -86,8 +86,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.add_method("set_kinematic_viscosity", &T::set_kinematic_viscosity)
 			.add_method("set_stabilization", &T::set_stabilization)
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(INavierStokesStabilization<dim>&)>(&T::set_conv_upwind))
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(INavierStokesUpwind<dim>&)>(&T::set_conv_upwind))
+			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesStabilization<dim> >)>(&T::set_conv_upwind))
+			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_conv_upwind))
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
 			.add_method("set_laplace", &T::set_laplace)
@@ -115,7 +115,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesNoUpwind").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor();
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesNoUpwind", dimTag);
 	}
 
@@ -125,7 +126,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesFullUpwind").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor();
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFullUpwind", dimTag);
 	}
 
@@ -135,7 +137,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesSkewedUpwind").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor();
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesSkewedUpwind", dimTag);
 	}
 
@@ -145,7 +148,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesLinearProfileSkewedUpwind").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor();
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesLinearProfileSkewedUpwind", dimTag);
 	}
 
@@ -155,7 +159,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesPositiveUpwind").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor();
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesPositiveUpwind", dimTag);
 	}
 
@@ -180,7 +185,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef INavierStokesStabilization<dim> TBase;
 		string name = string("NavierStokesFIELDSStabilization").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor();
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFIELDSStabilization", dimTag);
 	}
 
@@ -190,7 +196,8 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef INavierStokesStabilization<dim> TBase;
 		string name = string("NavierStokesFLOWStabilization").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor();
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFLOWStabilization", dimTag);
 	}
 

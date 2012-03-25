@@ -161,8 +161,8 @@ class FVNavierStokesElemDisc
 	/**
 	 * \param[in]	stab		Stabilization
 	 */
-		void set_stabilization(INavierStokesStabilization<dim>& stab)
-			{m_pStab = & stab;}
+		void set_stabilization(SmartPtr<INavierStokesStabilization<dim> > spStab)
+			{m_spStab = spStab;}
 	
 	/// switches the convective terms off (to solve the Stokes equation)
 	/**
@@ -187,12 +187,12 @@ class FVNavierStokesElemDisc
 		void set_laplace(bool bLaplace) {m_bLaplace = bLaplace;}
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)
-        void set_conv_upwind(INavierStokesStabilization<dim>& stab)
-        	{m_pConvStab = &stab; m_pConvUpwind = NULL;}
+        void set_conv_upwind(SmartPtr<INavierStokesStabilization<dim> > spStab)
+        	{m_spConvStab = spStab; m_spConvUpwind = NULL;}
 
 	///	sets an upwinding for the convective term of momentum equation
-		void set_conv_upwind(INavierStokesUpwind<dim>& upwind)
-			{m_pConvStab = NULL; m_pConvUpwind = &upwind;}
+		void set_conv_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
+			{m_spConvStab = NULL; m_spConvUpwind = spUpwind;}
 
     ///	sets if peclet blending is used in momentum equation
         void set_peclet_blend(bool pecletBlend) {m_bPecletBlend = pecletBlend;}
@@ -544,14 +544,14 @@ class FVNavierStokesElemDisc
 		DataImport<number, dim> m_imKinViscosity;
 
 	///	Stabilization for velocity in continuity equation
-		INavierStokesStabilization<dim>* m_pStab;
+		SmartPtr<INavierStokesStabilization<dim> > m_spStab;
 
 	///	Stabilization for velocity in convective term of momentum equation
 	///	Here, the stabilization is used as an upwinding
-		INavierStokesStabilization<dim>* m_pConvStab;
+		SmartPtr<INavierStokesStabilization<dim> > m_spConvStab;
 
 	///	Upwinding for velocity in convective term of momentum equation
-		INavierStokesUpwind<dim>* m_pConvUpwind;
+		SmartPtr<INavierStokesUpwind<dim> > m_spConvUpwind;
 
 	/// position access
 		const position_type* m_vCornerCoords;

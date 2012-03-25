@@ -47,7 +47,8 @@ class INavierStokesStabilization
 	public:
 	///	constructor
 		INavierStokesStabilization()
-			:  m_pUpwind(NULL), m_numScvf(0), m_numSh(0)
+			:  m_spUpwind(NULL), m_spConstUpwind(NULL),
+			   m_numScvf(0), m_numSh(0)
 		{
 			m_vUpdateFunc.clear();
 
@@ -59,14 +60,14 @@ class INavierStokesStabilization
 		void set_diffusion_length(std::string diffLength);
 
 	///	sets the upwind method
-		void set_upwind(INavierStokesUpwind<dim>& upwind)
+		void set_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
 		{
-			m_pUpwind = &upwind;
-			m_pConstUpwind = const_cast<const INavierStokesUpwind<dim>*>(m_pUpwind);
+			m_spUpwind = spUpwind;
+			m_spConstUpwind = spUpwind;
 		}
 
 	///	returns the upwind
-		const INavierStokesUpwind<dim>* upwind() const {return m_pConstUpwind;}
+		ConstSmartPtr<INavierStokesUpwind<dim> > upwind() const {return m_spConstUpwind;}
 
 	///	diff length
 		number diff_length_sq_inv(size_t scvf) const
@@ -124,50 +125,50 @@ class INavierStokesStabilization
 	///	Convection Length
 		number upwind_conv_length(size_t scvf) const
 		{
-			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->upwind_conv_length(scvf);
+			UG_NSSTAB_ASSERT(m_spConstUpwind.valid(), "No upwind object");
+			return m_spConstUpwind->upwind_conv_length(scvf);
 		}
 
 	///	Convection Length
 		number downwind_conv_length(size_t scvf) const
 		{
-			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->downwind_conv_length(scvf);
+			UG_NSSTAB_ASSERT(m_spConstUpwind.valid(), "No upwind object");
+			return m_spConstUpwind->downwind_conv_length(scvf);
 		}
 
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->upwind_shape_sh(scvf, sh);
+			UG_NSSTAB_ASSERT(m_spConstUpwind.valid(), "No upwind object");
+			return m_spConstUpwind->upwind_shape_sh(scvf, sh);
 		}
 
 	///	upwind shape for corner vel
 		number downwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->downwind_shape_sh(scvf, sh);
+			UG_NSSTAB_ASSERT(m_spConstUpwind.valid(), "No upwind object");
+			return m_spConstUpwind->downwind_shape_sh(scvf, sh);
 		}
 
 	///	returns if upwind shape w.r.t. ip vel is non-zero
 		bool non_zero_shape_ip() const
 		{
-			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->non_zero_shape_ip();
+			UG_NSSTAB_ASSERT(m_spConstUpwind.valid(), "No upwind object");
+			return m_spConstUpwind->non_zero_shape_ip();
 		}
 
 	///	upwind shapes for ip vel
 		number upwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->upwind_shape_ip(scvf, scvf2);
+			UG_NSSTAB_ASSERT(m_spConstUpwind.valid(), "No upwind object");
+			return m_spConstUpwind->upwind_shape_ip(scvf, scvf2);
 		}
 
 	///	upwind shapes for ip vel
 		number downwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_NSSTAB_ASSERT(m_pConstUpwind != NULL, "No upwind object");
-			return m_pConstUpwind->downwind_shape_ip(scvf, scvf2);
+			UG_NSSTAB_ASSERT(m_spConstUpwind.valid(), "No upwind object");
+			return m_spConstUpwind->downwind_shape_ip(scvf, scvf2);
 		}
 
 	//////////////////////////
@@ -220,8 +221,8 @@ class INavierStokesStabilization
 
 	protected:
 	///	Upwind values
-		INavierStokesUpwind<dim>* m_pUpwind;
-		const INavierStokesUpwind<dim>* m_pConstUpwind;
+		SmartPtr<INavierStokesUpwind<dim> > m_spUpwind;
+		ConstSmartPtr<INavierStokesUpwind<dim> > m_spConstUpwind;
 
 	///	number of current scvf
 		size_t m_numScvf;

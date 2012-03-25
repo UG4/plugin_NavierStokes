@@ -28,37 +28,29 @@ prepare_element_loop()
 {
 // 	Only first order implementation
 	if(!(TFVGeom<TElem, dim>::order == 1))
-	{
-		UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-				" Only first order implementation, but other Finite Volume"
-				" Geometry set.\n");
-		return false;
-	}
+		UG_THROW_FATAL("Only first order implementation, but other Finite Volume"
+						" Geometry set.");
 
 //	check, that stabilization has been set
-	if(m_pStab == NULL)
-	{
-		UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-				" Stabilization has not been set.\n");
-		return false;
-	}
+	if(m_spStab.invalid())
+		UG_THROW_FATAL("Stabilization has not been set.");
 
 //	init stabilization for element type
-	m_pStab->template set_geometry_type<TFVGeom<TElem, dim> >();
+	m_spStab->template set_geometry_type<TFVGeom<TElem, dim> >();
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	check, that convective upwinding has been set
-		if(m_pConvStab == NULL  && m_pConvUpwind == NULL)
+		if(m_spConvStab.invalid()  && m_spConvUpwind.invalid())
 			UG_THROW_FATAL("Upwinding for convective Term in Momentum eq. not set.");
 	
 	//	init convection stabilization for element type
-		if(m_pConvStab != NULL)
-			m_pConvStab->template set_geometry_type<TFVGeom<TElem, dim> >();
+		if(m_spConvStab.valid())
+			m_spConvStab->template set_geometry_type<TFVGeom<TElem, dim> >();
 	
 	//	init convection stabilization for element type
-		if(m_pConvUpwind != NULL)
-			m_pConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
+		if(m_spConvUpwind.valid())
+			m_spConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
 	}
 
 //	check, that kinematic Viscosity has been set
@@ -189,32 +181,25 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 	}
 
 //	compute stabilized velocities and shapes for continuity equation
-	m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
+	m_spStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
-		if(m_pConvStab != NULL)
-			if(m_pConvStab != m_pStab)
-				m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
+		if(m_spConvStab.valid())
+			if(m_spConvStab != m_spStab)
+				m_spConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
-		if(m_pConvUpwind != NULL)
-			if(m_pStab->upwind() != m_pConvUpwind)
-				m_pConvUpwind->update(&geo, *pSol);
+		if(m_spConvUpwind.valid())
+			if(m_spStab->upwind() != m_spConvUpwind)
+				m_spConvUpwind->update(&geo, *pSol);
 	}
 
 //	get a const (!!) reference to the stabilization
-	const INavierStokesStabilization<dim>& stab
-		= *const_cast<const INavierStokesStabilization<dim>*>(m_pStab);
-
-//	get a const (!!) reference to the stabilization of Convective Term
-	const INavierStokesStabilization<dim>& convStab
-		= *const_cast<const INavierStokesStabilization<dim>*>(m_pConvStab);
-
-//	get a const (!!) reference to the upwind of Convective Term
-	const INavierStokesUpwind<dim>& upwind
-		= *const_cast<const INavierStokesUpwind<dim>*>(m_pConvUpwind);
+	const INavierStokesStabilization<dim>& stab = *m_spStab;
+	const INavierStokesStabilization<dim>& convStab = *m_spConvStab;
+	const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0; i < geo.num_scvf(); ++i)
@@ -280,14 +265,9 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				MathVector<dim> UpwindVel;
 	
 			//	switch PAC
-				if(m_pConvUpwind != NULL)  UpwindVel = m_pConvUpwind->upwind_vel(i);
-				else if (m_pConvStab != NULL) UpwindVel = convStab.stab_vel(i);
-				else
-				{
-					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-							" Cannot find upwind for convective term.\n");
-					return false;
-				}
+				if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(i);
+				else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(i);
+				else UG_THROW_FATAL("Cannot find upwind for convective term.");
 	
 			//	peclet blend
 				number w = 1.0;
@@ -308,7 +288,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			///////////////////////////////////
 	
 			//	Stabilization used as upwind
-				if(m_pConvStab != NULL)
+				if(m_spConvStab != NULL)
 				{
 				//	velocity derivatives
 					if(stab.vel_comp_connected())
@@ -338,7 +318,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				}
 	
 			//	Upwind used as upwind
-				if(m_pConvUpwind != NULL)
+				if(m_spConvUpwind != NULL)
 				{
 					const number convFlux_vel = prod * w * upwind.upwind_shape_sh(i, sh);
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -367,7 +347,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				if(m_bExactJacobian)
 				{
 				//	Stabilization used as upwind
-					if(m_pConvStab != NULL)
+					if(m_spConvStab != NULL)
 					{
 					//	loop defect components
 						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -406,7 +386,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 					}
 	
 				//	Upwind used as upwind
-					if(m_pConvUpwind != NULL)
+					if(m_spConvUpwind != NULL)
 					{
 					//	loop defect components
 						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -523,28 +503,25 @@ assemble_A(LocalVector& d, const LocalVector& u)
 
 //	compute stabilized velocities and shapes for continuity equation
 	// \todo: (optional) Here we can skip the computation of shapes, implement?
-	m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
+	m_spStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
-		if(m_pConvStab != NULL)
-			if(m_pConvStab != m_pStab)
-				m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
+		if(m_spConvStab.valid())
+			if(m_spConvStab != m_spStab)
+				m_spConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
-		if(m_pConvUpwind != NULL)
-			if(m_pStab->upwind() != m_pConvUpwind)
-				m_pConvUpwind->update(&geo, *pSol);
+		if(m_spConvUpwind.valid())
+			if(m_spStab->upwind() != m_spConvUpwind)
+				m_spConvUpwind->update(&geo, *pSol);
 	}
 
 //	get a const (!!) reference to the stabilization
-	const INavierStokesStabilization<dim>& stab
-		= *const_cast<const INavierStokesStabilization<dim>*>(m_pStab);
-
-//	get a const (!!) reference to the stabilization of Convective Term
-	const INavierStokesStabilization<dim>& convStab
-		= *const_cast<const INavierStokesStabilization<dim>*>(m_pConvStab);
+	const INavierStokesStabilization<dim>& stab = *m_spStab;
+	const INavierStokesStabilization<dim>& convStab = *m_spConvStab;
+	const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0; i < geo.num_scvf(); ++i)
@@ -607,14 +584,9 @@ assemble_A(LocalVector& d, const LocalVector& u)
 			MathVector<dim> UpwindVel;
 	
 		//	switch PAC
-			if(m_pConvUpwind != NULL)  UpwindVel = m_pConvUpwind->upwind_vel(i);
-			else if (m_pConvStab != NULL) UpwindVel = convStab.stab_vel(i);
-			else
-			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-						" Cannot find upwind for convective term.\n");
-				return false;
-			}
+			if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(i);
+			else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(i);
+			else UG_THROW_FATAL("Cannot find upwind for convective term.");
 	
 		//	Peclet Blend
 			if(m_bPecletBlend)
@@ -817,9 +789,9 @@ FVNavierStokesElemDisc<TDomain>::FVNavierStokesElemDisc(const char* functions, c
 : IDomainElemDisc<TDomain>(functions, subsets),
   m_bStokes(false),
   m_bLaplace(false),
-  m_pStab(NULL),
-  m_pConvStab(NULL),
-  m_pConvUpwind(NULL)
+  m_spStab(NULL),
+  m_spConvStab(NULL),
+  m_spConvUpwind(NULL)
 {
 //	check number of functions
 	if(this->num_fct() != dim+1)
