@@ -8,13 +8,14 @@
 #ifndef NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
 #define NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
 
-#define UG_NSUPWIND_ASSERT(cond, exp)
+//#define UG_NSUPWIND_ASSERT(cond, exp)
 // include define below to assert arrays used in stabilization
-//#define UG_NSUPWIND_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
+#define UG_NSUPWIND_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
 
 #include <vector>
 
 #include "lib_disc/common/local_algebra.h"
+#include "lib_disc/spatial_disc/disc_util/finite_volume_util.h"
 #include "lib_disc/spatial_disc/disc_util/finite_volume_geometry.h"
 
 namespace ug{
@@ -27,6 +28,20 @@ namespace ug{
 template <int dim>
 class INavierStokesUpwind
 {
+	protected:
+	///	used traits
+		typedef fv1_dim_traits<dim, dim> traits;
+
+	public:
+	///	number of SubControlVolumes
+		static const size_t maxNumSCV = traits::maxNumSCV;
+
+	///	max number of SubControlVolumeFaces
+		static const size_t maxNumSCVF = traits::maxNumSCVF;
+
+	/// max number of shape functions
+		static const size_t maxNumSH = traits::maxNSH;
+
 	public:
 	/// Abbreviation for own type
 		typedef INavierStokesUpwind<dim> this_type;
@@ -34,19 +49,12 @@ class INavierStokesUpwind
 	public:
 	///	constructor
 		INavierStokesUpwind()
-			: m_pCornerValue(NULL), m_numScvf(0), m_numSh(0), m_bNonZeroShapeIp(true)
+			: m_pCornerValue(NULL),
+			  m_numScvf(0), m_numSh(0),
+			  m_bNonZeroShapeIp(true)
 		{
 			m_vComputeFunc.clear();
 			m_vUpdateIPVelFunc.clear();
-
-			m_vIPVel.clear();
-
-			m_vUpConvLength.clear();
-			m_vDownConvLength.clear();
-			m_vUpShapeSh.clear();
-			m_vDownShapeSh.clear();
-			m_vUpShapeIp.clear();
-			m_vDownShapeIp.clear();
 
 		//	register evaluation function
 			register_func(Int2Type<dim>());
@@ -61,21 +69,21 @@ class INavierStokesUpwind
 	///	Convection Length
 		number upwind_conv_length(size_t scvf) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vUpConvLength[scvf];
 		}
 
 	///	Convection Length
 		number downwind_conv_length(size_t scvf) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vDownConvLength[scvf];
 		}
 
 	///	ip velocity (i.e. interpolated velocity at ip)
 		const MathVector<dim>& ip_vel(size_t scvf) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vIPVel.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vIPVel[scvf];
 		}
 
@@ -85,17 +93,17 @@ class INavierStokesUpwind
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeSh.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_vUpShapeSh[scvf].size(), "Invalid index");
-			return m_vUpShapeSh[scvf][sh];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+			return m_vvUpShapeSh[scvf][sh];
 		}
 
 	///	upwind shape for corner vel
 		number downwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
-			return m_vDownShapeSh[scvf][sh];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+			return m_vvDownShapeSh[scvf][sh];
 		}
 
 	///	returns if upwind shape w.r.t. ip vel is non-zero
@@ -104,17 +112,17 @@ class INavierStokesUpwind
 	///	upwind shapes for ip vel
 		number upwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeIp.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_vUpShapeIp[scvf].size(), "Invalid index");
-			return m_vUpShapeIp[scvf][scvf2];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+			return m_vvUpShapeIp[scvf][scvf2];
 		}
 
 	///	upwind shapes for ip vel
 		number downwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
-			return m_vDownShapeIp[scvf][scvf2];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+			return m_vvDownShapeIp[scvf][scvf2];
 		}
 
 	///	compute values for new geometry and corner velocities
@@ -130,17 +138,17 @@ class INavierStokesUpwind
 	///	compute values for new geometry and corner velocities
 		bool update_downwind(const FVGeometryBase* geo)
 		{
-			std::vector<MathVector<dim> > vDownIPVel(m_vIPVel.size());
-			for(size_t ip = 0; ip < vDownIPVel.size(); ++ip)
+			MathVector<dim> vDownIPVel[maxNumSCVF];
+			for(size_t ip = 0; ip < m_numScvf; ++ip)
 				VecScale(vDownIPVel[ip], m_vIPVel[ip], -1.0);
 
-			return compute(geo, vDownIPVel, m_vDownShapeSh, m_vDownShapeIp, m_vDownConvLength);
+			return compute(geo, vDownIPVel, m_vvDownShapeSh, m_vvDownShapeIp, m_vDownConvLength);
 		}
 
 	///	compute values for new geometry and corner velocities
 		bool update_upwind(const FVGeometryBase* geo)
 		{
-			return compute(geo, m_vIPVel, m_vUpShapeSh, m_vUpShapeIp, m_vUpConvLength);
+			return compute(geo, m_vIPVel, m_vvUpShapeSh, m_vvUpShapeIp, m_vUpConvLength);
 		}
 
 	///	compute values for new geometry and corner velocities
@@ -163,61 +171,58 @@ class INavierStokesUpwind
 	/// non-const access to ip velocity (i.e. interpolated velocity at ip)
 		MathVector<dim>& ip_vel(size_t scvf)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vIPVel.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vIPVel[scvf];
 		}
 
 	///	non-const access to upwind shapes for corner vel
 		number& upwind_shape_sh(size_t scvf, size_t sh)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeSh.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_vUpShapeSh[scvf].size(), "Invalid index");
-			return m_vUpShapeSh[scvf][sh];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+			return m_vvUpShapeSh[scvf][sh];
 		}
 
 	///	non-const access to upwind shapes for corner vel
 		number& downwind_shape_sh(size_t scvf, size_t sh)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeSh.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_vDownShapeSh[scvf].size(), "Invalid index");
-			return m_vDownShapeSh[scvf][sh];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+			return m_vvDownShapeSh[scvf][sh];
 		}
 
 	///	non-const access to upwind shapes for ip vel
 		number& upwind_shape_ip(size_t scvf, size_t scvf2)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vUpShapeIp.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_vUpShapeIp[scvf].size(), "Invalid index");
-			return m_vUpShapeIp[scvf][scvf2];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+			return m_vvUpShapeIp[scvf][scvf2];
 		}
 
 	///	non-const access to upwind shapes for ip vel
 		number& downwind_shape_ip(size_t scvf, size_t scvf2)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vDownShapeIp.size(), "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_vDownShapeIp[scvf].size(), "Invalid index");
-			return m_vDownShapeIp[scvf][scvf2];
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+			return m_vvDownShapeIp[scvf][scvf2];
 		}
 
 	///	non-const access to Convection Length
 		number& upwind_conv_length(size_t scvf)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vUpConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vUpConvLength[scvf];
 		}
 
 	///	non-const access to Convection Length
 		number& down_upwind_conv_length(size_t scvf)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_vDownConvLength.size(), "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vDownConvLength[scvf];
 		}
 
 	///	pointer to currently used values
 		const LocalVector* m_pCornerValue;
-
-	///	interpolated value at ip
-		std::vector<MathVector<dim> > m_vIPVel;
 
 	///	number of current scvf
 		size_t m_numScvf;
@@ -225,27 +230,30 @@ class INavierStokesUpwind
 	///	number of current shape functions (usually in corners)
 		size_t m_numSh;
 
+	///	interpolated value at ip
+		MathVector<dim> m_vIPVel[maxNumSCVF];
+
 	///	convection length
-		std::vector<number> m_vUpConvLength;
-		std::vector<number> m_vDownConvLength;
+		number m_vUpConvLength[maxNumSCVF];
+		number m_vDownConvLength[maxNumSCVF];
 
 	///	upwind shapes for corners shape functions
-		std::vector<std::vector<number> > m_vUpShapeSh;
-		std::vector<std::vector<number> > m_vDownShapeSh;
+		number m_vvUpShapeSh[maxNumSCVF][maxNumSH];
+		number m_vvDownShapeSh[maxNumSCVF][maxNumSH];
 
 	///	flag if ip shapes are non-zero
 		bool m_bNonZeroShapeIp;
 
 	///	upwind shapes for ip vels
-		std::vector<std::vector<number> > m_vUpShapeIp;
-		std::vector<std::vector<number> > m_vDownShapeIp;
+		number m_vvUpShapeIp[maxNumSCVF][maxNumSCVF];
+		number m_vvDownShapeIp[maxNumSCVF][maxNumSCVF];
 
 	///	compute values for new geometry and corner velocities
 		bool compute(const FVGeometryBase* geo,
-		             const std::vector<MathVector<dim> >& vIPVel,
-		             std::vector<std::vector<number> >& vUpShapeSh,
-		             std::vector<std::vector<number> >& vUpShapeIp,
-		             std::vector<number>& vConvLength)
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF])
 		{
 			return (this->*(m_vComputeFunc[m_id]))(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
 		}
@@ -301,10 +309,10 @@ class INavierStokesUpwind
 	///	type of update function
 		typedef bool (this_type::*ComputeFunc)(
 								const FVGeometryBase* obj,
-						        const std::vector<MathVector<dim> >& vIPVel,
-								std::vector<std::vector<number> >& vUpShapeSh,
-								std::vector<std::vector<number> >& vUpShapeIp,
-								std::vector<number>& vConvLength);
+								const MathVector<dim> vIPVel[maxNumSCVF],
+								number vUpShapeSh[maxNumSCVF][maxNumSH],
+								number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+								number vConvLength[maxNumSCVF]);
 
 	///	type of update function
 		typedef bool (this_type::*UpdateIPVelFunc)(const FVGeometryBase* obj,
@@ -344,6 +352,10 @@ class NavierStokesNoUpwind
 		using base_type::set_shape_ip_flag;
 		using base_type::register_update_func;
 
+		static const size_t maxNumSCV = base_type::maxNumSCV;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
 	public:
 	///	constructor
 		NavierStokesNoUpwind()
@@ -360,10 +372,10 @@ class NavierStokesNoUpwind
 	///	update of values for FV1Geometry
 		template <typename TElem>
 		bool compute(const FV1Geometry<TElem, dim>* geo,
-		             const std::vector<MathVector<dim> >& vIPVel,
-		             std::vector<std::vector<number> >& vUpShapeSh,
-		             std::vector<std::vector<number> >& vUpShapeIp,
-		             std::vector<number>& vConvLength);
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF]);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -387,10 +399,10 @@ class NavierStokesNoUpwind
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef bool (this_type::*TFunc)(
 									const TGeom* obj,
-									const std::vector<MathVector<dim> >& vIPVel,
-									std::vector<std::vector<number> >& vUpShapeSh,
-									std::vector<std::vector<number> >& vUpShapeIp,
-									std::vector<number>& vConvLength);
+						             const MathVector<dim> vIPVel[maxNumSCVF],
+						             number vUpShapeSh[maxNumSCVF][maxNumSH],
+						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						             number vConvLength[maxNumSCVF]);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
@@ -419,6 +431,10 @@ class NavierStokesFullUpwind
 		using base_type::set_shape_ip_flag;
 		using base_type::register_update_func;
 
+		static const size_t maxNumSCV = base_type::maxNumSCV;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
 	public:
 	///	constructor
 		NavierStokesFullUpwind()
@@ -435,10 +451,10 @@ class NavierStokesFullUpwind
 	///	update of values for FV1Geometry
 		template <typename TElem>
 		bool compute(const FV1Geometry<TElem, dim>* geo,
-		             const std::vector<MathVector<dim> >& vIPVel,
-		             std::vector<std::vector<number> >& vUpShapeSh,
-		             std::vector<std::vector<number> >& vUpShapeIp,
-		             std::vector<number>& vConvLength);
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF]);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -462,10 +478,10 @@ class NavierStokesFullUpwind
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef bool (this_type::*TFunc)(
 									const TGeom* obj,
-									const std::vector<MathVector<dim> >& vIPVel,
-									std::vector<std::vector<number> >& vUpShapeSh,
-									std::vector<std::vector<number> >& vUpShapeIp,
-									std::vector<number>& vConvLength);
+						             const MathVector<dim> vIPVel[maxNumSCVF],
+						             number vUpShapeSh[maxNumSCVF][maxNumSH],
+						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						             number vConvLength[maxNumSCVF]);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
@@ -494,6 +510,10 @@ class NavierStokesSkewedUpwind
 		using base_type::set_shape_ip_flag;
 		using base_type::register_update_func;
 
+		static const size_t maxNumSCV = base_type::maxNumSCV;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
 	public:
 	///	constructor
 		NavierStokesSkewedUpwind()
@@ -510,10 +530,10 @@ class NavierStokesSkewedUpwind
 	///	update of values for FV1Geometry
 		template <typename TElem>
 		bool compute(const FV1Geometry<TElem, dim>* geo,
-		             const std::vector<MathVector<dim> >& vIPVel,
-		             std::vector<std::vector<number> >& vUpShapeSh,
-		             std::vector<std::vector<number> >& vUpShapeIp,
-		             std::vector<number>& vConvLength);
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF]);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -537,10 +557,10 @@ class NavierStokesSkewedUpwind
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef bool (this_type::*TFunc)(
 									const TGeom* obj,
-									const std::vector<MathVector<dim> >& vIPVel,
-									std::vector<std::vector<number> >& vUpShapeSh,
-									std::vector<std::vector<number> >& vUpShapeIp,
-									std::vector<number>& vConvLength);
+						             const MathVector<dim> vIPVel[maxNumSCVF],
+						             number vUpShapeSh[maxNumSCVF][maxNumSH],
+						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						             number vConvLength[maxNumSCVF]);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
@@ -569,6 +589,10 @@ class NavierStokesLinearProfileSkewedUpwind
 		using base_type::set_shape_ip_flag;
 		using base_type::register_update_func;
 
+		static const size_t maxNumSCV = base_type::maxNumSCV;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
 	public:
 	///	constructor
 		NavierStokesLinearProfileSkewedUpwind()
@@ -585,10 +609,10 @@ class NavierStokesLinearProfileSkewedUpwind
 	///	update of values for FV1Geometry
 		template <typename TElem>
 		bool compute(const FV1Geometry<TElem, dim>* geo,
-		             const std::vector<MathVector<dim> >& vIPVel,
-		             std::vector<std::vector<number> >& vUpShapeSh,
-		             std::vector<std::vector<number> >& vUpShapeIp,
-		             std::vector<number>& vConvLength);
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF]);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -612,10 +636,10 @@ class NavierStokesLinearProfileSkewedUpwind
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef bool (this_type::*TFunc)(
 									const TGeom* obj,
-									const std::vector<MathVector<dim> >& vIPVel,
-									std::vector<std::vector<number> >& vUpShapeSh,
-									std::vector<std::vector<number> >& vUpShapeIp,
-									std::vector<number>& vConvLength);
+						             const MathVector<dim> vIPVel[maxNumSCVF],
+						             number vUpShapeSh[maxNumSCVF][maxNumSH],
+						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						             number vConvLength[maxNumSCVF]);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}
@@ -645,6 +669,10 @@ class NavierStokesPositiveUpwind
 		using base_type::set_shape_ip_flag;
 		using base_type::register_update_func;
 
+		static const size_t maxNumSCV = base_type::maxNumSCV;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
 	public:
 	///	constructor
 		NavierStokesPositiveUpwind()
@@ -659,10 +687,10 @@ class NavierStokesPositiveUpwind
 	///	update of values for FV1Geometry
 		template <typename TElem>
 		bool compute(const FV1Geometry<TElem, dim>* geo,
-		             const std::vector<MathVector<dim> >& vIPVel,
-		             std::vector<std::vector<number> >& vUpShapeSh,
-		             std::vector<std::vector<number> >& vUpShapeIp,
-		             std::vector<number>& vConvLength);
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF]);
 
 	private:
 		void register_func(Int2Type<1>)
@@ -686,10 +714,10 @@ class NavierStokesPositiveUpwind
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef bool (this_type::*TFunc)(
 									const TGeom* obj,
-									const std::vector<MathVector<dim> >& vIPVel,
-									std::vector<std::vector<number> >& vUpShapeSh,
-									std::vector<std::vector<number> >& vUpShapeIp,
-									std::vector<number>& vConvLength);
+						             const MathVector<dim> vIPVel[maxNumSCVF],
+						             number vUpShapeSh[maxNumSCVF][maxNumSH],
+						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						             number vConvLength[maxNumSCVF]);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
 		}

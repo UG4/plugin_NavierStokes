@@ -104,28 +104,12 @@ void
 INavierStokesUpwind<dim>::
 set_sizes(size_t numScvf, size_t numSh)
 {
+	UG_NSUPWIND_ASSERT(numScvf <= maxNumSCVF, "Invalid index");
+	UG_NSUPWIND_ASSERT(numSh <= maxNumSH, "Invalid index");
+
 //	remember sizes
 	m_numScvf = numScvf;
 	m_numSh = numSh;
-
-//	adjust arrays
-	m_vIPVel.resize(m_numScvf);
-
-	m_vUpConvLength.resize(m_numScvf, 0);
-	m_vDownConvLength.resize(m_numScvf, 0);
-
-	m_vUpShapeSh.resize(m_numScvf);
-	m_vDownShapeSh.resize(m_numScvf);
-	m_vUpShapeIp.resize(m_numScvf);
-	m_vDownShapeIp.resize(m_numScvf);
-
-	for(size_t i = 0; i < m_numScvf; ++i)
-	{
-		m_vUpShapeSh[i].resize(m_numSh, 0);
-		m_vDownShapeSh[i].resize(m_numSh, 0);
-		m_vUpShapeIp[i].resize(m_numScvf, 0);
-		m_vDownShapeIp[i].resize(m_numScvf, 0);
-	}
 }
 
 ///	upwind velocity
@@ -188,10 +172,10 @@ template <typename TElem>
 bool
 NavierStokesNoUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
-        const std::vector<MathVector<dim> >& vIPVel,
-      	std::vector<std::vector<number> >& vUpShapeSh,
-       	std::vector<std::vector<number> >& vUpShapeIp,
-       	std::vector<number>& vConvLength)
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
 {
 //	set shapes
 	for(size_t i = 0; i < geo->num_scvf(); ++i)
@@ -225,10 +209,10 @@ template <typename TElem>
 bool
 NavierStokesFullUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
-        const std::vector<MathVector<dim> >& vIPVel,
-       	std::vector<std::vector<number> >& vUpShapeSh,
-       	std::vector<std::vector<number> >& vUpShapeIp,
-       	std::vector<number>& vConvLength)
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
 {
 //	two help vectors
 	MathVector<dim> dist;
@@ -327,10 +311,10 @@ template <typename TElem>
 bool
 NavierStokesSkewedUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
-        const std::vector<MathVector<dim> >& vIPVel,
-      	std::vector<std::vector<number> >& vUpShapeSh,
-       	std::vector<std::vector<number> >& vUpShapeIp,
-       	std::vector<number>& vConvLength)
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
 {
 // 	corners of geometry
 	const MathVector<dim>* vCornerCoords = geo->corners();
@@ -374,10 +358,10 @@ template <typename TElem>
 bool
 NavierStokesLinearProfileSkewedUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
-        const std::vector<MathVector<dim> >& vIPVel,
-       	std::vector<std::vector<number> >& vUpShapeSh,
-       	std::vector<std::vector<number> >& vUpShapeIp,
-       	std::vector<number>& vConvLength)
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
 {
 // 	corners of geometry
 	const MathVector<dim>* vCornerCoords = geo->corners();
@@ -461,10 +445,10 @@ template <typename TElem>
 bool
 NavierStokesPositiveUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
-        const std::vector<MathVector<dim> >& vIPVel,
-       	std::vector<std::vector<number> >& vUpShapeSh,
-       	std::vector<std::vector<number> >& vUpShapeIp,
-       	std::vector<number>& vConvLength)
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
 {
 
 //	1. Reset values and compute ip velocities and Compute mass fluxes at ip's

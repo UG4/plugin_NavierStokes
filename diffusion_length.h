@@ -19,7 +19,7 @@ namespace ug{
  * \param[in]		geo					Finite Volume Geometry
  */
 template <typename TFVGeometry>
-bool NSDiffLengthFivePoint(number DiffLengthSqInv[], const TFVGeometry& geo)
+void NSDiffLengthFivePoint(number DiffLengthSqInv[], const TFVGeometry& geo)
 {
     //	dimension of element
 	static const size_t dim = TFVGeometry::dim;
@@ -57,19 +57,12 @@ bool NSDiffLengthFivePoint(number DiffLengthSqInv[], const TFVGeometry& geo)
 			DiffLengthSqInv[i] = 2 * normNormalSq/ areaSCVSq + 8 * distSq / normNormalSq;
 		}
 		else
-		{
-			UG_LOG("ERROR in 'NSDiffLenghtAnsatz1':"
-					"Not implemented for dimension " << dim << ".\n");
-			return false;
-		}
+			UG_THROW_FATAL("NSDiffLengthFivePoint not implemented for dimension "<<dim);
 	}
-
-//	we're done
-	return true;
 }
 
 template <typename TFVGeometry>
-bool NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
+void NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
 {
     //	dimension of element
 	static const size_t dim = TFVGeometry::dim;
@@ -108,35 +101,17 @@ bool NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
 			DiffLengthSqInv[i] = 1 / (0.5*areaSCVSq/normNormalSq + 8 * 3*distSq/8);
 		}
 		else
-		{
-			UG_LOG("ERROR in 'NSDiffLenghtAnsatz1':"
-					"Not implemented for dimension " << dim << ".\n");
-			return false;
-		}
+			UG_THROW_FATAL("NSDiffLengthRaw not implemented for dimension "<<dim);
     }
-
-//	we're done
-	return true;
 }
 
 template <typename TFVGeometry>
-bool NSDiffLengthCor(number DiffLengthSqInv[], const TFVGeometry& geo)
+void NSDiffLengthCor(number DiffLengthSqInv[], const TFVGeometry& geo)
 {
-    //	dimension of element
-	//static const size_t dim = TFVGeometry::dim;
-
     // Check the SCVF - number of IPs (order of elements)
     UG_ASSERT(geo.scvf(0).num_ip() == 1, "Only implemented for first order.");
 
-
-	for(size_t i = 0; i < geo.num_scvf(); ++i)
-	{
-        // TODO: Must be implemented
-        DiffLengthSqInv[i]=1.0;
-    }
-
-//	we're done
-	return true;
+    UG_THROW_FATAL("Not implemented.");
 }
 
 } // end namespace ug

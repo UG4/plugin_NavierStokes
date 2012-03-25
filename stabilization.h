@@ -8,24 +8,31 @@
 #ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__STABILIZATION__
 #define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__STABILIZATION__
 
-#define UG_NSSTAB_ASSERT(cond, exp)
+//#define UG_NSSTAB_ASSERT(cond, exp)
 // include define below to assert arrays used in stabilization
-//#define UG_NSSTAB_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
+#define UG_NSSTAB_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
 
 #include "upwind.h"
 
 namespace ug{
 
-enum DIFFUSION_LENGTH
-{
-    NS_RAW = 0,
-    NS_FIVEPOINT,
-    NS_COR
-};
-
 template <int dim>
 class INavierStokesStabilization
 {
+	protected:
+	///	used traits
+		typedef fv1_dim_traits<dim, dim> traits;
+
+	public:
+	///	number of SubControlVolumes
+		static const size_t maxNumSCV = traits::maxNumSCV;
+
+	///	max number of SubControlVolumeFaces
+		static const size_t maxNumSCVF = traits::maxNumSCVF;
+
+	/// max number of shape functions
+		static const size_t maxNumSH = traits::maxNSH;
+
 	public:
 	/// Abbreviation for own type
 		typedef INavierStokesStabilization<dim> this_type;
@@ -38,13 +45,19 @@ class INavierStokesStabilization
 									            const DataImport<MathVector<dim>, dim>* pSource,
 												const LocalVector* pvCornerValueOldTime, number dt);
 
+		enum DiffusionLength
+		{
+		    NS_RAW = 0,
+		    NS_FIVEPOINT,
+		    NS_COR
+		};
+
 	public:
 	///	constructor
 		INavierStokesStabilization()
-			: m_numScvf(0), m_numSh(0), m_pUpwind(NULL)
+			:  m_pUpwind(NULL), m_numScvf(0), m_numSh(0)
 		{
 			m_vUpdateFunc.clear();
-			m_vDiffLengthSqInv.clear();
 
 		//	default setup
 			set_diffusion_length("NS_RAW");
@@ -67,14 +80,14 @@ class INavierStokesStabilization
 	///	diff length
 		number diff_length_sq_inv(size_t scvf) const
 		{
-			UG_NSSTAB_ASSERT(scvf < m_vDiffLengthSqInv.size(), "Invalid index");
+			UG_NSSTAB_ASSERT(scvf < m_numScvf, "Invalid index.");
 			return m_vDiffLengthSqInv[scvf];
 		}
 
 	/// stabilized velocity
 		const MathVector<dim>& stab_vel(size_t scvf) const
 		{
-			UG_NSSTAB_ASSERT(scvf < m_vStabVel.size(), "Invalid index");
+			UG_NSSTAB_ASSERT(scvf < m_numScvf, "Invalid index.");
 			return m_vStabVel[scvf];
 		}
 
@@ -85,19 +98,19 @@ class INavierStokesStabilization
 	/// w.r.t velocity unknowns in the corner for each component
 		number stab_shape_vel(size_t scvf, size_t compOut, size_t compIn, size_t sh) const
 		{
-			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapeVel.size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapeVel[scvf].size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(compIn < m_vvvvStabShapeVel[scvf][compOut].size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapeVel[scvf][compOut][compIn].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_numScvf, "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < dim, "Invalid index.");
+			UG_NSSTAB_ASSERT(compIn < dim, "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_numSh, "Invalid index.");
 			return m_vvvvStabShapeVel[scvf][compOut][compIn][sh];
 		}
 
 	///	computed stab shape for pressure.
 		number stab_shape_p(size_t scvf, size_t compOut, size_t sh) const
 		{
-			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapePressure.size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapePressure[scvf].size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapePressure[scvf][compOut].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_numScvf, "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < dim, "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_numSh, "Invalid index.");
 			return m_vvvvStabShapePressure[scvf][compOut][sh];
 		}
 
@@ -171,18 +184,8 @@ class INavierStokesStabilization
 	//////////////////////////
 
 	protected:
-	///	number of current scvf
-		size_t m_numScvf;
-
-	///	number of current shape functions (usually in corners)
-		size_t m_numSh;
-
 	///	resize the data arrays
 		void set_sizes(size_t numScvf, size_t numSh);
-
-	///	Upwind values
-		INavierStokesUpwind<dim>* m_pUpwind;
-		const INavierStokesUpwind<dim>* m_pConstUpwind;
 
 	///	computes the diffusion length
 		template <typename TFVGeom>
@@ -192,35 +195,18 @@ class INavierStokesStabilization
 		template <typename TFVGeom>
 		bool compute_downwind(const TFVGeom& geo);
 
-	///	type of diffusion length computation
-		int m_diffLengthType;
-
-	///	vector holding diffusion Length squared and inverted
-		std::vector<number> m_vDiffLengthSqInv;
-
 	///	computes the diffusion length
 		template <typename TFVGeom>
-		bool compute_diff_length(const TFVGeom& geo);
-
-	///	values of stabilized velocity at ip
-		std::vector<MathVector<dim> > m_vStabVel;
-
-	///	flag if velocity components are interconnected
-		bool m_bVelCompConnected;
+		void compute_diff_length(const TFVGeom& geo);
 
 	///	sets the vel comp connected flag
 		void set_vel_comp_connected(bool bVelCompConnected) {m_bVelCompConnected = bVelCompConnected;}
 
-	///	stab shapes w.r.t vel
-		std::vector<std::vector<std::vector<std::vector<number> > > > m_vvvvStabShapeVel;
-
-	///	stab shapes w.r.t pressure
-		std::vector<std::vector<std::vector<number> > > m_vvvvStabShapePressure;
-
+	protected:
 	/// stabilized velocity
 		MathVector<dim>& stab_vel(size_t scvf)
 		{
-			UG_NSSTAB_ASSERT(scvf < m_vStabVel.size(), "Invalid index");
+			UG_NSSTAB_ASSERT(scvf < m_numScvf, "Invalid index.");
 			return m_vStabVel[scvf];
 		}
 
@@ -228,21 +214,50 @@ class INavierStokesStabilization
 	/// w.r.t velocity unknowns in the corner for each component
 		number& stab_shape_vel(size_t scvf, size_t compOut, size_t compIn, size_t sh)
 		{
-			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapeVel.size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapeVel[scvf].size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(compIn < m_vvvvStabShapeVel[scvf][compOut].size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapeVel[scvf][compOut][compIn].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_numScvf, "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < dim, "Invalid index.");
+			UG_NSSTAB_ASSERT(compIn < dim, "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_numSh, "Invalid index.");
 			return m_vvvvStabShapeVel[scvf][compOut][compIn][sh];
 		}
 
 	///	computed stab shape for pressure.
 		number& stab_shape_p(size_t scvf, size_t compOut, size_t sh)
 		{
-			UG_NSSTAB_ASSERT(scvf < m_vvvvStabShapePressure.size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(compOut < m_vvvvStabShapePressure[scvf].size(), "Invalid index.");
-			UG_NSSTAB_ASSERT(sh < m_vvvvStabShapePressure[scvf][compOut].size(), "Invalid index.");
+			UG_NSSTAB_ASSERT(scvf < m_numScvf, "Invalid index.");
+			UG_NSSTAB_ASSERT(compOut < dim, "Invalid index.");
+			UG_NSSTAB_ASSERT(sh < m_numSh, "Invalid index.");
 			return m_vvvvStabShapePressure[scvf][compOut][sh];
 		}
+
+	protected:
+	///	Upwind values
+		INavierStokesUpwind<dim>* m_pUpwind;
+		const INavierStokesUpwind<dim>* m_pConstUpwind;
+
+	///	number of current scvf
+		size_t m_numScvf;
+
+	///	number of current shape functions (usually in corners)
+		size_t m_numSh;
+
+	///	type of diffusion length computation
+		DiffusionLength m_diffLengthType;
+
+	///	vector holding diffusion Length squared and inverted
+		number m_vDiffLengthSqInv[maxNumSCVF];
+
+	///	values of stabilized velocity at ip
+		MathVector<dim> m_vStabVel[maxNumSCVF];
+
+	///	flag if velocity components are interconnected
+		bool m_bVelCompConnected;
+
+	///	stab shapes w.r.t vel
+		number m_vvvvStabShapeVel[maxNumSCVF][dim][dim][maxNumSH];
+
+	///	stab shapes w.r.t pressure
+		number m_vvvvStabShapePressure[maxNumSCVF][dim][maxNumSH];
 
 	//////////////////////////
 	// registering process

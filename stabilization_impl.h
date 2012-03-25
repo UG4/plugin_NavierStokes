@@ -83,27 +83,6 @@ set_sizes(size_t numScvf, size_t numSh)
 //	remember sizes
 	m_numScvf = numScvf;
 	m_numSh = numSh;
-
-//	adjust arrays
-	m_vDiffLengthSqInv.resize(m_numScvf, 0);
-
-	m_vStabVel.resize(m_numScvf);
-	m_vvvvStabShapeVel.resize(m_numScvf);
-	m_vvvvStabShapePressure.resize(m_numScvf);
-	for(size_t scvf = 0; scvf < m_numScvf; ++scvf)
-	{
-		m_vvvvStabShapeVel[scvf].resize(dim);
-		m_vvvvStabShapePressure[scvf].resize(dim);
-		for(int d1 = 0; d1 < dim; ++d1)
-		{
-			m_vvvvStabShapeVel[scvf][d1].resize(dim);
-			m_vvvvStabShapePressure[scvf][d1].resize(m_numSh, 0);
-			for(int d2 = 0; d2 < dim; ++d2)
-			{
-				m_vvvvStabShapeVel[scvf][d1][d2].resize(m_numSh, 0);
-			}
-		}
-	}
 }
 
 template <int dim>
@@ -124,22 +103,18 @@ set_diffusion_length(std::string diffLength)
 
 template <int dim>
 template <typename TFVGeom>
-bool
+void
 INavierStokesStabilization<dim>::
 compute_diff_length(const TFVGeom& geo)
 {
 // 	Compute Diffusion Length in corresponding IPs
 	switch(m_diffLengthType)
 	{
-		case NS_FIVEPOINT: return NSDiffLengthFivePoint(&m_vDiffLengthSqInv[0], geo);
-		case NS_RAW:       return NSDiffLengthRaw(&m_vDiffLengthSqInv[0], geo);
-		case NS_COR:       return NSDiffLengthCor(&m_vDiffLengthSqInv[0], geo);
-        default:
-        	UG_LOG("ERROR in 'INavierStokesStabilization::compute_diff_length':"
-        			" Diffusion Length type defined incorrectly.\n");
-        	return false;
+		case NS_FIVEPOINT: NSDiffLengthFivePoint(m_vDiffLengthSqInv, geo); return;
+		case NS_RAW:       NSDiffLengthRaw(m_vDiffLengthSqInv, geo); return;
+		case NS_COR:       NSDiffLengthCor(m_vDiffLengthSqInv, geo); return;
+        default: UG_THROW_FATAL(" Diffusion Length type not found.");
 	}
-	return true;
 }
 
 template <int dim>
@@ -211,12 +186,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	}
 
 //	compute diffusion length
-	if(!compute_diff_length(*geo))
-	{
-       	UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-       			" Cannot compute diffusion length.\n");
-       	return false;
- 	}
+	compute_diff_length(*geo);
 
 //	Find out if upwinded velocities depend on other ip velocities. In that case
 //	we have to solve a matrix system. Else the system is diagonal and we can
@@ -543,12 +513,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	}
 
 	//	compute diffusion length
-	if(!compute_diff_length(*geo))
-	{
-			UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-					" Cannot compute diffusion length.\n");
-			return false;
-		}
+	compute_diff_length(*geo);
 
 	//	Find out if upwinded velocities depend on other ip velocities. In that case
 	//	we have to solve a matrix system. Else the system is diagonal and we can
