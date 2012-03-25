@@ -162,9 +162,6 @@ class INavierStokesUpwind
 	//////////////////////////
 
 	protected:
-	///	resize the data arrays
-		void set_sizes(size_t numScvf, size_t numSh);
-
 	///	sets the shape ip flag
 		void set_shape_ip_flag(bool flag) {m_bNonZeroShapeIp = flag;}
 
@@ -302,7 +299,7 @@ class INavierStokesUpwind
 
 	///	set the Geometry type to use for next updates
 		template <typename TFVGeom>
-		bool set_geometry_type();
+		void set_geometry_type();
 
 	protected:
 

@@ -65,7 +65,7 @@ register_update_ip_vel_func(TAssFunc func)
 //	set the Geometry type to use for next updates
 template <int dim>
 template <typename TFVGeom>
-bool
+void
 INavierStokesUpwind<dim>::
 set_geometry_type()
 {
@@ -74,42 +74,20 @@ set_geometry_type()
 
 //	check that function exists
 	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
-	{
-		UG_LOG("ERROR in 'INavierStokesUpwind::set_geometry_type':"
-				" No update function registered for this Geometry.\n");
-		return false;
-	}
+		UG_THROW_FATAL("No update function registered for Geometry "<<id);
 
 	if(id >= m_vUpdateIPVelFunc.size() || m_vUpdateIPVelFunc[id] == NULL)
-	{
-		UG_LOG("ERROR in 'INavierStokesUpwind::set_geometry_type':"
-				" No update ip vel function registered for this Geometry.\n");
-		return false;
-	}
+		UG_THROW_FATAL("No update ip vel function registered for Geometry "<<id);
 
 //	set current geometry
 	m_id = id;
 
 //	set sizes
 	TFVGeom& geo = Provider<TFVGeom>::get();
-	set_sizes(geo.num_scvf(), geo.num_scv());
-
-//	we're done
-	return true;
-}
-
-//	resize the data arrays
-template <int dim>
-void
-INavierStokesUpwind<dim>::
-set_sizes(size_t numScvf, size_t numSh)
-{
-	UG_NSUPWIND_ASSERT(numScvf <= maxNumSCVF, "Invalid index");
-	UG_NSUPWIND_ASSERT(numSh <= maxNumSH, "Invalid index");
-
-//	remember sizes
-	m_numScvf = numScvf;
-	m_numSh = numSh;
+	m_numScvf = geo.num_scvf();
+	m_numSh = geo.num_scv();
+	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
+	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
 }
 
 ///	upwind velocity

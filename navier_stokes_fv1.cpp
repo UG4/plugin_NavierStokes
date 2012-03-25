@@ -50,11 +50,7 @@ prepare_element_loop()
 	{
 	//	check, that convective upwinding has been set
 		if(m_pConvStab == NULL  && m_pConvUpwind == NULL)
-		{
-			UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-					" Upwinding for convective Term in Momentum eq. not set.\n");
-			return false;
-		}
+			UG_THROW_FATAL("Upwinding for convective Term in Momentum eq. not set.");
 	
 	//	init convection stabilization for element type
 		if(m_pConvStab != NULL)
@@ -62,12 +58,7 @@ prepare_element_loop()
 	
 	//	init convection stabilization for element type
 		if(m_pConvUpwind != NULL)
-			if(!m_pConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >())
-			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-						" Cannot init upwind for element type.\n");
-				return false;
-			}
+			m_pConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
 	}
 
 //	check, that kinematic Viscosity has been set
