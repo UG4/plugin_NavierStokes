@@ -229,7 +229,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 	
 	//	compute upwind shapes
 		if(m_pConvUpwind != NULL)
-			if(m_pStab->get_upwind() != m_pConvUpwind)
+			if(m_pStab->upwind() != m_pConvUpwind)
 				if(!m_pConvUpwind->update(&geo, *pSol))
 				{
 					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
@@ -578,7 +578,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 	
 	//	compute upwind shapes
 		if(m_pConvUpwind != NULL)
-			if(m_pStab->get_upwind() != m_pConvUpwind)
+			if(m_pStab->upwind() != m_pConvUpwind)
 				if(!m_pConvUpwind->update(&geo, *pSol))
 				{
 					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "

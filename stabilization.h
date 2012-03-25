@@ -37,14 +37,6 @@ class INavierStokesStabilization
 	/// Abbreviation for own type
 		typedef INavierStokesStabilization<dim> this_type;
 
-	///	type of update function
-		typedef bool (this_type::*UpdateFunc)(	const FVGeometryBase* geo,
-												const LocalVector& vCornerValue,
-												const bool bStokes,
-												const DataImport<number, dim>& kinVisco,
-									            const DataImport<MathVector<dim>, dim>* pSource,
-												const LocalVector* pvCornerValueOldTime, number dt);
-
 		enum DiffusionLength
 		{
 		    RAW = 0,
@@ -74,8 +66,7 @@ class INavierStokesStabilization
 		}
 
 	///	returns the upwind
-		const INavierStokesUpwind<dim>* get_upwind() const
-			{return m_pConstUpwind;}
+		const INavierStokesUpwind<dim>* upwind() const {return m_pConstUpwind;}
 
 	///	diff length
 		number diff_length_sq_inv(size_t scvf) const
@@ -262,6 +253,15 @@ class INavierStokesStabilization
 	//////////////////////////
 	// registering process
 	//////////////////////////
+
+	protected:
+	///	type of update function
+		typedef bool (this_type::*UpdateFunc)(	const FVGeometryBase* geo,
+												const LocalVector& vCornerValue,
+												const bool bStokes,
+												const DataImport<number, dim>& kinVisco,
+												const DataImport<MathVector<dim>, dim>* pSource,
+												const LocalVector* pvCornerValueOldTime, number dt);
 
 	public:
 	///	register a update function for a Geometry
