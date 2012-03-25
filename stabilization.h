@@ -47,9 +47,9 @@ class INavierStokesStabilization
 
 		enum DiffusionLength
 		{
-		    NS_RAW = 0,
-		    NS_FIVEPOINT,
-		    NS_COR
+		    RAW = 0,
+		    FIVEPOINT,
+		    COR
 		};
 
 	public:
@@ -60,11 +60,11 @@ class INavierStokesStabilization
 			m_vUpdateFunc.clear();
 
 		//	default setup
-			set_diffusion_length("NS_RAW");
+			set_diffusion_length("RAW");
 		}
 
 	///	sets the type of diff length used for evaluation
-		bool set_diffusion_length(std::string diffLength);
+		void set_diffusion_length(std::string diffLength);
 
 	///	sets the upwind method
 		void set_upwind(INavierStokesUpwind<dim>& upwind)

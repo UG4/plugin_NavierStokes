@@ -86,19 +86,16 @@ set_sizes(size_t numScvf, size_t numSh)
 }
 
 template <int dim>
-bool
+void
 INavierStokesStabilization<dim>::
 set_diffusion_length(std::string diffLength)
 {
-	if      (diffLength == "NS_RAW")        m_diffLengthType = NS_RAW;
-	else if (diffLength == "NS_FIVEPOINT")  m_diffLengthType = NS_FIVEPOINT;
-	else if (diffLength == "NS_COR")        m_diffLengthType = NS_COR;
+	if      (diffLength == "RAW")        m_diffLengthType = RAW;
+	else if (diffLength == "FIVEPOINT")  m_diffLengthType = FIVEPOINT;
+	else if (diffLength == "COR")        m_diffLengthType = COR;
 	else
-	{
-		UG_LOG("Diffusion Length calculation method not recognized.\n");
-		return false;
-	}
-	return true;
+		UG_THROW_FATAL("Diffusion Length calculation method not found."
+						" Use one of [RAW, FIVEPOINT, COR].");
 }
 
 template <int dim>
@@ -110,9 +107,9 @@ compute_diff_length(const TFVGeom& geo)
 // 	Compute Diffusion Length in corresponding IPs
 	switch(m_diffLengthType)
 	{
-		case NS_FIVEPOINT: NSDiffLengthFivePoint(m_vDiffLengthSqInv, geo); return;
-		case NS_RAW:       NSDiffLengthRaw(m_vDiffLengthSqInv, geo); return;
-		case NS_COR:       NSDiffLengthCor(m_vDiffLengthSqInv, geo); return;
+		case FIVEPOINT: NSDiffLengthFivePoint(m_vDiffLengthSqInv, geo); return;
+		case RAW:       NSDiffLengthRaw(m_vDiffLengthSqInv, geo); return;
+		case COR:       NSDiffLengthCor(m_vDiffLengthSqInv, geo); return;
         default: UG_THROW_FATAL(" Diffusion Length type not found.");
 	}
 }
