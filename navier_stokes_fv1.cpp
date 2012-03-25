@@ -189,34 +189,19 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 	}
 
 //	compute stabilized velocities and shapes for continuity equation
-	if(!m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt))
-	{
-		UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-				"Cannot compute stabilized velocities and shapes.\n");
-		return false;
-	}
+	m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
 		if(m_pConvStab != NULL)
 			if(m_pConvStab != m_pStab)
-				if(!m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt))
-				{
-					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-							"Cannot compute upwind (PAC) velocities and shapes.\n");
-					return false;
-				}
+				m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
 		if(m_pConvUpwind != NULL)
 			if(m_pStab->upwind() != m_pConvUpwind)
-				if(!m_pConvUpwind->update(&geo, *pSol))
-				{
-					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-							"Cannot compute upwind velocities and shapes.\n");
-					return false;
-				}
+				m_pConvUpwind->update(&geo, *pSol);
 	}
 
 //	get a const (!!) reference to the stabilization
@@ -538,34 +523,19 @@ assemble_A(LocalVector& d, const LocalVector& u)
 
 //	compute stabilized velocities and shapes for continuity equation
 	// \todo: (optional) Here we can skip the computation of shapes, implement?
-	if(!m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt))
-	{
-		UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-				"Cannot compute stabilized velocities and shapes.\n");
-		return false;
-	}
+	m_pStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
 		if(m_pConvStab != NULL)
 			if(m_pConvStab != m_pStab)
-				if(!m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt))
-				{
-					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-							"Cannot compute upwind (PAC) velocities and shapes.\n");
-					return false;
-				}
+				m_pConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
 		if(m_pConvUpwind != NULL)
 			if(m_pStab->upwind() != m_pConvUpwind)
-				if(!m_pConvUpwind->update(&geo, *pSol))
-				{
-					UG_LOG("ERROR in 'FVNavierStokesElemDisc::assemble_A': "
-							"Cannot compute upwind velocities and shapes.\n");
-					return false;
-				}
+				m_pConvUpwind->update(&geo, *pSol);
 	}
 
 //	get a const (!!) reference to the stabilization

@@ -98,38 +98,30 @@ compute_diff_length(const TFVGeom& geo)
 
 template <int dim>
 template <typename TFVGeom>
-bool
+void
 INavierStokesStabilization<dim>::
 compute_upwind(const TFVGeom& geo, const LocalVector& vCornerValue)
 {
 //	check, that upwind has been set
 	if(m_pUpwind == NULL)
-	{
-       	UG_LOG("ERROR in 'INavierStokesStabilization::compute_upwind':"
-       			" No upwind method has been specified.\n");
-       	return false;
- 	}
+       	UG_THROW_FATAL("No upwind method has been specified.");
 
 //	compute upwind
-	return m_pUpwind->update(geo, vCornerValue);
+	m_pUpwind->update(geo, vCornerValue);
 }
 
 template <int dim>
 template <typename TFVGeom>
-bool
+void
 INavierStokesStabilization<dim>::
 compute_downwind(const TFVGeom& geo)
 {
 //	check, that upwind has been set
 	if(m_pUpwind == NULL)
-	{
-       	UG_LOG("ERROR in 'INavierStokesStabilization::compute_downwind':"
-       			" No upwind method has been specified.\n");
-       	return false;
- 	}
+       	UG_THROW_FATAL("No upwind method has been specified.");
 
-//	compute upwind
-	return m_pUpwind->update_downwind(geo);
+//	compute downwind
+	m_pUpwind->update_downwind(geo);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -138,7 +130,7 @@ compute_downwind(const TFVGeom& geo)
 
 template <int TDim>
 template <typename TElem>
-bool
+void
 NavierStokesFIELDSStabilization<TDim>::
 update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
        const bool bStokes,
@@ -156,12 +148,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	if (! bStokes) // no convective terms for the Stokes eq. => no upwind
 	{
 	//	compute upwind
-		if(!compute_upwind(geo, vCornerValue))
-		{
-			UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-					" Cannot compute upwind.\n");
-			return false;
-		}
+		compute_upwind(geo, vCornerValue);
 	}
 
 //	compute diffusion length
@@ -329,11 +316,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 
 		//	get the inverse
 			if(!GetInverse(inv, mat))
-			{
-		       	UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-		       			" Could not compute inverse.\n");
-		       	return false;
-		 	}
+		       	UG_THROW_FATAL("Could not compute inverse.");
 
 		//	create two vectors
 			DenseVector< FixedArray1<number, N> > contVel[numSh];
@@ -446,9 +429,6 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 		} // end dim loop
 
 	} // end switch for non-diag
-
-//	we're done
-	return true;
 }
 
 
@@ -458,7 +438,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 
 template <int TDim>
 template <typename TElem>
-bool
+void
 NavierStokesFLOWStabilization<TDim>::
 update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
        const bool bStokes,
@@ -475,20 +455,9 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 
 	if (! bStokes) // no convective terms for the Stokes eq. => no upwind
 	{
-	//	compute upwind
-		if(!compute_upwind(geo, vCornerValue))
-		{
-			UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-					" Cannot compute upwind.\n");
-			return false;
-		}
-	//	compute downwind
-		if(!compute_downwind(geo))
-		{
-			UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-					" Cannot compute downwind.\n");
-			return false;
-		}
+	//	compute upwind and downwind
+		compute_upwind(geo, vCornerValue);
+		compute_downwind(geo);
 	}
 
 	//	compute diffusion length
@@ -699,11 +668,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 
 		//	get the inverse
 			if(!GetInverse(inv, mat))
-			{
-				UG_LOG("ERROR in 'NavierStokesFIELDSStabilization::update':"
-						" Could not compute inverse.\n");
-				return false;
-			}
+				UG_THROW_FATAL("Could not compute inverse.");
 
 		//	create two vectors
 			DenseVector< FixedArray1<number, N> > contVel[dim][numSh];
@@ -841,10 +806,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 		} // end dim loop
 
 	} // end switch for non-diag
-
-	//	we're done
-	return true;
-	}
+}
 
 } // end namespace ug
 

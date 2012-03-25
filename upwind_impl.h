@@ -119,7 +119,7 @@ upwind_vel(size_t scvf) const
 
 template <int dim>
 template <typename TElem>
-bool
+void
 INavierStokesUpwind<dim>::
 update_ip_vel(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
 {
@@ -137,8 +137,6 @@ update_ip_vel(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValu
 			for(size_t d = 0; d < (size_t)dim; ++d)
 				ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
 	}
-
-	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -147,7 +145,7 @@ update_ip_vel(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValu
 
 template <int TDim>
 template <typename TElem>
-bool
+void
 NavierStokesNoUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
@@ -173,9 +171,6 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	//   	   we only have to ensure that the conv_lengh is non-zero
         vConvLength[i] = 1.0;
 	}
-
-//	we're done
-	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -184,7 +179,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
 template <int TDim>
 template <typename TElem>
-bool
+void
 NavierStokesFullUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
@@ -225,9 +220,6 @@ compute(const FV1Geometry<TElem, dim>* geo,
      // integration point
         vConvLength[i] = VecTwoNorm(dist);
     }
-
-//	we're done
-	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -236,7 +228,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
 /// computes the closest node to a elem side ray intersection
 template <typename TRefElem, int TWorldDim>
-bool GetNodeNextToCut(size_t& coOut,
+void GetNodeNextToCut(size_t& coOut,
                       const MathVector<TWorldDim>& IP,
                       const MathVector<TWorldDim>& IPVel,
                       const MathVector<TWorldDim>* vCornerCoords)
@@ -251,10 +243,7 @@ bool GetNodeNextToCut(size_t& coOut,
 	if(!ElementSideRayIntersection<TRefElem, TWorldDim>
 		(	side, globalIntersection, localIntersection,
 			IP, IPVel, false /* i.e. search upwind */, vCornerCoords))
-	{
-		UG_LOG("ERROR in GetNodeNextToCut: Cannot find cut side.\n");
-		return false;
-	}
+		UG_THROW_FATAL("GetNodeNextToCut: Cannot find cut side.");
 
 //	get reference element
 	static const TRefElem& rRefElem = Provider<TRefElem>::get();
@@ -279,14 +268,11 @@ bool GetNodeNextToCut(size_t& coOut,
 			coOut = co;
 		}
 	}
-
-//	we're done
-	return true;
 }
 
 template <int TDim>
 template <typename TElem>
-bool
+void
 NavierStokesSkewedUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
@@ -311,12 +297,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
 		size_t sh = 0;
 
 	// 	find upwind node
-		if(!GetNodeNextToCut<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
-					(sh, scvf.global_ip(), vIPVel[i], vCornerCoords))
-		{
-			UG_LOG("ERROR in GetSkewedUpwindShapes: Cannot find upwind node.\n");
-			return false;
-		}
+		try{
+			GetNodeNextToCut<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
+					(sh, scvf.global_ip(), vIPVel[i], vCornerCoords);
+		}UG_CATCH_THROW("GetSkewedUpwindShapes: Cannot find upwind node.");
 
 	// 	set upwind corner
 		vUpShapeSh[i][sh] = 1.0;
@@ -326,14 +310,11 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	    VecSubtract(dist, scvf.global_ip(), vCornerCoords[sh]);
 	    vConvLength[i] = VecTwoNorm(dist);
 	}
-
-//	we're done
-	return true;
 }
 
 template <int TDim>
 template <typename TElem>
-bool
+void
 NavierStokesLinearProfileSkewedUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
@@ -377,13 +358,11 @@ compute(const FV1Geometry<TElem, dim>* geo,
  		MathVector<refDim> localIntersection;
 
  	// 	find local intersection and side
- 		if(!ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
+ 		try{
+ 			ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
  			(	side, globalIntersection, localIntersection,
- 				scvf.global_ip(), vIPVel[i], false /* search upwind */, vCornerCoords))
- 		{
- 			UG_LOG("ERROR in GetLinearProfileSkewedUpwindShapes: Cannot find cut side.\n");
- 			return false;
- 		}
+ 				scvf.global_ip(), vIPVel[i], false /* search upwind */, vCornerCoords);
+ 		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
 
  	// 	get linear trial space
  		const LocalShapeFunctionSet<typename FV1Geometry<TElem, dim>::ref_elem_type>& TrialSpace =
@@ -411,16 +390,13 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	    VecSubtract(dist, scvf.global_ip(), globalIntersection);
         vConvLength[i] = VecTwoNorm(dist);
 	}
-
-//	we're done
-	return true;
 }
 
 
 
 template <int TDim>
 template <typename TElem>
-bool
+void
 NavierStokesPositiveUpwind<TDim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
@@ -534,9 +510,6 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	    VecSubtract(dist, scvf.global_ip(), upPos);
         vConvLength[i] = VecTwoNorm(dist);
 	}
-
-//	we're done
-	return true;
 }
 
 } // end namespace ug
