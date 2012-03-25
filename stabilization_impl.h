@@ -43,7 +43,7 @@ register_update_func(TAssFunc func)
 //	set the Geometry type to use for next updates
 template <int dim>
 template <typename TFVGeom>
-bool
+void
 INavierStokesStabilization<dim>::
 set_geometry_type()
 {
@@ -52,37 +52,19 @@ set_geometry_type()
 
 //	check that function exists
 	if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == NULL)
-	{
-		UG_LOG("ERROR in 'INavierStokesStabilization::set_geometry_type':"
-				" No update function registered for this Geometry.\n");
-		return false;
-	}
+		UG_THROW_FATAL("No update function registered for Geometry "<<id);
 
 //	set current geometry
 	m_id = id;
 
 //	set sizes
 	TFVGeom& geo = Provider<TFVGeom>::get();
-	set_sizes(geo.num_scvf(), geo.num_scv());
+	m_numScvf = geo.num_scvf();
+	m_numSh = geo.num_scv();
 
 //	set sizes in upwind
-	if(m_pUpwind != NULL)
-		m_pUpwind->set_geometry_type<TFVGeom>();
-
-//	we're done
-	return true;
-}
-
-
-//	resize the data arrays
-template <int dim>
-void
-INavierStokesStabilization<dim>::
-set_sizes(size_t numScvf, size_t numSh)
-{
-//	remember sizes
-	m_numScvf = numScvf;
-	m_numSh = numSh;
+	if(m_pUpwind != NULL) m_pUpwind->set_geometry_type<TFVGeom>();
+	else UG_THROW_FATAL("Upwind missing.");
 }
 
 template <int dim>

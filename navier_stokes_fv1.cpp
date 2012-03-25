@@ -44,12 +44,7 @@ prepare_element_loop()
 	}
 
 //	init stabilization for element type
-	if(!m_pStab->template set_geometry_type<TFVGeom<TElem, dim> >())
-	{
-		UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-				" Cannot init stabilization for element type.\n");
-		return false;
-	}
+	m_pStab->template set_geometry_type<TFVGeom<TElem, dim> >();
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
@@ -63,12 +58,7 @@ prepare_element_loop()
 	
 	//	init convection stabilization for element type
 		if(m_pConvStab != NULL)
-			if(!m_pConvStab->template set_geometry_type<TFVGeom<TElem, dim> >())
-			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::prepare_element_loop':"
-						" Cannot init upwind (PAC) for element type.\n");
-				return false;
-			}
+			m_pConvStab->template set_geometry_type<TFVGeom<TElem, dim> >();
 	
 	//	init convection stabilization for element type
 		if(m_pConvUpwind != NULL)

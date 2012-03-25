@@ -175,9 +175,6 @@ class INavierStokesStabilization
 	//////////////////////////
 
 	protected:
-	///	resize the data arrays
-		void set_sizes(size_t numScvf, size_t numSh);
-
 	///	computes the diffusion length
 		template <typename TFVGeom>
 		bool compute_upwind(const TFVGeom& geo, const LocalVector& vCornerValue);
@@ -270,7 +267,7 @@ class INavierStokesStabilization
 
 	///	set the Geometry type to use for next updates
 		template <typename TFVGeom>
-		bool set_geometry_type();
+		void set_geometry_type();
 
 	protected:
 	///	Vector holding all update functions
