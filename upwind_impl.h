@@ -204,7 +204,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
     // 	switch upwind
         const number flux = VecDot(scvf.normal(), vIPVel[i]);
-        if(flux > 0.0)
+        if(flux >= 0.0)
         {
         	vUpShapeSh[i][scvf.from()] = 1.0;
             VecSubtract(dist, scvf.global_ip(), corners[scvf.from()]);
