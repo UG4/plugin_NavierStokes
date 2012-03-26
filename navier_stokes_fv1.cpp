@@ -288,7 +288,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			///////////////////////////////////
 	
 			//	Stabilization used as upwind
-				if(m_spConvStab != NULL)
+				if(m_spConvStab.valid())
 				{
 				//	velocity derivatives
 					if(stab.vel_comp_connected())
@@ -318,7 +318,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				}
 	
 			//	Upwind used as upwind
-				if(m_spConvUpwind != NULL)
+				if(m_spConvUpwind.valid())
 				{
 					const number convFlux_vel = prod * w * upwind.upwind_shape_sh(i, sh);
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -347,7 +347,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				if(m_bExactJacobian)
 				{
 				//	Stabilization used as upwind
-					if(m_spConvStab != NULL)
+					if(m_spConvStab.valid())
 					{
 					//	loop defect components
 						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -386,7 +386,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 					}
 	
 				//	Upwind used as upwind
-					if(m_spConvUpwind != NULL)
+					if(m_spConvUpwind.valid())
 					{
 					//	loop defect components
 						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
