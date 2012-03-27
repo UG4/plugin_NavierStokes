@@ -204,7 +204,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
     // 	switch upwind
         const number flux = VecDot(scvf.normal(), vIPVel[i]);
-        if(flux >= 0.0)
+        if(flux > 0.0)
         {
         	vUpShapeSh[i][scvf.from()] = 1.0;
             VecSubtract(dist, scvf.global_ip(), corners[scvf.from()]);
@@ -334,21 +334,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
  		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
  			vUpShapeSh[i][sh] = 0.0;
 
- 		if(VecTwoNorm(vIPVel[i]) == 0.0)
- 		{
- 		//	no upwind -> central differences
- 			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
- 				vUpShapeSh[i][sh] = scvf.shape(sh);
-
- 		//	compute convection length
- 		//  \todo: (optional) A convection length is not really defined for no upwind.
- 		//	       but in the computation of a stabilization the term cancels, so
- 		//   	   we only have to ensure that the conv_lengh is non-zero
- 			vConvLength[i] = 1.0;
-
- 	    //	next ip
- 			continue;
- 		}
+ 	//	if the velocity is zero, there will be no possibility to find the
+ 	//	cutted side. In this case we have no velocity and therefore there is
+ 	//	no convection. We set all upwind shapes to zero.
+ 		if(VecTwoNorm(vIPVel[i]) == 0.0) continue;
 
  	// 	side and intersection vectors
  		static const int refDim = FV1Geometry<TElem, dim>::dim;
