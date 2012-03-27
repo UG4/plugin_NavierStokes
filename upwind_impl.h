@@ -370,7 +370,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
  			const size_t co = rRefElem.id(dim-1, side, 0, j);
 
  		//	evaluate trial space
- 			vUpShapeSh[j][co] = TrialSpace.shape(co, localIntersection);
+ 			vUpShapeSh[i][co] = TrialSpace.shape(co, localIntersection);
  		}
 
  	//	compute conv length
