@@ -10,7 +10,7 @@
 
 //#define UG_NSUPWIND_ASSERT(cond, exp)
 // include define below to assert arrays used in stabilization
-#define UG_NSUPWIND_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
+#define UG_NSUPWIND_ASSERT(cond, exp) UG_ASSERT((cond), exp)
 
 #include <vector>
 
@@ -88,7 +88,7 @@ class INavierStokesUpwind
 		}
 
 	/// returns the upwind velocity
-		MathVector<dim> upwind_vel(size_t scvf) const;
+		MathVector<dim> upwind_vel(const size_t scvf) const;
 
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
@@ -112,8 +112,8 @@ class INavierStokesUpwind
 	///	upwind shapes for ip vel
 		number upwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index: " << scvf);
+			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index2: " << scvf2);
 			return m_vvUpShapeIp[scvf][scvf2];
 		}
 

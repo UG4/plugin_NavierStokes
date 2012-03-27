@@ -93,7 +93,7 @@ set_geometry_type()
 template <int dim>
 MathVector<dim>
 INavierStokesUpwind<dim>::
-upwind_vel(size_t scvf) const
+upwind_vel(const size_t scvf) const
 {
 	UG_NSUPWIND_ASSERT(m_pCornerValue != NULL, "corner vals not set.");
 
@@ -109,7 +109,7 @@ upwind_vel(size_t scvf) const
 	if(!non_zero_shape_ip()) return vel;
 
 //	compute ip vel
-	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf)
+	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
 		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), ip_vel(scvf2));
 
 //	return value
