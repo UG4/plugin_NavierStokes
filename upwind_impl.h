@@ -397,8 +397,11 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
 //	vector for flux values
 	std::vector<number> vMassFlux(geo->num_scvf(), 0.0);
+	std::vector<bool> vHasFlux(geo->num_scvf(), true);
 
 //	loop all scvf
+	const number eps = std::numeric_limits<number>::epsilon() * 10;
+	size_t bNumNoFlux = 0;
 	for(size_t i = 0; i < geo->num_scvf(); ++i)
 	{
 	//	get SubControlVolumeFace
@@ -412,65 +415,88 @@ compute(const FV1Geometry<TElem, dim>* geo,
 		for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 			vUpShapeIp[i][ip] = 0.0;
 
-	//	compute flux
+		const number normSq = VecTwoNormSq(vIPVel[i]);
+		if(fabs(normSq) < eps)
+		{
+			vUpShapeSh[i][scvf.from()] = 0.5;
+			vUpShapeSh[i][scvf.to()] = 0.5;
+			vHasFlux[i] = false;
+			bNumNoFlux++;
+			continue;
+		}
+
 		vMassFlux[i] = VecProd(vIPVel[i], scvf.normal());
+		const number vel = std::sqrt(normSq);
+		const number len = VecTwoNorm(scvf.normal());
+		if(fabs(vMassFlux[i] / (vel*len))  <= eps)
+		{
+			vUpShapeSh[i][scvf.from()] = 0.5;
+			vUpShapeSh[i][scvf.to()] = 0.5;
+			vHasFlux[i] = false;
+			bNumNoFlux++;
+			continue;
+		}
 	}
 
 
 //	2. Handle each SCV separately
-
-	for(size_t sh = 0; sh < this->num_sh(); ++sh)
+	if(bNumNoFlux != geo->num_scvf())
 	{
-	//	reset inflow, outflow
-		number m_in = 0, m_out = 0;
-		std::vector<size_t> vSCVIP;
-		std::vector<number> vFlux;
-
-	//	loop subcontrol volume faces
-		for(size_t i = 0; i < geo->num_scvf(); ++i)
+		for(size_t sh = 0; sh < this->num_sh(); ++sh)
 		{
-		//	get SubControlVolumeFace
-			const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+		//	reset inflow, outflow
+			number m_in = 0, m_out = 0;
+			std::vector<size_t> vSCVIP;
+			std::vector<number> vFlux;
 
-		//	if scvf is part of the scv, add fluxes
-			if(scvf.from() == sh)
+		//	loop subcontrol volume faces
+			for(size_t i = 0; i < geo->num_scvf(); ++i)
 			{
-			//	normal directed outwards
-				vSCVIP.push_back(i);
-				vFlux.push_back( vMassFlux[i] );
-				m_in += -1.0 * std::min(vMassFlux[i], 0.0);
-				m_out += std::max(vMassFlux[i], 0.0);
-			}
-			else if (scvf.to() == sh)
-			{
-			//	normal directed inwards
-				vSCVIP.push_back(i);
-				vFlux.push_back( -1.0 * vMassFlux[i] );
-				m_in += -1.0 * std::min(-1.0 *  vMassFlux[i], 0.0);
-				m_out += std::max(-1.0 * vMassFlux[i], 0.0);
-			}
-		}
+			//	if no flux skip
+				if(!vHasFlux[i]) continue;
 
-	//	compute F
-		number F = std::max(m_in, m_out);
+			//	get SubControlVolumeFace
+				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
 
-	//	set shapes
-		for(size_t i = 0; i < vSCVIP.size(); ++i)
-		{
-			if(vFlux[i] > 0)
-			{
-				number sum = 0.0;
-				for(size_t j = 0; j < vSCVIP.size(); ++j)
+			//	if scvf is part of the scv, add fluxes
+				if(scvf.from() == sh)
 				{
-					if(vFlux[j] < 0)
-					{
-					//	set ip shapes
-						vUpShapeIp[i][j] = -1.0 * vFlux[j] / F;
-						sum += vUpShapeIp[i][j];
-					}
+				//	normal directed outwards
+					vSCVIP.push_back(i);
+					vFlux.push_back( vMassFlux[i] );
+					m_in += -1.0 * std::min(vMassFlux[i], 0.0);
+					m_out += std::max(vMassFlux[i], 0.0);
 				}
-			//	set nodal shapes
-				vUpShapeIp[i][sh] = 1.0 - sum;
+				else if (scvf.to() == sh)
+				{
+				//	normal directed inwards
+					vSCVIP.push_back(i);
+					vFlux.push_back( -1.0 * vMassFlux[i] );
+					m_in += -1.0 * std::min(-1.0 *  vMassFlux[i], 0.0);
+					m_out += std::max(-1.0 * vMassFlux[i], 0.0);
+				}
+			}
+
+		//	compute F
+			number F = std::max(m_in, m_out);
+
+		//	set shapes
+			for(size_t i = 0; i < vSCVIP.size(); ++i)
+			{
+				if(vFlux[i] > 0)
+				{
+					number sum = 0.0;
+					for(size_t j = 0; j < vSCVIP.size(); ++j)
+					{
+						if(vFlux[j] < 0)
+						{
+						//	set ip shapes
+							sum += vUpShapeIp[vSCVIP[i]][vSCVIP[j]] = -1.0 * vFlux[j] / F;
+						}
+					}
+				//	set nodal shapes
+					vUpShapeSh[vSCVIP[i]][sh] = 1.0 - sum;
+				}
 			}
 		}
 	}
