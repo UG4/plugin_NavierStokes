@@ -168,13 +168,6 @@ update(const FV1Geometry<TElem, dim>* geo,
 		//	get SubControlVolumeFace
 			const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-		// 	Compute current (iterated) velocity in the integration points.
-			MathVector<dim> vIPVelCurrent;
-			VecSet(vIPVelCurrent, 0.0);
-			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-				for(int d = 0; d < dim; ++d)
-					vIPVelCurrent[d] += scvf.shape(sh) * vCornerValue(d, sh);
-
 		// 	Loop components of velocity
 			for(size_t d = 0; d < (size_t)dim; d++)
 			{
@@ -194,7 +187,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 
 			//	Convective Term
 				if (! bStokes) // no convective terms in the Stokes eq.
-					diag += VecTwoNorm(vIPVelCurrent) / upwind_conv_length(ip);
+					diag += VecTwoNorm(vStdVel[ip]) / upwind_conv_length(ip);
 
 
 			//	Now, we can assemble the rhs. This rhs is assembled by all
@@ -227,7 +220,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 
 				//	Convective term
 					if (! bStokes) // no convective terms in the Stokes eq.
-						sum += VecTwoNorm(vIPVelCurrent) * upwind_shape_sh(ip, k) /
+						sum += VecTwoNorm(vStdVel[ip]) * upwind_shape_sh(ip, k) /
 																	upwind_conv_length(ip);
 
 				//	Add to rhs
@@ -254,22 +247,6 @@ update(const FV1Geometry<TElem, dim>* geo,
 	/// need to solve system
 	else
 	{
-	//	First, we compute the current velocity at the ips
-		MathVector<dim> vIPVelCurrent[numIp];
-
-	//	Loop integration points
-		for(size_t ip = 0; ip < numIp; ++ip)
-		{
-		//	get SubControlVolumeFace
-			const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-		// 	Compute current (iterated) velocity in the integration points.
-			VecSet(vIPVelCurrent[ip], 0.0);
-			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-				for(int d = 0; d < dim; ++d)
-					vIPVelCurrent[ip][d] += scvf.shape(sh) * vCornerValue(d, sh);
-		}
-
 	// 	For the FIELDS stabilization, there is no connection between the
 	//	velocity components. Thus we can solve a system of size=numIP for
 	//	each component of the velocity separately. This results in smaller
@@ -301,7 +278,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 			mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
 
 		//	cache this value
-			const number scale = VecTwoNorm(vIPVelCurrent[ip]) / upwind_conv_length(ip);
+			const number scale = VecTwoNorm(vStdVel[ip]) / upwind_conv_length(ip);
 
 		//	Convective Term (standard)
 			mat(ip, ip) += scale;
@@ -344,7 +321,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 										* scvf.shape(k);
 
 				//	Convection part
-					contVel[k][ip] += VecTwoNorm(vIPVelCurrent[ip])
+					contVel[k][ip] += VecTwoNorm(vStdVel[ip])
 										* upwind_shape_sh(ip, k) /
 										upwind_conv_length(ip);
 
@@ -481,20 +458,13 @@ update(const FV1Geometry<TElem, dim>* geo,
 		//	get SubControlVolumeFace
 			const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-		// 	Compute current (iterated) velocity in the integration points.
-			MathVector<dim> vIPVelCurrent;
-			VecSet(vIPVelCurrent, 0.0);
-			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-				for(int d = 0; d < dim; ++d)
-					vIPVelCurrent[d] += scvf.shape(sh) * vCornerValue(d, sh);
-
 		//	cache values
 			const number viscoPerDiffLenSq = kinVisco[ip] * diff_length_sq_inv(ip);
 
 			number normIPVelCurrent = 0.0, normIPVelPerConvLen = 0.0, normIPVelPerDownLen = 0.0;
 			if(!bStokes)
 			{
-				normIPVelCurrent = VecTwoNorm(vIPVelCurrent);
+				normIPVelCurrent = VecTwoNorm(vStdVel[ip]);
 				normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
 				normIPVelPerDownLen = normIPVelCurrent /
 									  (downwind_conv_length(ip) + upwind_conv_length(ip));
@@ -563,7 +533,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 					{
 						if(d2 == d) continue;
 
-						sum -= vIPVelCurrent[d2] * (scvf.global_grad(k))[d2];
+						sum -= vStdVel[ip][d2] * (scvf.global_grad(k))[d2];
 					}
 
 				//	Add to rhs
@@ -576,7 +546,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 					{
 						if(d2 == d) continue;
 
-						const number sum2 = vIPVelCurrent[d] * (scvf.global_grad(k))[d2];
+						const number sum2 = vStdVel[ip][d] * (scvf.global_grad(k))[d2];
 
 						rhs += sum2 * vCornerValue(d2, k);
 
@@ -601,22 +571,6 @@ update(const FV1Geometry<TElem, dim>* geo,
 	/// need to solve system
 	else
 	{
-	//	First, we compute the current velocity at the ips
-		MathVector<dim> vIPVelCurrent[numIp];
-
-	//	Loop integration points
-		for(size_t ip = 0; ip < numIp; ++ip)
-		{
-		//	get SubControlVolumeFace
-			const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-		// 	Compute current (iterated) velocity in the integration points.
-			VecSet(vIPVelCurrent[ip], 0.0);
-			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-				for(int d = 0; d < dim; ++d)
-					vIPVelCurrent[ip][d] += scvf.shape(sh) * vCornerValue(d, sh);
-		}
-
 	// 	For the FLOW stabilization, there is no connection between the
 	//	velocity components. Thus we can solve a system of size=numIP for
 	//	each component of the velocity separately. This results in smaller
@@ -641,7 +595,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 		for(size_t ip = 0; ip < numIp; ++ip)
 		{
 		//	cache values
-			const number normIPVelCurrent = VecTwoNorm(vIPVelCurrent[ip]);
+			const number normIPVelCurrent = VecTwoNorm(vStdVel[ip]);
 			const number normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
 			const number normIPVelPerDownLen = normIPVelCurrent /
 											(downwind_conv_length(ip) + upwind_conv_length(ip));
@@ -728,7 +682,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 			//	get SubControlVolumeFace
 				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-				const number normIPVelCurrent = VecTwoNorm(vIPVelCurrent[ip]);
+				const number normIPVelCurrent = VecTwoNorm(vStdVel[ip]);
 				const number viscoPerDiffLenSq = kinVisco[ip] * diff_length_sq_inv(ip);
 				const number normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
 				const number normIPVelPerDownLen = normIPVelCurrent /
@@ -752,11 +706,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 					{
 						if(d2 == d) continue;
 
-						contVel[d][k][ip] += vIPVelCurrent[ip][d2]
+						contVel[d][k][ip] += vStdVel[ip][d2]
 						                     * (scvf.global_grad(k))[d2]
 						                     * vCornerValue(d, k);
 
-						contVel[d2][k][ip] += vIPVelCurrent[ip][d]
+						contVel[d2][k][ip] += vStdVel[ip][d]
 						                      * (scvf.global_grad(k))[d2]
 						                      * vCornerValue(d2, k);
 					}
