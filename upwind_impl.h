@@ -402,37 +402,37 @@ compute(const FV1Geometry<TElem, dim>* geo,
 //	loop all scvf
 	const number eps = std::numeric_limits<number>::epsilon() * 10;
 	size_t bNumNoFlux = 0;
-	for(size_t i = 0; i < geo->num_scvf(); ++i)
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
 	//	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
 	// 	reset shapes w.r.t corner value to zero
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			vUpShapeSh[i][sh] = 0.0;
+			vUpShapeSh[ip][sh] = 0.0;
 
 	// 	reset shapes w.r.t. ip value to zero and extract ip vel
-		for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-			vUpShapeIp[i][ip] = 0.0;
+		for(size_t j = 0; j < geo->num_scvf(); ++j)
+			vUpShapeIp[ip][j] = 0.0;
 
-		const number normSq = VecTwoNormSq(vIPVel[i]);
-		if(fabs(normSq) < eps)
+		const number normSq = VecTwoNormSq(vIPVel[ip]);
+		if(fabs(normSq) <= eps)
 		{
-			vUpShapeSh[i][scvf.from()] = 0.5;
-			vUpShapeSh[i][scvf.to()] = 0.5;
-			vHasFlux[i] = false;
+			vUpShapeSh[ip][scvf.from()] = 0.5;
+			vUpShapeSh[ip][scvf.to()] = 0.5;
+			vHasFlux[ip] = false;
 			bNumNoFlux++;
 			continue;
 		}
 
-		vMassFlux[i] = VecProd(vIPVel[i], scvf.normal());
+		vMassFlux[ip] = VecProd(vIPVel[ip], scvf.normal());
 		const number vel = std::sqrt(normSq);
 		const number len = VecTwoNorm(scvf.normal());
-		if(fabs(vMassFlux[i] / (vel*len))  <= eps)
+		if(fabs(vMassFlux[ip] / std::sqrt(vel*len))  <= eps)
 		{
-			vUpShapeSh[i][scvf.from()] = 0.5;
-			vUpShapeSh[i][scvf.to()] = 0.5;
-			vHasFlux[i] = false;
+			vUpShapeSh[ip][scvf.from()] = 0.5;
+			vUpShapeSh[ip][scvf.to()] = 0.5;
+			vHasFlux[ip] = false;
 			bNumNoFlux++;
 			continue;
 		}
@@ -450,30 +450,30 @@ compute(const FV1Geometry<TElem, dim>* geo,
 			std::vector<number> vFlux;
 
 		//	loop subcontrol volume faces
-			for(size_t i = 0; i < geo->num_scvf(); ++i)
+			for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 			{
 			//	if no flux skip
-				if(!vHasFlux[i]) continue;
+				if(!vHasFlux[ip]) continue;
 
 			//	get SubControlVolumeFace
-				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
 			//	if scvf is part of the scv, add fluxes
 				if(scvf.from() == sh)
 				{
 				//	normal directed outwards
-					vSCVIP.push_back(i);
-					vFlux.push_back( vMassFlux[i] );
-					m_in += -1.0 * std::min(vMassFlux[i], 0.0);
-					m_out += std::max(vMassFlux[i], 0.0);
+					vSCVIP.push_back(ip);
+					vFlux.push_back( vMassFlux[ip] );
+					m_in += -1.0 * std::min(vMassFlux[ip], 0.0);
+					m_out += std::max(vMassFlux[ip], 0.0);
 				}
 				else if (scvf.to() == sh)
 				{
 				//	normal directed inwards
-					vSCVIP.push_back(i);
-					vFlux.push_back( -1.0 * vMassFlux[i] );
-					m_in += -1.0 * std::min(-1.0 *  vMassFlux[i], 0.0);
-					m_out += std::max(-1.0 * vMassFlux[i], 0.0);
+					vSCVIP.push_back(ip);
+					vFlux.push_back( -1.0 * vMassFlux[ip] );
+					m_in += -1.0 * std::min(-1.0 *  vMassFlux[ip], 0.0);
+					m_out += std::max(-1.0 * vMassFlux[ip], 0.0);
 				}
 			}
 
@@ -507,22 +507,25 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	const MathVector<dim>* vCornerCoords = geo->corners();
 
 //	compute upwind point
-	MathVector<dim> upPos; VecSet(upPos, 0.0);
-	for(size_t i = 0; i < geo->num_scvf(); ++i)
+	MathVector<dim> upPos;
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
 	//	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+	//	reset upwind point
+		VecSet(upPos, 0.0);
 
 	//	sum up contributions
         for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
-        	VecScaleAppend(upPos, vUpShapeSh[i][sh], vCornerCoords[sh]);
+        	VecScaleAppend(upPos, vUpShapeSh[ip][sh], vCornerCoords[sh]);
         for (size_t j = 0; j < geo->num_scvf(); ++j)
-        	VecScaleAppend(upPos, vUpShapeIp[i][j], geo->scvf(j).global_ip());
+        	VecScaleAppend(upPos, vUpShapeIp[ip][j], geo->scvf(j).global_ip());
 
     //	save convection length
 		MathVector<dim> dist;
 	    VecSubtract(dist, scvf.global_ip(), upPos);
-        vConvLength[i] = VecTwoNorm(dist);
+        vConvLength[ip] = VecTwoNorm(dist);
 	}
 }
 
