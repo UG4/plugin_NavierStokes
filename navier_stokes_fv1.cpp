@@ -180,6 +180,19 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 		dt = vLocSol->time(0) - vLocSol->time(1);
 	}
 
+//	interpolate velocity at ip with standard lagrange interpolation
+	static const size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
+	MathVector<dim> StdVel[numSCVF];
+	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
+	{
+		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
+		VecSet(StdVel[ip], 0.0);
+
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+			for(size_t d = 0; d < (size_t)dim; ++d)
+				StdVel[ip][d] += u(d, sh) * scvf.shape(sh);
+	}
+
 //	compute stabilized velocities and shapes for continuity equation
 	m_spStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 
@@ -202,10 +215,10 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 	const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 // 	loop Sub Control Volume Faces (SCVF)
-	for(size_t i = 0; i < geo.num_scvf(); ++i)
+	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
 	// 	get current SCVF
-		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(i);
+		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
 
 	// 	loop shape functions
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
@@ -221,7 +234,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			////////////////////////////////////////////////////
 
 		// 	Compute flux derivative at IP
-			const number flux_sh =  -1.0 * m_imKinViscosity[i]
+			const number flux_sh =  -1.0 * m_imKinViscosity[ip]
 									* VecDot(scvf.global_grad(sh), scvf.normal());
 
 		// 	Add flux derivative  to local matrix
@@ -236,7 +249,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					{
-						const number flux2_sh = -1.0 * m_imKinViscosity[i]
+						const number flux2_sh = -1.0 * m_imKinViscosity[ip]
 												* scvf.global_grad(sh)[d1] * scvf.normal()[d2];
 						J(d1, scvf.from(), d2, sh) += flux2_sh;
 						J(d1, scvf.to()  , d2, sh) -= flux2_sh;
@@ -265,23 +278,17 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				MathVector<dim> UpwindVel;
 	
 			//	switch PAC
-				if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(i);
-				else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(i);
+				if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip);
+				else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(ip);
 				else UG_THROW_FATAL("Cannot find upwind for convective term.");
 	
 			//	peclet blend
 				number w = 1.0;
 				if(m_bPecletBlend)
-					w = peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[i]);
-	
-		//	\todo: implement the linearization in a clean way
-				MathVector<dim> StdVel; VecSet(StdVel, 0.0);
-				for(size_t sh2 = 0; sh2 < scvf.num_sh(); ++sh2)
-					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						StdVel[d1] += u(d1, sh2) * scvf.shape(sh2);
+					w = peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[ip]);
 
 			//	compute product of stabilized vel and normal
-				const number prod = VecProd(StdVel, scvf.normal());
+				const number prod = VecProd(StdVel[ip], scvf.normal());
 	
 			///////////////////////////////////
 			//	Add fixpoint linearization
@@ -295,14 +302,14 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 							{
-								const number convFlux_vel = prod * w * convStab.stab_shape_vel(i, d1, d2, sh);
+								const number convFlux_vel = prod * w * convStab.stab_shape_vel(ip, d1, d2, sh);
 								J(d1, scvf.from(), d2, sh) += convFlux_vel;
 								J(d1, scvf.to()  , d2, sh) -= convFlux_vel;
 							}
 					else
 						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 						{
-							const number convFlux_vel = prod * w * convStab.stab_shape_vel(i, d1, d1, sh);
+							const number convFlux_vel = prod * w * convStab.stab_shape_vel(ip, d1, d1, sh);
 							J(d1, scvf.from(), d1, sh) += convFlux_vel;
 							J(d1, scvf.to()  , d1, sh) -= convFlux_vel;
 						}
@@ -310,7 +317,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				//	pressure derivative
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					{
-						const number convFlux_p = prod * w * convStab.stab_shape_p(i, d1, sh);
+						const number convFlux_p = prod * w * convStab.stab_shape_p(ip, d1, sh);
 	
 						J(d1, scvf.from(), _P_, sh) += convFlux_p;
 						J(d1, scvf.to()  , _P_, sh) -= convFlux_p;
@@ -320,7 +327,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			//	Upwind used as upwind
 				if(m_spConvUpwind.valid())
 				{
-					number convFlux_vel = upwind.upwind_shape_sh(i, sh);
+					number convFlux_vel = upwind.upwind_shape_sh(ip, sh);
 
 				//	in some cases (e.g. PositiveUpwind, RegularUpwind) the upwind
 				//	velocity in an ip depends also on the upwind velocity in
@@ -334,7 +341,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 						for(size_t ip2 = 0; ip2 < geo.num_scvf(); ++ip2)
 						{
 							const typename TFVGeom<TElem, dim>::SCVF& scvf2 = geo.scvf(ip2);
-							convFlux_vel += scvf2.shape(sh) * upwind.upwind_shape_ip(i, ip2);
+							convFlux_vel += scvf2.shape(sh) * upwind.upwind_shape_ip(ip, ip2);
 						}
 					}
 
@@ -380,10 +387,10 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 						//	Compute sum_j n_j * \partial_{u_i^sh} u_j
 							if(stab.vel_comp_connected())
 								for(size_t k = 0; k < (size_t)dim; ++k)
-									prod_vel += w * convStab.stab_shape_vel(i, k, d2, sh)
+									prod_vel += w * convStab.stab_shape_vel(ip, k, d2, sh)
 													* scvf.normal()[k];
 							else
-								prod_vel = convStab.stab_shape_vel(i, d1, d1, sh)
+								prod_vel = convStab.stab_shape_vel(ip, d1, d1, sh)
 													* scvf.normal()[d1];
 	
 							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
@@ -396,7 +403,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 	
 						//	Compute sum_j n_j * \parial_{u_i^sh} u_j
 							for(size_t k = 0; k < (size_t)dim; ++k)
-								prod_p += convStab.stab_shape_p(i, k, sh)
+								prod_p += convStab.stab_shape_p(ip, k, sh)
 													* scvf.normal()[k];
 	
 							J(d1, scvf.from(), _P_, sh) += prod_p * UpwindVel[d1];
@@ -413,7 +420,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 							{
 						//	derivatives w.r.t. velocity
-							number prod_vel = w * upwind.upwind_shape_sh(i,sh)	* scvf.normal()[d2];
+							number prod_vel = w * upwind.upwind_shape_sh(ip,sh)	* scvf.normal()[d2];
 	
 							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
 							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
@@ -451,7 +458,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				{
 					number contFlux_vel = 0.0;
 					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						contFlux_vel += stab.stab_shape_vel(i, d2, d1, sh)
+						contFlux_vel += stab.stab_shape_vel(ip, d2, d1, sh)
 										* scvf.normal()[d2];
 
 					J(_P_, scvf.from(), d1, sh) += contFlux_vel;
@@ -462,7 +469,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			{
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				{
-					const number contFlux_vel = stab.stab_shape_vel(i, d1, d1, sh)
+					const number contFlux_vel = stab.stab_shape_vel(ip, d1, d1, sh)
 													* scvf.normal()[d1];
 
 					J(_P_, scvf.from(), d1, sh) += contFlux_vel;
@@ -473,7 +480,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 		//	Add derivative of stabilized flux w.r.t pressure to local matrix
 			number contFlux_p = 0.0;
 			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				contFlux_p += stab.stab_shape_p(i, d1, sh) * scvf.normal()[d1];
+				contFlux_p += stab.stab_shape_p(ip, d1, sh) * scvf.normal()[d1];
 
 			J(_P_, scvf.from(), _P_, sh) += contFlux_p;
 			J(_P_, scvf.to()  , _P_, sh) -= contFlux_p;
@@ -520,6 +527,19 @@ assemble_A(LocalVector& d, const LocalVector& u)
 		dt = vLocSol->time(0) - vLocSol->time(1);
 	}
 
+//	interpolate velocity at ip with standard lagrange interpolation
+	static const size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
+	MathVector<dim> StdVel[numSCVF];
+	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
+	{
+		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
+		VecSet(StdVel[ip], 0.0);
+
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+			for(size_t d = 0; d < (size_t)dim; ++d)
+				StdVel[ip][d] += u(d, sh) * scvf.shape(sh);
+	}
+
 //	compute stabilized velocities and shapes for continuity equation
 	// \todo: (optional) Here we can skip the computation of shapes, implement?
 	m_spStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
@@ -543,10 +563,10 @@ assemble_A(LocalVector& d, const LocalVector& u)
 	const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 // 	loop Sub Control Volume Faces (SCVF)
-	for(size_t i = 0; i < geo.num_scvf(); ++i)
+	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
 	// 	get current SCVF
-		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(i);
+		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
 
 		////////////////////////////////////////////////////
 		////////////////////////////////////////////////////
@@ -584,7 +604,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 			TransposedMatVecMultAdd(diffFlux, gradVel, scvf.normal());
 
 	//	scale by viscosity
-		VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[i]);
+		VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip]);
 
 	//	3. Add flux to local defect
 		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -603,24 +623,16 @@ assemble_A(LocalVector& d, const LocalVector& u)
 			MathVector<dim> UpwindVel;
 	
 		//	switch PAC
-			if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(i);
-			else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(i);
+			if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip);
+			else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(ip);
 			else UG_THROW_FATAL("Cannot find upwind for convective term.");
 	
 		//	Peclet Blend
 			if(m_bPecletBlend)
-				peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[i]);
+				peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[ip]);
 	
-	
-	//	\todo: implement the linearization in a clean way
-			MathVector<dim> StdVel; VecSet(StdVel, 0.0);
-			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					StdVel[d1] += u(d1, sh) * scvf.shape(sh);
-
-		//	compute product of upwinded (and blended) velocity and normal
-			//const number prod = VecProd(UpwindVel, scvf.normal());
-			const number prod = VecProd(StdVel, scvf.normal());
+		//	compute product of standard velocity and normal
+			const number prod = VecProd(StdVel[ip], scvf.normal());
 	
 		//	Add contributions to local velocity components
 			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -653,7 +665,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 		////////////////////////////////////////////////////
 
 	//	compute flux at ip
-		const number contFlux = VecProd(stab.stab_vel(i), scvf.normal());
+		const number contFlux = VecProd(stab.stab_vel(ip), scvf.normal());
 
 	//	Add contributions to local defect
 		d(_P_, scvf.from()) += contFlux;
@@ -678,10 +690,10 @@ assemble_JM(LocalMatrix& J, const LocalVector& u)
 	const static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 
 // 	loop Sub Control Volumes (SCV)
-	for(size_t i = 0; i < geo.num_scv(); ++i)
+	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
 	{
 	// 	get SCV
-		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(i);
+		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(ip);
 
 	// 	get associated node
 		const int sh = scv.node_id();
@@ -712,10 +724,10 @@ assemble_M(LocalVector& d, const LocalVector& u)
 	const static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 
 // 	loop Sub Control Volumes (SCV)
-	for(size_t i = 0; i < geo.num_scv(); ++i)
+	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
 	{
 	// 	get current SCV
-		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(i);
+		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(ip);
 
 	// 	get associated node
 		const int sh = scv.node_id();
@@ -749,17 +761,17 @@ assemble_f(LocalVector& d)
 	const static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 
 // 	loop Sub Control Volumes (SCV)
-	for(size_t ep = 0; ep < geo.num_scv(); ++ep)
+	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
 	{
 	// 	get current SCV
-		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(ep);
+		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(ip);
 
 	// 	get associated node
 		const int sh = scv.node_id();
 
 	// 	Add to local rhs
 		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-			d(d1, sh) += m_imSource[ep][d1] * scv.volume();
+			d(d1, sh) += m_imSource[ip][d1] * scv.volume();
 	}
 
 // 	we're done
@@ -776,9 +788,9 @@ peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
 {
 //	Interpolate velocity at ip
 	MathVector<dim> InterpolVel; VecSet(InterpolVel, 0.0);
-	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+	for(size_t d = 0; d < (size_t)dim; ++d)
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			InterpolVel[d1] += scvf.shape(sh) * u(d1, sh);
+			InterpolVel[d] += scvf.shape(sh) * u(d, sh);
 
 //	compute peclet number
 	number Pe = VecProd(InterpolVel, scvf.normal());
