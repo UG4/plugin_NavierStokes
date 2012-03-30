@@ -153,22 +153,22 @@ compute(const FV1Geometry<TElem, dim>* geo,
         number vConvLength[maxNumSCVF])
 {
 //	set shapes
-	for(size_t i = 0; i < geo->num_scvf(); ++i)
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
 	//	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 		{
 		//	set upwind shape
-			vUpShapeSh[i][sh] = scvf.shape(sh);
+			vUpShapeSh[ip][sh] = scvf.shape(sh);
 		}
 
 	//	compute convection length
 	//  \todo: (optional) A convection length is not really defined for no upwind.
 	//	       but in the computation of a stabilization the term cancels, so
 	//   	   we only have to ensure that the conv_lengh is non-zero
-        vConvLength[i] = 1.0;
+        vConvLength[ip] = 1.0;
 	}
 }
 
@@ -193,31 +193,27 @@ compute(const FV1Geometry<TElem, dim>* geo,
     const MathVector<dim>* corners = geo->corners();
 
 // 	set shapes
-	for(size_t i = 0; i < geo->num_scvf(); ++i)
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
     //	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
     //  reset shapes to zero for all IPs
         for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
-        	vUpShapeSh[i][sh]=0.0;
+        	vUpShapeSh[ip][sh]=0.0;
 
     // 	switch upwind
-        const number flux = VecDot(scvf.normal(), vIPVel[i]);
+        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
         if(flux > 0.0)
         {
-        	vUpShapeSh[i][scvf.from()] = 1.0;
-            VecSubtract(dist, scvf.global_ip(), corners[scvf.from()]);
+        	vUpShapeSh[ip][scvf.from()] = 1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.from()]);
         }
         else
         {
-        	vUpShapeSh[i][scvf.to()] = 1.0;
-            VecSubtract(dist, scvf.global_ip(), corners[scvf.to()]);
+        	vUpShapeSh[ip][scvf.to()] = 1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.to()]);
         }
-
-     // compute convection length as distance between upwind point and
-     // integration point
-        vConvLength[i] = VecTwoNorm(dist);
     }
 }
 
@@ -283,14 +279,14 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	const MathVector<dim>* vCornerCoords = geo->corners();
 
 //	loop all scvf
-	for(size_t i = 0; i < geo->num_scvf(); ++i)
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
     //	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
 	// 	reset shapes to zero
  		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
- 			vUpShapeSh[i][sh] = 0.0;
+ 			vUpShapeSh[ip][sh] = 0.0;
 
 	// 	upwind corner
 		size_t sh = 0;
@@ -298,16 +294,14 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	// 	find upwind node
 		try{
 			GetNodeNextToCut<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
-					(sh, scvf.global_ip(), vIPVel[i], vCornerCoords);
+					(sh, scvf.global_ip(), vIPVel[ip], vCornerCoords);
 		}UG_CATCH_THROW("GetSkewedUpwindShapes: Cannot find upwind node.");
 
 	// 	set upwind corner
-		vUpShapeSh[i][sh] = 1.0;
+		vUpShapeSh[ip][sh] = 1.0;
 
 	//	compute convection length
-		MathVector<dim> dist;
-	    VecSubtract(dist, scvf.global_ip(), vCornerCoords[sh]);
-	    vConvLength[i] = VecTwoNorm(dist);
+	    vConvLength[ip] = VecDistance(scvf.global_ip(), vCornerCoords[sh]);
 	}
 }
 
@@ -325,19 +319,19 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	const MathVector<dim>* vCornerCoords = geo->corners();
 
 //	loop all scvf
-	for(size_t i = 0; i < geo->num_scvf(); ++i)
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
     //	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
 	// 	reset shapes to zero
  		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
- 			vUpShapeSh[i][sh] = 0.0;
+ 			vUpShapeSh[ip][sh] = 0.0;
 
  	//	if the velocity is zero, there will be no possibility to find the
  	//	cutted side. In this case we have no velocity and therefore there is
  	//	no convection. We set all upwind shapes to zero.
- 		if(VecTwoNorm(vIPVel[i]) == 0.0) continue;
+ 		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
 
  	// 	side and intersection vectors
  		static const int refDim = FV1Geometry<TElem, dim>::dim;
@@ -349,7 +343,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
  		try{
  			ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
  			(	side, globalIntersection, localIntersection,
- 				scvf.global_ip(), vIPVel[i], false /* search upwind */, vCornerCoords);
+ 				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
  		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
 
  	// 	get linear trial space
@@ -370,13 +364,11 @@ compute(const FV1Geometry<TElem, dim>* geo,
  			const size_t co = rRefElem.id(dim-1, side, 0, j);
 
  		//	evaluate trial space
- 			vUpShapeSh[i][co] = TrialSpace.shape(co, localIntersection);
+ 			vUpShapeSh[ip][co] = TrialSpace.shape(co, localIntersection);
  		}
 
  	//	compute conv length
-		MathVector<dim> dist;
-	    VecSubtract(dist, scvf.global_ip(), globalIntersection);
-        vConvLength[i] = VecTwoNorm(dist);
+		vConvLength[ip] = VecDistance(scvf.global_ip(), globalIntersection);
 	}
 }
 
@@ -523,9 +515,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
         	VecScaleAppend(upPos, vUpShapeIp[ip][j], geo->scvf(j).global_ip());
 
     //	save convection length
-		MathVector<dim> dist;
-	    VecSubtract(dist, scvf.global_ip(), upPos);
-        vConvLength[ip] = VecTwoNorm(dist);
+		vConvLength[ip] = VecDistance(scvf.global_ip(), upPos);
 	}
 }
 
