@@ -274,50 +274,52 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	//	each component of the velocity separately. This results in smaller
 	//	matrices, that we have to invert.
 
+	//	First, we have to assemble the Matrix, that includes all connections
+	//	between the ip velocity component. Note, that in this case the
+	//	matrix is non-diagonal and we must invert it.
+	//	The Matrix is the same for all dim-components, thus we assemble it only
+	//	once
+
+	//	size of the system
+		static const size_t N = numIp;
+
+	//	a fixed size matrix
+		DenseMatrix< FixedArray2<number, N, N> > mat;
+
+	//	reset all values of the matrix to zero
+		mat = 0.0;
+
+	//	Loop integration points
+		for(size_t ip = 0; ip < numIp; ++ip)
+		{
+		//	Time part
+			if(pvCornerValueOldTime != NULL)
+				mat(ip, ip) += 1./dt;
+
+		//	Diffusion part
+			mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
+
+		//	cache this value
+			const number scale = VecTwoNorm(vIPVelCurrent[ip]) / upwind_conv_length(ip);
+
+		//	Convective Term (standard)
+			mat(ip, ip) += scale;
+
+		//	Convective Term by upwind
+			for(size_t ip2 = 0; ip2 < numIp; ++ip2)
+				mat(ip, ip2) -= upwind_shape_ip(ip, ip2) * scale;
+		}
+
+	//	we now create a matrix, where we store the inverse matrix
+		typename block_traits<DenseMatrix< FixedArray2<number, N, N> > >::inverse_type inv;
+
+	//	get the inverse
+		if(!GetInverse(inv, mat))
+			UG_THROW_FATAL("Could not compute inverse.");
+
 	//	loop dimensions (i.e. components of the velocity)
 		for(int d = 0; d < dim; ++d)
 		{
-		//	First, we have to assemble the Matrix, that includes all connections
-		//	between the ip velocity component. Note, that in this case the
-		//	matrix is non-diagonal and we must invert it.
-
-		//	size of the system
-			static const size_t N = numIp;
-
-		//	a fixed size matrix
-			DenseMatrix< FixedArray2<number, N, N> > mat;
-
-		//	reset all values of the matrix to zero
-			mat = 0.0;
-
-		//	Loop integration points
-			for(size_t ip = 0; ip < numIp; ++ip)
-			{
-			//	Time part
-				if(pvCornerValueOldTime != NULL)
-					mat(ip, ip) += 1./dt;
-
-			//	Diffusion part
-				mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
-
-			//	cache this value
-				const number scale = VecTwoNorm(vIPVelCurrent[ip]) / upwind_conv_length(ip);
-
-			//	Convective Term (standard)
-				mat(ip, ip) += scale;
-
-			//	Convective Term by upwind
-				for(size_t ip2 = 0; ip2 < numIp; ++ip2)
-					mat(ip, ip2) -= upwind_shape_ip(ip, ip2) * scale;
-			}
-
-		//	we now create a matrix, where we store the inverse matrix
-			typename block_traits<DenseMatrix< FixedArray2<number, N, N> > >::inverse_type inv;
-
-		//	get the inverse
-			if(!GetInverse(inv, mat))
-		       	UG_THROW_FATAL("Could not compute inverse.");
-
 		//	create two vectors
 			DenseVector< FixedArray1<number, N> > contVel[numSh];
 			DenseVector< FixedArray1<number, N> > contP[numSh];
@@ -617,68 +619,107 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	//	each component of the velocity separately. This results in smaller
 	//	matrices, that we have to invert.
 
-	//	loop dimensions (i.e. components of the velocity)
+	//	First, we have to assemble the Matrix, that includes all connections
+	//	between the ip velocity component. Note, that in this case the
+	//	matrix is non-diagonal and we must invert it.
+	//	The Matrix is the same for all dim-components. Thus we invert it only
+	//	once.
+
+	//	size of the system
+		static const size_t N = numIp;
+
+	//	a fixed size matrix
+		DenseMatrix< FixedArray2<number, N, N> > mat;
+
+	//	reset all values of the matrix to zero
+		mat = 0.0;
+
+	//	Loop integration points
+		for(size_t ip = 0; ip < numIp; ++ip)
+		{
+		//	cache values
+			const number normIPVelCurrent = VecTwoNorm(vIPVelCurrent[ip]);
+			const number normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
+			const number normIPVelPerDownLen = normIPVelCurrent /
+											(downwind_conv_length(ip) + upwind_conv_length(ip));
+
+		//	Time part
+			if(pvCornerValueOldTime != NULL)
+				mat(ip, ip) += 1./dt;
+
+		//	Diffusion part
+			mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
+
+		//	Convective Term (standard)
+			mat(ip, ip) += normIPVelPerConvLen;
+
+			for(size_t ip2 = 0; ip2 < numIp; ++ip2)
+			{
+			//	Convective Term by upwind
+				mat(ip, ip2) -= upwind_shape_ip(ip, ip2) * normIPVelPerConvLen;
+
+			//	correction of divergence error
+				mat(ip,ip2) += normIPVelPerDownLen *
+								(upwind_shape_ip(ip, ip2) - downwind_shape_ip(ip, ip2));
+			}
+		}
+
+	//	we now create a matrix, where we store the inverse matrix
+		typename block_traits<DenseMatrix< FixedArray2<number, N, N> > >::inverse_type inv;
+
+	//	get the inverse
+		if(!GetInverse(inv, mat))
+			UG_THROW_FATAL("Could not compute inverse.");
+
+	//	contribution of PRESSURE
+		DenseVector< FixedArray1<number, N> > contP[numSh];
+		DenseVector< FixedArray1<number, N> > xP;
+
 		for(int d = 0; d < dim; ++d)
 		{
-		//	First, we have to assemble the Matrix, that includes all connections
-		//	between the ip velocity component. Note, that in this case the
-		//	matrix is non-diagonal and we must invert it.
-
-		//	size of the system
-			static const size_t N = numIp;
-
-		//	a fixed size matrix
-			DenseMatrix< FixedArray2<number, N, N> > mat;
-
-		//	reset all values of the matrix to zero
-			mat = 0.0;
-
-		//	Loop integration points
 			for(size_t ip = 0; ip < numIp; ++ip)
 			{
-			//	cache values
-				const number normIPVelCurrent = VecTwoNorm(vIPVelCurrent[ip]);
-				const number normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
-				const number normIPVelPerDownLen = normIPVelCurrent /
-												(downwind_conv_length(ip) + upwind_conv_length(ip));
+			//	get SubControlVolumeFace
+				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-			//	Time part
-				if(pvCornerValueOldTime != NULL)
-					mat(ip, ip) += 1./dt;
-
-			//	Diffusion part
-				mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
-
-			//	Convective Term (standard)
-				mat(ip, ip) += normIPVelPerConvLen;
-
-				for(size_t ip2 = 0; ip2 < numIp; ++ip2)
+			//	loop shape functions
+				for(size_t k = 0; k < numSh; ++k)
 				{
-				//	Convective Term by upwind
-					mat(ip, ip2) -= upwind_shape_ip(ip, ip2) * normIPVelPerConvLen;
-
-				//	correction of divergence error
-					mat(ip,ip2) += normIPVelPerDownLen *
-									(upwind_shape_ip(ip, ip2) - downwind_shape_ip(ip, ip2));
+				//	Pressure part
+					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d];
 				}
 			}
 
-		//	we now create a matrix, where we store the inverse matrix
-			typename block_traits<DenseMatrix< FixedArray2<number, N, N> > >::inverse_type inv;
+		//	compute all stab_shapes
+			for(size_t k = 0; k < numSh; ++k)
+			{
+			//	apply for pressure stab_shape
+				MatMult(xP, 1.0, inv, contP[k]);
 
-		//	get the inverse
-			if(!GetInverse(inv, mat))
-				UG_THROW_FATAL("Could not compute inverse.");
+			//	write stab_shape for pressure
+				//\todo: can we optimize this, e.g. without copy?
+				for(size_t ip = 0; ip < numIp; ++ip)
+						stab_shape_p(ip, d, k) = xP[ip];
+			}
+		}
 
-		//	create two vectors
-			DenseVector< FixedArray1<number, N> > contVel[dim][numSh];
-			DenseVector< FixedArray1<number, N> > contP[numSh];
+	//	contribution of VELOCITY
 
-		//	Now, we can create several vector that describes the contribution of the
-		//	corner velocities and the corner pressure. For each of this contribution
-		//	components, we will apply the inverted matrix to get the stab_shapes
+	//	create vectors
+		DenseVector< FixedArray1<number, N> > contVel[dim][numSh];
 
-		//	Loop integration points
+	//	Now, we can create several vector that describes the contribution of the
+	//	corner velocities. For each of this contribution
+	//	components, we will apply the inverted matrix to get the stab_shapes
+
+	//	reset contribution
+		for(int d = 0; d < dim; ++d)
+			for(size_t k = 0; k < numSh; ++k)
+				contVel[d][k] = 0.0;
+
+	//	Loop integration points
+		for(int d = 0; d < dim; ++d)
+		{
 			for(size_t ip = 0; ip < numIp; ++ip)
 			{
 			//	get SubControlVolumeFace
@@ -694,13 +735,10 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 				for(size_t k = 0; k < numSh; ++k)
 				{
 				//	Diffusion part
-					contVel[d][k][ip] = viscoPerDiffLenSq * scvf.shape(k);
+					contVel[d][k][ip] += viscoPerDiffLenSq * scvf.shape(k);
 
 				//	Convection part
 					contVel[d][k][ip] += normIPVelPerConvLen * upwind_shape_sh(ip, k);
-
-				//	Pressure part
-					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d];
 
 				//	terms for correction of divergence error
 					contVel[d][k][ip] += normIPVelPerDownLen *
@@ -721,40 +759,49 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 					}
 				}
 			}
+		}
 
-		//	solution vector
-			DenseVector< FixedArray1<number, N> > xVel, xP;
+	//	solution vector
+		DenseVector< FixedArray1<number, N> > xVel;
 
-		//	compute all stab_shapes
-			for(size_t k = 0; k < numSh; ++k)
+	//	compute all stab_shapes
+		for(size_t k = 0; k < numSh; ++k)
+		{
+		//	compute vel stab_shapes
+			for(int d2 = 0; d2 < dim; ++d2)
 			{
-			//	apply for pressure stab_shape
-				MatMult(xP, 1.0, inv, contP[k]);
+			//	apply for vel stab_shape
+				MatMult(xVel, 1.0, inv, contVel[d2][k]);
 
-			//	write stab_shape for pressure
+			//	write stab_shape for vel
 				//\todo: can we optimize this, e.g. without copy?
 				for(size_t ip = 0; ip < numIp; ++ip)
-					stab_shape_p(ip, d, k) = xP[ip];
-
-			//	compute vel stab_shapes
-				for(int d2 = 0; d2 < dim; ++d2)
-				{
-				//	apply for vel stab_shape
-					MatMult(xVel, 1.0, inv, contVel[d2][k]);
-
-				//	write stab_shape for vel
-					//\todo: can we optimize this, e.g. without copy?
-					for(size_t ip = 0; ip < numIp; ++ip)
+					for(int d = 0; d < dim; ++d)
 						stab_shape_vel(ip, d, d2, k) = xVel[ip];
-				}
 			}
+		}
 
+	//	Finally, we can compute the values of the stabilized velocity for each
+	//	integration point
 
-		//	Finally, we can compute the values of the stabilized velocity for each
-		//	integration point
+	//	vector of all contributions
+		DenseVector< FixedArray1<number, N> > f, fTmp;
 
-		//	vector of all contributions
-			DenseVector< FixedArray1<number, N> > f;
+	//	sum up all contributions of vel and p for rhs.
+		fTmp = 0.0;
+		for(size_t k = 0; k < numSh; ++k)
+		{
+		//	add velocity contribution
+			for(int d = 0; d < dim; ++d)
+				VecScaleAdd(fTmp, 1.0, fTmp, vCornerValue(d, k), contVel[d][k]);
+
+		//	add pressure contribution
+			VecScaleAdd(fTmp, 1.0, fTmp, vCornerValue(_P_, k), contP[k]);
+		}
+
+		for(int d = 0; d < dim; ++d)
+		{
+			f = fTmp;
 
 		//	Loop integration points
 			for(size_t ip = 0; ip < numIp; ++ip)
@@ -763,9 +810,8 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
 			//	Source
-				f[ip] = 0.0;
 				if(pSource != NULL)
-					f[ip] = (*pSource)[ip][d];
+					f[ip] += (*pSource)[ip][d];
 
 			//	Time
 				if(pvCornerValueOldTime != NULL)
@@ -781,17 +827,6 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 				}
 			}
 
-		//	sum up all contributions of vel and p for rhs.
-			for(size_t k = 0; k < numSh; ++k)
-			{
-			//	add velocity contribution
-				for(int d2 = 0; d2 < dim; ++d2)
-					VecScaleAdd(f, 1.0, f, vCornerValue(d2, k), contVel[d2][k]);
-
-			//	add pressure contribution
-				VecScaleAdd(f, 1.0, f, vCornerValue(_P_, k), contP[k]);
-			}
-
 		//	invert the system for all contributions
 			DenseVector< FixedArray1<number, N> > x;
 			MatMult(x, 1.0, inv, f);
@@ -803,8 +838,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 			//	write stab_shape for vel
 				stab_vel(ip)[d] = x[ip];
 			}
-		} // end dim loop
-
+		}
 	} // end switch for non-diag
 }
 
