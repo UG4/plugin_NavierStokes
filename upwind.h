@@ -78,7 +78,7 @@ class INavierStokesUpwind
 	/// returns the upwind velocity
 		MathVector<dim> upwind_vel(const size_t scvf,
 		                           const LocalVector& CornerVel,
-		                           const MathVector<dim> StdVel[]) const;
+		                           const MathVector<dim> vStdVel[]) const;
 
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
@@ -117,25 +117,25 @@ class INavierStokesUpwind
 
 	///	compute values for new geometry and corner velocities
 		void update(const FVGeometryBase* geo,
-		            const MathVector<dim> StdVel[])
+		            const MathVector<dim> vStdVel[])
 		{
-			update_upwind(geo, StdVel);
+			update_upwind(geo, vStdVel);
 		}
 
 	///	compute values for new geometry and corner velocities
 		void update_upwind(const FVGeometryBase* geo,
-						   const MathVector<dim> StdVel[])
+						   const MathVector<dim> vStdVel[])
 		{
-			compute(geo, StdVel, m_vvUpShapeSh, m_vvUpShapeIp, m_vUpConvLength);
+			compute(geo, vStdVel, m_vvUpShapeSh, m_vvUpShapeIp, m_vUpConvLength);
 		}
 
 	///	compute values for new geometry and corner velocities
 		void update_downwind(const FVGeometryBase* geo,
-		                     const MathVector<dim> StdVel[])
+		                     const MathVector<dim> vStdVel[])
 		{
 			MathVector<dim> vDownIPVel[maxNumSCVF];
 			for(size_t ip = 0; ip < m_numScvf; ++ip)
-				VecScale(vDownIPVel[ip], StdVel[ip], -1.0);
+				VecScale(vDownIPVel[ip], vStdVel[ip], -1.0);
 
 			compute(geo, vDownIPVel, m_vvDownShapeSh, m_vvDownShapeIp, m_vDownConvLength);
 		}

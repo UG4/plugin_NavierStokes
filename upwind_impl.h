@@ -75,7 +75,7 @@ MathVector<dim>
 INavierStokesUpwind<dim>::
 upwind_vel(const size_t scvf,
            const LocalVector& CornerVel,
-           const MathVector<dim> StdVel[]) const
+           const MathVector<dim> vStdVel[]) const
 {
 //	reset result
 	MathVector<dim> vel; VecSet(vel, 0.0);
@@ -90,7 +90,7 @@ upwind_vel(const size_t scvf,
 
 //	compute ip vel
 	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
-		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), StdVel[scvf2]);
+		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), vStdVel[scvf2]);
 
 //	return value
 	return vel;
