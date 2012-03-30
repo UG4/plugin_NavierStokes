@@ -189,8 +189,8 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 		VecSet(StdVel[ip], 0.0);
 
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			for(size_t d = 0; d < (size_t)dim; ++d)
-				StdVel[ip][d] += u(d, sh) * scvf.shape(sh);
+			for(int d1 = 0; d1 < dim; ++d1)
+				StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 	}
 
 //	compute stabilized velocities and shapes for continuity equation
@@ -238,7 +238,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 									* VecDot(scvf.global_grad(sh), scvf.normal());
 
 		// 	Add flux derivative  to local matrix
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				J(d1, scvf.from(), d1, sh) += flux_sh;
 				J(d1, scvf.to()  , d1, sh) -= flux_sh;
@@ -246,8 +246,8 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 
 			if(!m_bLaplace)
 			{
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+				for(int d1 = 0; d1 < dim; ++d1)
+					for(int d2 = 0; d2 < dim; ++d2)
 					{
 						const number flux2_sh = -1.0 * m_imKinViscosity[ip]
 												* scvf.global_grad(sh)[d1] * scvf.normal()[d2];
@@ -261,7 +261,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			////////////////////////////////////////////////////
 
 		//	Add flux derivative for local matrix
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				const number flux_sh = scvf.shape(sh) * scvf.normal()[d1];
 				J(d1, scvf.from(), _P_, sh) += flux_sh;
@@ -299,15 +299,15 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				{
 				//	velocity derivatives
 					if(stab.vel_comp_connected())
-						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+						for(int d1 = 0; d1 < dim; ++d1)
+							for(int d2 = 0; d2 < dim; ++d2)
 							{
 								const number convFlux_vel = prod * w * convStab.stab_shape_vel(ip, d1, d2, sh);
 								J(d1, scvf.from(), d2, sh) += convFlux_vel;
 								J(d1, scvf.to()  , d2, sh) -= convFlux_vel;
 							}
 					else
-						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						for(int d1 = 0; d1 < dim; ++d1)
 						{
 							const number convFlux_vel = prod * w * convStab.stab_shape_vel(ip, d1, d1, sh);
 							J(d1, scvf.from(), d1, sh) += convFlux_vel;
@@ -315,7 +315,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 						}
 	
 				//	pressure derivative
-					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					for(int d1 = 0; d1 < dim; ++d1)
 					{
 						const number convFlux_p = prod * w * convStab.stab_shape_p(ip, d1, sh);
 	
@@ -347,7 +347,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 
 					convFlux_vel *= prod * w;
 
-					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					for(int d1 = 0; d1 < dim; ++d1)
 					{
 						J(d1, scvf.from(), d1, sh) += convFlux_vel;
 						J(d1, scvf.to()  , d1, sh) -= convFlux_vel;
@@ -358,7 +358,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				if(m_bPecletBlend)
 				{
 					const number convFluxPe = prod * (1.0-w) * scvf.shape(sh);
-					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					for(int d1 = 0; d1 < dim; ++d1)
 					{
 						J(d1, scvf.from(), d1, sh) += convFluxPe;
 						J(d1, scvf.to()  , d1, sh) -= convFluxPe;
@@ -376,9 +376,9 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 					if(m_spConvStab.valid())
 					{
 					//	loop defect components
-						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						for(int d1 = 0; d1 < dim; ++d1)
 						{
-							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+							for(int d2 = 0; d2 < dim; ++d2)
 							{
 						//	derivatives w.r.t. velocity
 						//	Compute n * derivs
@@ -402,7 +402,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 							number prod_p = 0.0;
 	
 						//	Compute sum_j n_j * \parial_{u_i^sh} u_j
-							for(size_t k = 0; k < (size_t)dim; ++k)
+							for(int k = 0; k < dim; ++k)
 								prod_p += convStab.stab_shape_p(ip, k, sh)
 													* scvf.normal()[k];
 	
@@ -415,24 +415,23 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 					if(m_spConvUpwind.valid())
 					{
 					//	loop defect components
-						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						{
-							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+						for(int d1 = 0; d1 < dim; ++d1)
+							for(int d2 = 0; d2 < dim; ++d2)
 							{
-						//	derivatives w.r.t. velocity
-							number prod_vel = w * upwind.upwind_shape_sh(ip,sh)	* scvf.normal()[d2];
-	
-							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
-							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
+							//	derivatives w.r.t. velocity
+								number prod_vel = w * upwind.upwind_shape_sh(ip,sh)
+													* scvf.normal()[d2];
+
+								J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
+								J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
 							}
-						}
 					}
 	
 				//	derivative due to peclet blending
 					if(m_bPecletBlend)
 					{
-						for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-							for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+						for(int d1 = 0; d1 < dim; ++d1)
+							for(int d2 = 0; d2 < dim; ++d2)
 							{
 								const number convFluxPe = UpwindVel[d1] * (1.0-w)
 														  * scvf.shape(sh)
@@ -454,10 +453,10 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 		//	Add derivative of stabilized flux w.r.t velocity comp to local matrix
 			if(stab.vel_comp_connected())
 			{
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				for(int d1 = 0; d1 < dim; ++d1)
 				{
 					number contFlux_vel = 0.0;
-					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+					for(int d2 = 0; d2 < dim; ++d2)
 						contFlux_vel += stab.stab_shape_vel(ip, d2, d1, sh)
 										* scvf.normal()[d2];
 
@@ -467,7 +466,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			}
 			else
 			{
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				for(int d1 = 0; d1 < dim; ++d1)
 				{
 					const number contFlux_vel = stab.stab_shape_vel(ip, d1, d1, sh)
 													* scvf.normal()[d1];
@@ -479,7 +478,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 
 		//	Add derivative of stabilized flux w.r.t pressure to local matrix
 			number contFlux_p = 0.0;
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			for(int d1 = 0; d1 < dim; ++d1)
 				contFlux_p += stab.stab_shape_p(ip, d1, sh) * scvf.normal()[d1];
 
 			J(_P_, scvf.from(), _P_, sh) += contFlux_p;
@@ -536,8 +535,8 @@ assemble_A(LocalVector& d, const LocalVector& u)
 		VecSet(StdVel[ip], 0.0);
 
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			for(size_t d = 0; d < (size_t)dim; ++d)
-				StdVel[ip][d] += u(d, sh) * scvf.shape(sh);
+			for(int d1 = 0; d1 < dim; ++d1)
+				StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 	}
 
 //	compute stabilized velocities and shapes for continuity equation
@@ -583,8 +582,8 @@ assemble_A(LocalVector& d, const LocalVector& u)
 
 	// 	1. Interpolate Functional Matrix of velocity at ip
 		MathMatrix<dim, dim> gradVel;
-		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-			for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+		for(int d1 = 0; d1 < dim; ++d1)
+			for(int d2 = 0; d2 <dim; ++d2)
 			{
 			//	sum up contributions of each shape
 				gradVel(d1, d2) = 0.0;
@@ -607,7 +606,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 		VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip]);
 
 	//	3. Add flux to local defect
-		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		for(int d1 = 0; d1 < dim; ++d1)
 		{
 			d(d1, scvf.from()) += diffFlux[d1];
 			d(d1, scvf.to()  ) -= diffFlux[d1];
@@ -635,7 +634,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 			const number prod = VecProd(StdVel[ip], scvf.normal());
 	
 		//	Add contributions to local velocity components
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				d(d1, scvf.from()) += UpwindVel[d1] * prod;
 				d(d1, scvf.to()  ) -= UpwindVel[d1] * prod;
@@ -652,7 +651,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 			pressure += scvf.shape(sh) * u(_P_, sh);
 
 	//	2. Add contributions to local defect
-		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		for(int d1 = 0; d1 < dim; ++d1)
 		{
 			d(d1, scvf.from()) += pressure * scvf.normal()[d1];
 			d(d1, scvf.to()  ) -= pressure * scvf.normal()[d1];
@@ -699,7 +698,7 @@ assemble_JM(LocalMatrix& J, const LocalVector& u)
 		const int sh = scv.node_id();
 
 	// 	loop velocity components
-		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		for(int d1 = 0; d1 < dim; ++d1)
 		{
 		// 	Add to local matrix
 			J(d1, sh, d1, sh) += scv.volume();
@@ -733,7 +732,7 @@ assemble_M(LocalVector& d, const LocalVector& u)
 		const int sh = scv.node_id();
 
 	// 	loop velocity components
-		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		for(int d1 = 0; d1 < dim; ++d1)
 		{
 		// 	Add to local matrix
 			d(d1, sh) += u(d1, sh) * scv.volume();
@@ -770,7 +769,7 @@ assemble_f(LocalVector& d)
 		const int sh = scv.node_id();
 
 	// 	Add to local rhs
-		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		for(int d1 = 0; d1 < dim; ++d1)
 			d(d1, sh) += m_imSource[ip][d1] * scv.volume();
 	}
 
