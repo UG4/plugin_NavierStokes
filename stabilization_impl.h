@@ -155,6 +155,16 @@ update(const FV1Geometry<TElem, dim>* geo,
 //	compute diffusion length
 	compute_diff_length(*geo);
 
+//	cache values
+	number vViscoPerDiffLenSq[numIp];
+	for(size_t ip = 0; ip < numIp; ++ip)
+		vViscoPerDiffLenSq[ip] = kinVisco[ip] * diff_length_sq_inv(ip);
+
+ 	number vNormStdVelPerConvLen[numIp];
+	if(!bStokes)
+		for(size_t ip = 0; ip < numIp; ++ip)
+			vNormStdVelPerConvLen[ip] = VecTwoNorm(vStdVel[ip]) / upwind_conv_length(ip);
+
 //	Find out if upwinded velocities depend on other ip velocities. In that case
 //	we have to solve a matrix system. Else the system is diagonal and we can
 //	compute the inverse directly
@@ -173,19 +183,16 @@ update(const FV1Geometry<TElem, dim>* geo,
 		//		    in this case, only for non-diag problems
 		//		  - The diag does not depend on the dimension
 
-		//	the diagonal entry
-			number diag = 0.0;
+		//	Diffusion part
+			number diag = vViscoPerDiffLenSq[ip];
 
 		//	Time part
 			if(pvCornerValueOldTime != NULL)
-				diag = 1./dt;
-
-		//	Diffusion part
-			diag += kinVisco[ip] * diff_length_sq_inv(ip);
+				diag += 1./dt;
 
 		//	Convective Term (no convective terms in the Stokes eq.)
 			if (! bStokes)
-				diag += VecTwoNorm(vStdVel[ip]) / upwind_conv_length(ip);
+				diag += vNormStdVelPerConvLen[ip];
 
 		// 	Loop components of velocity
 			for(size_t d = 0; d < (size_t)dim; d++)
@@ -216,12 +223,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 				for(size_t k = 0; k < scvf.num_sh(); ++k)
 				{
 				//	Diffusion part
-					number sum = kinVisco[ip] * diff_length_sq_inv(ip) * scvf.shape(k);
+					number sum = vViscoPerDiffLenSq[ip] * scvf.shape(k);
 
 				//	Convective term
 					if (! bStokes) // no convective terms in the Stokes eq.
-						sum += VecTwoNorm(vStdVel[ip]) * upwind_shape_sh(ip, k) /
-																	upwind_conv_length(ip);
+						sum += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
 
 				//	Add to rhs
 					rhs += sum * vCornerValue(d, k);
@@ -275,10 +281,10 @@ update(const FV1Geometry<TElem, dim>* geo,
 				mat(ip, ip) += 1./dt;
 
 		//	Diffusion part
-			mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
+			mat(ip, ip) += vViscoPerDiffLenSq[ip];
 
 		//	cache this value
-			const number scale = VecTwoNorm(vStdVel[ip]) / upwind_conv_length(ip);
+			const number scale = vNormStdVelPerConvLen[ip];
 
 		//	Convective Term (standard)
 			mat(ip, ip) += scale;
@@ -316,14 +322,10 @@ update(const FV1Geometry<TElem, dim>* geo,
 				for(size_t k = 0; k < numSh; ++k)
 				{
 				//	Diffusion part
-					contVel[k][ip] = kinVisco[ip]
-										* diff_length_sq_inv(ip)
-										* scvf.shape(k);
+					contVel[k][ip] = vViscoPerDiffLenSq[ip]	* scvf.shape(k);
 
 				//	Convection part
-					contVel[k][ip] += VecTwoNorm(vStdVel[ip])
-										* upwind_shape_sh(ip, k) /
-										upwind_conv_length(ip);
+					contVel[k][ip] += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
 
 				//	Pressure part
 					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d];
@@ -442,8 +444,23 @@ update(const FV1Geometry<TElem, dim>* geo,
 		compute_downwind(geo, vStdVel);
 	}
 
-	//	compute diffusion length
+//	compute diffusion length
 	compute_diff_length(*geo);
+
+//	cache values
+	number vViscoPerDiffLenSq[numIp];
+	for(size_t ip = 0; ip < numIp; ++ip)
+		vViscoPerDiffLenSq[ip] = kinVisco[ip] * diff_length_sq_inv(ip);
+
+	number vNormStdVelPerConvLen[numIp];
+	number vNormStdVelPerDownLen[numIp];
+	if(!bStokes)
+		for(size_t ip = 0; ip < numIp; ++ip)
+		{
+			const number norm = VecTwoNorm(vStdVel[ip]);
+			vNormStdVelPerConvLen[ip] = norm / upwind_conv_length(ip);
+			vNormStdVelPerDownLen[ip] = norm / (downwind_conv_length(ip) + upwind_conv_length(ip));
+		}
 
 	//	Find out if upwinded velocities depend on other ip velocities. In that case
 	//	we have to solve a matrix system. Else the system is diagonal and we can
@@ -458,36 +475,21 @@ update(const FV1Geometry<TElem, dim>* geo,
 		//	get SubControlVolumeFace
 			const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-		//	cache values
-			const number viscoPerDiffLenSq = kinVisco[ip] * diff_length_sq_inv(ip);
-
-			number normIPVelCurrent = 0.0, normIPVelPerConvLen = 0.0, normIPVelPerDownLen = 0.0;
-			if(!bStokes)
-			{
-				normIPVelCurrent = VecTwoNorm(vStdVel[ip]);
-				normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
-				normIPVelPerDownLen = normIPVelCurrent /
-									  (downwind_conv_length(ip) + upwind_conv_length(ip));
-			}
-
 		//	First, we compute the contributions to the diagonal
 		//	Note: - There is no contribution of the upwind vel to the diagonal
 		//		    in this case, only for non-diag problems
 		//		  - The diag does not depend on the dimension
 
 		//	the diagonal entry
-			number diag = 0.0;
+			number diag = vViscoPerDiffLenSq[ip];
 
 		//	Time part
 			if(pvCornerValueOldTime != NULL)
-				diag = 1./dt;
-
-		//	Diffusion part
-			diag += viscoPerDiffLenSq;
+				diag += 1./dt;
 
 		//	Convective Term  (no convective terms in the Stokes eq.)
 			if (! bStokes)
-				diag += normIPVelPerConvLen;
+				diag += vNormStdVelPerConvLen[ip];
 
 		// 	Loop components of velocity
 			for(int d = 0; d < dim; d++)
@@ -518,14 +520,14 @@ update(const FV1Geometry<TElem, dim>* geo,
 				for(size_t k = 0; k < scvf.num_sh(); ++k)
 				{
 				//	Diffusion part
-					number sum = viscoPerDiffLenSq * scvf.shape(k);
+					number sum = vViscoPerDiffLenSq[ip] * scvf.shape(k);
 
 				//	Convective term (no convective terms in the Stokes eq.)
 					if (! bStokes)
 					{
-						sum += normIPVelPerConvLen * upwind_shape_sh(ip, k);
+						sum += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
 
-						sum += normIPVelPerDownLen *
+						sum += vNormStdVelPerDownLen[ip] *
 								(downwind_shape_sh(ip, k) - upwind_shape_sh(ip, k));
 					}
 
@@ -594,29 +596,23 @@ update(const FV1Geometry<TElem, dim>* geo,
 	//	Loop integration points
 		for(size_t ip = 0; ip < numIp; ++ip)
 		{
-		//	cache values
-			const number normIPVelCurrent = VecTwoNorm(vStdVel[ip]);
-			const number normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
-			const number normIPVelPerDownLen = normIPVelCurrent /
-											(downwind_conv_length(ip) + upwind_conv_length(ip));
-
 		//	Time part
 			if(pvCornerValueOldTime != NULL)
 				mat(ip, ip) += 1./dt;
 
 		//	Diffusion part
-			mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
+			mat(ip, ip) += vViscoPerDiffLenSq[ip];
 
 		//	Convective Term (standard)
-			mat(ip, ip) += normIPVelPerConvLen;
+			mat(ip, ip) += vNormStdVelPerConvLen[ip];
 
 			for(size_t ip2 = 0; ip2 < numIp; ++ip2)
 			{
 			//	Convective Term by upwind
-				mat(ip, ip2) -= upwind_shape_ip(ip, ip2) * normIPVelPerConvLen;
+				mat(ip, ip2) -= upwind_shape_ip(ip, ip2) * vNormStdVelPerConvLen[ip];
 
 			//	correction of divergence error
-				mat(ip,ip2) += normIPVelPerDownLen *
+				mat(ip,ip2) += vNormStdVelPerDownLen[ip] *
 								(upwind_shape_ip(ip, ip2) - downwind_shape_ip(ip, ip2));
 			}
 		}
@@ -682,23 +678,17 @@ update(const FV1Geometry<TElem, dim>* geo,
 			//	get SubControlVolumeFace
 				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-				const number normIPVelCurrent = VecTwoNorm(vStdVel[ip]);
-				const number viscoPerDiffLenSq = kinVisco[ip] * diff_length_sq_inv(ip);
-				const number normIPVelPerConvLen = normIPVelCurrent / upwind_conv_length(ip);
-				const number normIPVelPerDownLen = normIPVelCurrent /
-												(downwind_conv_length(ip) + upwind_conv_length(ip));
-
 			//	loop shape functions
 				for(size_t k = 0; k < numSh; ++k)
 				{
 				//	Diffusion part
-					contVel[d][k][ip] += viscoPerDiffLenSq * scvf.shape(k);
+					contVel[d][k][ip] += vViscoPerDiffLenSq[ip] * scvf.shape(k);
 
 				//	Convection part
-					contVel[d][k][ip] += normIPVelPerConvLen * upwind_shape_sh(ip, k);
+					contVel[d][k][ip] += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
 
 				//	terms for correction of divergence error
-					contVel[d][k][ip] += normIPVelPerDownLen *
+					contVel[d][k][ip] += vNormStdVelPerDownLen[ip] *
 										 (downwind_shape_sh(ip, k) - upwind_shape_sh(ip, k));
 
 
