@@ -320,7 +320,26 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			//	Upwind used as upwind
 				if(m_spConvUpwind.valid())
 				{
-					const number convFlux_vel = prod * w * upwind.upwind_shape_sh(i, sh);
+					number convFlux_vel = upwind.upwind_shape_sh(i, sh);
+
+				//	in some cases (e.g. PositiveUpwind, RegularUpwind) the upwind
+				//	velocity in an ip depends also on the upwind velocity in
+				//	other ips. This is reflected by the fact, that the ip
+				//	shapes are non-zero. In that case, we can interpolate an
+				//	approximate upwind only from the corner velocities by using
+				//	u_up = \sum shape_co U_co + \sum shape_ip \tilde{u}_ip
+				//	     = \sum shape_co U_co + \sum \sum shape_ip norm_shape_co|_ip * U_co
+					if(m_spConvUpwind->non_zero_shape_ip())
+					{
+						for(size_t ip2 = 0; ip2 < geo.num_scvf(); ++ip2)
+						{
+							const typename TFVGeom<TElem, dim>::SCVF& scvf2 = geo.scvf(ip2);
+							convFlux_vel += scvf2.shape(sh) * upwind.upwind_shape_ip(i, ip2);
+						}
+					}
+
+					convFlux_vel *= prod * w;
+
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					{
 						J(d1, scvf.from(), d1, sh) += convFlux_vel;
