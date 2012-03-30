@@ -194,19 +194,19 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 	}
 
 //	compute stabilized velocities and shapes for continuity equation
-	m_spStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
+	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
 		if(m_spConvStab.valid())
 			if(m_spConvStab != m_spStab)
-				m_spConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
+				m_spConvStab->update(&geo, *pSol, StdVel, false, m_imKinViscosity, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
 		if(m_spConvUpwind.valid())
 			if(m_spStab->upwind() != m_spConvUpwind)
-				m_spConvUpwind->update(&geo, *pSol);
+				m_spConvUpwind->update(&geo, StdVel);
 	}
 
 //	get a const (!!) reference to the stabilization
@@ -278,7 +278,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 				MathVector<dim> UpwindVel;
 	
 			//	switch PAC
-				if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip);
+				if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 				else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(ip);
 				else UG_THROW_FATAL("Cannot find upwind for convective term.");
 	
@@ -541,19 +541,19 @@ assemble_A(LocalVector& d, const LocalVector& u)
 
 //	compute stabilized velocities and shapes for continuity equation
 	// \todo: (optional) Here we can skip the computation of shapes, implement?
-	m_spStab->update(&geo, *pSol, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
+	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
 		if(m_spConvStab.valid())
 			if(m_spConvStab != m_spStab)
-				m_spConvStab->update(&geo, *pSol, false, m_imKinViscosity, pSource, pOldSol, dt);
+				m_spConvStab->update(&geo, *pSol, StdVel, false, m_imKinViscosity, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
 		if(m_spConvUpwind.valid())
 			if(m_spStab->upwind() != m_spConvUpwind)
-				m_spConvUpwind->update(&geo, *pSol);
+				m_spConvUpwind->update(&geo, StdVel);
 	}
 
 //	get a const (!!) reference to the stabilization
@@ -622,7 +622,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 			MathVector<dim> UpwindVel;
 	
 		//	switch PAC
-			if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip);
+			if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 			else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(ip);
 			else UG_THROW_FATAL("Cannot find upwind for convective term.");
 	

@@ -44,23 +44,6 @@ register_update_func(TAssFunc func)
 	m_vComputeFunc[id] = (ComputeFunc)func;
 }
 
-template <int dim>
-template <typename TFVGeom, typename TAssFunc>
-void
-INavierStokesUpwind<dim>::
-register_update_ip_vel_func(TAssFunc func)
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	make sure that there is enough space
-	if((size_t)id >= m_vUpdateIPVelFunc.size())
-		m_vUpdateIPVelFunc.resize(id+1, NULL);
-
-//	set pointer
-	m_vUpdateIPVelFunc[id] = (UpdateIPVelFunc)func;
-}
-
 //	set the Geometry type to use for next updates
 template <int dim>
 template <typename TFVGeom>
@@ -74,9 +57,6 @@ set_geometry_type()
 //	check that function exists
 	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
 		UG_THROW_FATAL("No update function registered for Geometry "<<id);
-
-	if(id >= m_vUpdateIPVelFunc.size() || m_vUpdateIPVelFunc[id] == NULL)
-		UG_THROW_FATAL("No update ip vel function registered for Geometry "<<id);
 
 //	set current geometry
 	m_id = id;
@@ -93,49 +73,27 @@ set_geometry_type()
 template <int dim>
 MathVector<dim>
 INavierStokesUpwind<dim>::
-upwind_vel(const size_t scvf) const
+upwind_vel(const size_t scvf,
+           const LocalVector& CornerVel,
+           const MathVector<dim> StdVel[]) const
 {
-	UG_NSUPWIND_ASSERT(m_pCornerValue != NULL, "corner vals not set.");
-
 //	reset result
 	MathVector<dim> vel; VecSet(vel, 0.0);
 
 //	add corner shapes
 	for(size_t sh = 0; sh < num_sh(); ++sh)
-		for(size_t d = 0; d < (size_t)dim; ++d)
-			vel[d] += upwind_shape_sh(scvf, sh) * (*m_pCornerValue)(d, sh);
+		for(int d = 0; d < dim; ++d)
+			vel[d] += upwind_shape_sh(scvf, sh) * CornerVel(d, sh);
 
 //	done if only depending on shapes
 	if(!non_zero_shape_ip()) return vel;
 
 //	compute ip vel
 	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
-		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), ip_vel(scvf2));
+		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), StdVel[scvf2]);
 
 //	return value
 	return vel;
-}
-
-template <int dim>
-template <typename TElem>
-void
-INavierStokesUpwind<dim>::
-update_ip_vel(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue)
-{
-//	set shapes
-	for(size_t i = 0; i < geo->num_scvf(); ++i)
-	{
-	//	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(i);
-
-	//  reset IP velocity values to zero
-	    VecSet(ip_vel(i), 0.0);
-
-	// 	Compute the Velocity in IPs
-		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			for(size_t d = 0; d < (size_t)dim; ++d)
-				ip_vel(i)[d] += scvf.shape(sh) * vCornerValue(d, sh);
-	}
 }
 
 /////////////////////////////////////////////////////////////////////////////

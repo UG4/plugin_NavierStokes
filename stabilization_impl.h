@@ -100,28 +100,30 @@ template <int dim>
 template <typename TFVGeom>
 void
 INavierStokesStabilization<dim>::
-compute_upwind(const TFVGeom& geo, const LocalVector& vCornerValue)
+compute_upwind(const TFVGeom& geo,
+               const MathVector<dim> StdVel[])
 {
 //	check, that upwind has been set
 	if(m_spUpwind == NULL)
        	UG_THROW_FATAL("No upwind method has been specified.");
 
 //	compute upwind
-	m_spUpwind->update(geo, vCornerValue);
+	m_spUpwind->update_upwind(geo, StdVel);
 }
 
 template <int dim>
 template <typename TFVGeom>
 void
 INavierStokesStabilization<dim>::
-compute_downwind(const TFVGeom& geo)
+compute_downwind(const TFVGeom& geo,
+                 const MathVector<dim> StdVel[])
 {
 //	check, that upwind has been set
 	if(m_spUpwind == NULL)
        	UG_THROW_FATAL("No upwind method has been specified.");
 
 //	compute downwind
-	m_spUpwind->update_downwind(geo);
+	m_spUpwind->update_downwind(geo, StdVel);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -132,7 +134,9 @@ template <int TDim>
 template <typename TElem>
 void
 NavierStokesFIELDSStabilization<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
+update(const FV1Geometry<TElem, dim>* geo,
+       const LocalVector& vCornerValue,
+       const MathVector<dim> StdVel[],
        const bool bStokes,
        const DataImport<number, dim>& kinVisco,
        const DataImport<MathVector<dim>, dim>* pSource,
@@ -148,7 +152,7 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	if (! bStokes) // no convective terms for the Stokes eq. => no upwind
 	{
 	//	compute upwind
-		compute_upwind(geo, vCornerValue);
+		compute_upwind(geo, StdVel);
 	}
 
 //	compute diffusion length
@@ -442,7 +446,9 @@ template <int TDim>
 template <typename TElem>
 void
 NavierStokesFLOWStabilization<TDim>::
-update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
+update(const FV1Geometry<TElem, dim>* geo,
+       const LocalVector& vCornerValue,
+       const MathVector<dim> StdVel[],
        const bool bStokes,
        const DataImport<number, dim>& kinVisco,
        const DataImport<MathVector<dim>, dim>* pSource,
@@ -458,8 +464,8 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 	if (! bStokes) // no convective terms for the Stokes eq. => no upwind
 	{
 	//	compute upwind and downwind
-		compute_upwind(geo, vCornerValue);
-		compute_downwind(geo);
+		compute_upwind(geo, StdVel);
+		compute_downwind(geo, StdVel);
 	}
 
 	//	compute diffusion length
