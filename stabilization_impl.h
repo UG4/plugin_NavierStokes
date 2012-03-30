@@ -301,14 +301,14 @@ update(const FV1Geometry<TElem, dim>* geo, const LocalVector& vCornerValue,
 				mat(ip, ip) += kinVisco[ip] * diff_length_sq_inv(ip);
 
 			//	cache this value
-				const number scale = -1.0 * VecTwoNorm(vIPVelCurrent[ip]) / upwind_conv_length(ip);
+				const number scale = VecTwoNorm(vIPVelCurrent[ip]) / upwind_conv_length(ip);
 
 			//	Convective Term (standard)
-				mat(ip, ip) -= scale;
+				mat(ip, ip) += scale;
 
 			//	Convective Term by upwind
 				for(size_t ip2 = 0; ip2 < numIp; ++ip2)
-					mat(ip, ip2) += upwind_shape_ip(ip, ip2) * scale;
+					mat(ip, ip2) -= upwind_shape_ip(ip, ip2) * scale;
 			}
 
 		//	we now create a matrix, where we store the inverse matrix
