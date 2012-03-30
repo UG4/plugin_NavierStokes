@@ -285,7 +285,7 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			//	peclet blend
 				number w = 1.0;
 				if(m_bPecletBlend)
-					w = peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[ip]);
+					w = peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
 
 			//	compute product of stabilized vel and normal
 				const number prod = VecProd(StdVel[ip], scvf.normal());
@@ -629,7 +629,7 @@ assemble_A(LocalVector& d, const LocalVector& u)
 	
 		//	Peclet Blend
 			if(m_bPecletBlend)
-				peclet_blend(UpwindVel, scvf, u, m_imKinViscosity[ip]);
+				peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
 	
 		//	compute product of standard velocity and normal
 			const number prod = VecProd(StdVel[ip], scvf.normal());
@@ -784,16 +784,10 @@ inline
 number
 FVNavierStokesElemDisc<TDomain>::
 peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
-             const LocalVector& u, number kinVisco)
+             const MathVector<dim>& StdVel, number kinVisco)
 {
-//	Interpolate velocity at ip
-	MathVector<dim> InterpolVel; VecSet(InterpolVel, 0.0);
-	for(size_t d = 0; d < (size_t)dim; ++d)
-		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			InterpolVel[d] += scvf.shape(sh) * u(d, sh);
-
 //	compute peclet number
-	number Pe = VecProd(InterpolVel, scvf.normal());
+	number Pe = VecProd(StdVel, scvf.normal());
 	// \todo: ATTENTION: scvf.global_corner(0) gives edge midpoint of corresponding
 	//					 edge, but this is not defined as an interface specification,
 	//					 but only a feature of the special implementation (specify it)
@@ -805,7 +799,7 @@ peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
 	const number w = Pe2 / (5.0 + Pe2);
 
 //	compute upwind vel
-	VecScaleAdd(UpwindVel, w, UpwindVel, (1.0-w), InterpolVel);
+	VecScaleAdd(UpwindVel, w, UpwindVel, (1.0-w), StdVel);
 
 	return w;
 }

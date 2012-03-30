@@ -516,13 +516,13 @@ class FVNavierStokesElemDisc
 	 *
 	 * \param[in,out]	UpwindVel		upwind vel on entry, blended vel on exit
 	 * \param[in]		scvf			SubControlVolumeFace of the Velocity
-	 * \param[in]		u				local solution vector
+	 * \param[in]		StdVel			standard interpolation vel
 	 * \param[in]		kinVisco		kinematic Viscosity at scvf
 	 * \return			\f$\omega\f$ 	weighting factor
 	 */
 		template <typename SCVF>
 		inline number peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
-		                        const LocalVector& u, number kinVisco);
+		                           const MathVector<dim>& StdVel, number kinVisco);
 
 	private:
 	///	flag if using Peclet Blending
