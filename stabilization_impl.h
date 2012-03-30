@@ -162,34 +162,34 @@ update(const FV1Geometry<TElem, dim>* geo,
 //	diagonal case (i.e. upwind vel depend only on corner vel or no upwind)
 	if(bStokes || !non_zero_shape_ip())
 	{
-	//	Loop integration points
+	//	We can solve the systems ip by ip
 		for(size_t ip = 0; ip < numIp; ++ip)
 		{
 		//	get SubControlVolumeFace
 			const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
+		//	First, we compute the contributions to the diagonal
+		//	Note: - There is no contribution of the upwind vel to the diagonal
+		//		    in this case, only for non-diag problems
+		//		  - The diag does not depend on the dimension
+
+		//	the diagonal entry
+			number diag = 0.0;
+
+		//	Time part
+			if(pvCornerValueOldTime != NULL)
+				diag = 1./dt;
+
+		//	Diffusion part
+			diag += kinVisco[ip] * diff_length_sq_inv(ip);
+
+		//	Convective Term (no convective terms in the Stokes eq.)
+			if (! bStokes)
+				diag += VecTwoNorm(vStdVel[ip]) / upwind_conv_length(ip);
+
 		// 	Loop components of velocity
 			for(size_t d = 0; d < (size_t)dim; d++)
 			{
-			//	First, we compute the contributions to the diagonal
-			//	Note: there is no contribution of the upwind vel to the diagonal
-			//		  in this case, only for non-diag problems
-
-			//	the diagonal entry
-				number diag = 0.0;
-
-			//	Time part
-				if(pvCornerValueOldTime != NULL)
-					diag = 1./dt;
-
-			//	Diffusion part
-				diag += kinVisco[ip] * diff_length_sq_inv(ip);
-
-			//	Convective Term
-				if (! bStokes) // no convective terms in the Stokes eq.
-					diag += VecTwoNorm(vStdVel[ip]) / upwind_conv_length(ip);
-
-
 			//	Now, we can assemble the rhs. This rhs is assembled by all
 			//	terms, that are non-dependent on the ip vel.
 			//	Note, that we can compute the stab_shapes on the fly when setting
@@ -435,9 +435,9 @@ update(const FV1Geometry<TElem, dim>* geo,
 	static const size_t numIp = FV1Geometry<TElem, dim>::numSCVF;
 	static const size_t numSh = FV1Geometry<TElem, dim>::numSCV;
 
-	if (! bStokes) // no convective terms for the Stokes eq. => no upwind
+//	compute upwind and downwind (no convective terms for the Stokes eq. => no upwind)
+	if (! bStokes)
 	{
-	//	compute upwind and downwind
 		compute_upwind(geo, vStdVel);
 		compute_downwind(geo, vStdVel);
 	}
@@ -470,28 +470,28 @@ update(const FV1Geometry<TElem, dim>* geo,
 									  (downwind_conv_length(ip) + upwind_conv_length(ip));
 			}
 
+		//	First, we compute the contributions to the diagonal
+		//	Note: - There is no contribution of the upwind vel to the diagonal
+		//		    in this case, only for non-diag problems
+		//		  - The diag does not depend on the dimension
+
+		//	the diagonal entry
+			number diag = 0.0;
+
+		//	Time part
+			if(pvCornerValueOldTime != NULL)
+				diag = 1./dt;
+
+		//	Diffusion part
+			diag += viscoPerDiffLenSq;
+
+		//	Convective Term  (no convective terms in the Stokes eq.)
+			if (! bStokes)
+				diag += normIPVelPerConvLen;
+
 		// 	Loop components of velocity
 			for(int d = 0; d < dim; d++)
 			{
-			//	First, we compute the contributions to the diagonal
-			//	Note: there is no contribution of the upwind vel to the diagonal
-			//		  in this case, only for non-diag problems
-
-			//	the diagonal entry
-				number diag = 0.0;
-
-			//	Time part
-				if(pvCornerValueOldTime != NULL)
-					diag = 1./dt;
-
-			//	Diffusion part
-				diag += viscoPerDiffLenSq;
-
-			//	Convective Term  (no convective terms in the Stokes eq.)
-				if (! bStokes)
-					diag += normIPVelPerConvLen;
-
-
 			//	Now, we can assemble the rhs. This rhs is assembled by all
 			//	terms, that are non-dependent on the ip vel.
 			//	Note, that we can compute the stab_shapes on the fly when setting
