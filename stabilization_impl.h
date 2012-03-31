@@ -223,26 +223,26 @@ update(const FV1Geometry<TElem, dim>* geo,
 				for(size_t k = 0; k < scvf.num_sh(); ++k)
 				{
 				//	Diffusion part
-					number sum = vViscoPerDiffLenSq[ip] * scvf.shape(k);
+					number sumVel = vViscoPerDiffLenSq[ip] * scvf.shape(k);
 
 				//	Convective term
 					if (! bStokes) // no convective terms in the Stokes eq.
-						sum += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
+						sumVel += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
 
 				//	Add to rhs
-					rhs += sum * vCornerValue(d, k);
+					rhs += sumVel * vCornerValue(d, k);
 
 				//	set stab shape
-					stab_shape_vel(ip, d, d, k) = sum / diag;
+					stab_shape_vel(ip, d, d, k) = sumVel / diag;
 
 				//	Pressure part
-					sum = -1.0 * (scvf.global_grad(k))[d];
+					const number sumP = -1.0 * (scvf.global_grad(k))[d];
 
 				//	Add to rhs
-					rhs += sum * vCornerValue(_P_, k);
+					rhs += sumP * vCornerValue(_P_, k);
 
 				//	set stab shape
-					stab_shape_p(ip, d, k) = sum / diag;
+					stab_shape_p(ip, d, k) = sumP / diag;
 				}
 
 			//	Finally, the can invert this row
@@ -520,14 +520,14 @@ update(const FV1Geometry<TElem, dim>* geo,
 				for(size_t k = 0; k < scvf.num_sh(); ++k)
 				{
 				//	Diffusion part
-					number sum = vViscoPerDiffLenSq[ip] * scvf.shape(k);
+					number sumVel = vViscoPerDiffLenSq[ip] * scvf.shape(k);
 
 				//	Convective term (no convective terms in the Stokes eq.)
 					if (! bStokes)
 					{
-						sum += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
+						sumVel += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
 
-						sum += vNormStdVelPerDownLen[ip] *
+						sumVel += vNormStdVelPerDownLen[ip] *
 								(downwind_shape_sh(ip, k) - upwind_shape_sh(ip, k));
 					}
 
@@ -535,34 +535,34 @@ update(const FV1Geometry<TElem, dim>* geo,
 					{
 						if(d2 == d) continue;
 
-						sum -= vStdVel[ip][d2] * (scvf.global_grad(k))[d2];
+						sumVel -= vStdVel[ip][d2] * (scvf.global_grad(k))[d2];
 					}
 
 				//	Add to rhs
-					rhs += sum * vCornerValue(d, k);
+					rhs += sumVel * vCornerValue(d, k);
 
 				//	set stab shape
-					stab_shape_vel(ip, d, d, k) = sum / diag;
+					stab_shape_vel(ip, d, d, k) = sumVel / diag;
 
 					for(int d2 = 0; d2 < dim; ++d2)
 					{
 						if(d2 == d) continue;
 
-						const number sum2 = vStdVel[ip][d] * (scvf.global_grad(k))[d2];
+						const number sumVel2 = vStdVel[ip][d] * (scvf.global_grad(k))[d2];
 
-						rhs += sum2 * vCornerValue(d2, k);
+						rhs += sumVel2 * vCornerValue(d2, k);
 
-						stab_shape_vel(ip, d, d2, k) = sum2 / diag;
+						stab_shape_vel(ip, d, d2, k) = sumVel2 / diag;
 					}
 
 				//	Pressure part
-					sum = -1.0 * (scvf.global_grad(k))[d];
+					const number sumP = -1.0 * (scvf.global_grad(k))[d];
 
 				//	Add to rhs
-					rhs += sum * vCornerValue(_P_, k);
+					rhs += sumP * vCornerValue(_P_, k);
 
 				//	set stab shape
-					stab_shape_p(ip, d, k) = sum / diag;
+					stab_shape_p(ip, d, k) = sumP / diag;
 				}
 
 			//	Finally, the can invert this row
