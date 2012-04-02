@@ -148,6 +148,8 @@ class FVNavierStokesElemDisc
 	 */
 		void set_kinematic_viscosity(SmartPtr<IPData<number, dim> > data)
 			{m_imKinViscosity.set_data(data);}
+		SmartPtr<IPData<number, dim> > get_kinematic_viscosity_data()
+			{return m_imKinViscosity.ip_data ();}
 
 	///	sets the source function
 	/**
@@ -168,8 +170,8 @@ class FVNavierStokesElemDisc
 	/**
 	 * \param[in]	Stokes		true to solve Stokes (i.e. without the convective terms)
 	 */
-		void set_stokes(bool Stokes)
-			{m_bStokes = Stokes;}
+		void set_stokes(bool Stokes) {m_bStokes = Stokes;}
+		bool get_stokes() {return m_bStokes;}
 
 		//\todo: handle internally
 	///	sets assembling of diffusive term to laplace
@@ -185,6 +187,7 @@ class FVNavierStokesElemDisc
 	 * for incompressible flow (i.e. div v = 0).
 	 */
 		void set_laplace(bool bLaplace) {m_bLaplace = bLaplace;}
+		bool get_laplace() {return m_bLaplace;}
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)
         void set_conv_upwind(SmartPtr<INavierStokesStabilization<dim> > spStab)

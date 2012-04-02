@@ -14,7 +14,8 @@ include("../../../ug_plugin_cmake_includes.txt")
 
 # sources
 set(SOURCES	navier_stokes_fv1.cpp
-			navier_stokes_plugin.cpp)
+			navier_stokes_plugin.cpp
+			no_normal_stress_outflow.cpp)
 
 
 add_library(NavierStokesPlugin SHARED ${SOURCES})

@@ -13,6 +13,7 @@
 #include "upwind.h"
 #include "stabilization.h"
 #include "navier_stokes_bnd.h"
+#include "no_normal_stress_outflow.h"
 
 #include "lib_algebra/cpu_algebra_types.h"
 
@@ -52,7 +53,7 @@ static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
 		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgTag);
 	}
 
-//	NavierStokesInflow
+//	NavierStokesWall
 	{
 		typedef NavierStokesWall<TDomain, TAlgebra> T;
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
@@ -94,6 +95,18 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 			.add_method("set_stokes", &T::set_stokes)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "FV1NavierStokes", dimTag);
+	}
+
+//	FVNavierStokesNoNormalStressOutflow
+	{
+		typedef FVNavierStokesNoNormalStressOutflow<TDomain> T;
+		typedef IDomainElemDisc<TDomain> TBase;
+		string name = string("FVNavierStokesNoNormalStressOutflow").append(dimSuffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)(SmartPtr< FVNavierStokesElemDisc<TDomain> >)>("MasterDisc")
+			.add_method("add", &T::add, "", "Subset(s)")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "FVNavierStokesNoNormalStressOutflow", dimTag);
 	}
 
 /////////////////////////////////////////////////////////////////////////////
