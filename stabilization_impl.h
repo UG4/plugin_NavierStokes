@@ -624,51 +624,16 @@ update(const FV1Geometry<TElem, dim>* geo,
 		if(!GetInverse(inv, mat))
 			UG_THROW_FATAL("Could not compute inverse.");
 
-	//	contribution of PRESSURE
-		DenseVector< FixedArray1<number, N> > contP[numSh];
-		DenseVector< FixedArray1<number, N> > xP;
-
-		for(int d = 0; d < dim; ++d)
-		{
-			for(size_t ip = 0; ip < numIp; ++ip)
-			{
-			//	get SubControlVolumeFace
-				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-			//	loop shape functions
-				for(size_t k = 0; k < numSh; ++k)
-				{
-				//	Pressure part
-					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d];
-				}
-			}
-
-		//	compute all stab_shapes
-			for(size_t k = 0; k < numSh; ++k)
-			{
-			//	apply for pressure stab_shape
-				MatMult(xP, 1.0, inv, contP[k]);
-
-			//	write stab_shape for pressure
-				//\todo: can we optimize this, e.g. without copy?
-				for(size_t ip = 0; ip < numIp; ++ip)
-						stab_shape_p(ip, d, k) = xP[ip];
-			}
-		}
-
-	//	contribution of VELOCITY
 
 	//	create vectors
 		DenseVector< FixedArray1<number, N> > contVel[dim][numSh];
+		DenseVector< FixedArray1<number, N> > contP[numSh];
+		DenseVector< FixedArray1<number, N> > xP;
+		DenseVector< FixedArray1<number, N> > xVel;
 
 	//	Now, we can create several vector that describes the contribution of the
 	//	corner velocities. For each of this contribution
 	//	components, we will apply the inverted matrix to get the stab_shapes
-
-	//	reset contribution
-		for(int d = 0; d < dim; ++d)
-			for(size_t k = 0; k < numSh; ++k)
-				contVel[d][k] = 0.0;
 
 	//	Loop integration points
 		for(int d = 0; d < dim; ++d)
@@ -681,8 +646,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 			//	loop shape functions
 				for(size_t k = 0; k < numSh; ++k)
 				{
+				//	Pressure part
+					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d];
+
 				//	Diffusion part
-					contVel[d][k][ip] += vViscoPerDiffLenSq[ip] * scvf.shape(k);
+					contVel[d][k][ip] = vViscoPerDiffLenSq[ip] * scvf.shape(k);
 
 				//	Convection part
 					contVel[d][k][ip] += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
@@ -699,54 +667,53 @@ update(const FV1Geometry<TElem, dim>* geo,
 						contVel[d][k][ip] -= vStdVel[ip][d2]
 						                     * (scvf.global_grad(k))[d2];
 
-						contVel[d2][k][ip] += vStdVel[ip][d]
+						contVel[d2][k][ip] = vStdVel[ip][d]
 						                      * (scvf.global_grad(k))[d2];
 					}
 				}
-			}
-		}
+			} // end ip
 
-	//	solution vector
-		DenseVector< FixedArray1<number, N> > xVel;
-
-	//	compute all stab_shapes
-		for(size_t k = 0; k < numSh; ++k)
-		{
-		//	compute vel stab_shapes
-			for(int d2 = 0; d2 < dim; ++d2)
+		//	compute all stab_shapes
+			for(size_t k = 0; k < numSh; ++k)
 			{
-			//	apply for vel stab_shape
-				MatMult(xVel, 1.0, inv, contVel[d2][k]);
+			//	apply for pressure stab_shape
+				MatMult(xP, 1.0, inv, contP[k]);
 
-			//	write stab_shape for vel
+			//	write stab_shape for pressure
 				//\todo: can we optimize this, e.g. without copy?
 				for(size_t ip = 0; ip < numIp; ++ip)
-					for(int d = 0; d < dim; ++d)
+						stab_shape_p(ip, d, k) = xP[ip];
+
+			//	compute vel stab_shapes
+				for(int d2 = 0; d2 < dim; ++d2)
+				{
+				//	apply for vel stab_shape
+					MatMult(xVel, 1.0, inv, contVel[d2][k]);
+
+				//	write stab_shape for vel
+					//\todo: can we optimize this, e.g. without copy?
+					for(size_t ip = 0; ip < numIp; ++ip)
 						stab_shape_vel(ip, d, d2, k) = xVel[ip];
+				}
 			}
-		}
 
-	//	Finally, we can compute the values of the stabilized velocity for each
-	//	integration point
+		//	Finally, we can compute the values of the stabilized velocity for each
+		//	integration point
 
-	//	vector of all contributions
-		DenseVector< FixedArray1<number, N> > f, fTmp;
+		//	vector of all contributions
+			DenseVector< FixedArray1<number, N> > f;
 
-	//	sum up all contributions of vel and p for rhs.
-		fTmp = 0.0;
-		for(size_t k = 0; k < numSh; ++k)
-		{
-		//	add velocity contribution
-			for(int d = 0; d < dim; ++d)
-				VecScaleAdd(fTmp, 1.0, fTmp, vCornerValue(d, k), contVel[d][k]);
+		//	sum up all contributions of vel and p for rhs.
+			f = 0.0;
+			for(size_t k = 0; k < numSh; ++k)
+			{
+			//	add velocity contribution
+				for(int d2 = 0; d2 < dim; ++d2)
+					VecScaleAdd(f, 1.0, f, vCornerValue(d2, k), contVel[d2][k]);
 
-		//	add pressure contribution
-			VecScaleAdd(fTmp, 1.0, fTmp, vCornerValue(_P_, k), contP[k]);
-		}
-
-		for(int d = 0; d < dim; ++d)
-		{
-			f = fTmp;
+			//	add pressure contribution
+				VecScaleAdd(f, 1.0, f, vCornerValue(_P_, k), contP[k]);
+			}
 
 		//	Loop integration points
 			for(size_t ip = 0; ip < numIp; ++ip)
@@ -783,7 +750,8 @@ update(const FV1Geometry<TElem, dim>* geo,
 			//	write stab_shape for vel
 				stab_vel(ip)[d] = x[ip];
 			}
-		}
+		} // end dim
+
 	} // end switch for non-diag
 }
 
