@@ -696,13 +696,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 					{
 						if(d2 == d) continue;
 
-						contVel[d][k][ip] += vStdVel[ip][d2]
-						                     * (scvf.global_grad(k))[d2]
-						                     * vCornerValue(d, k);
+						contVel[d][k][ip] -= vStdVel[ip][d2]
+						                     * (scvf.global_grad(k))[d2];
 
 						contVel[d2][k][ip] += vStdVel[ip][d]
-						                      * (scvf.global_grad(k))[d2]
-						                      * vCornerValue(d2, k);
+						                      * (scvf.global_grad(k))[d2];
 					}
 				}
 			}
