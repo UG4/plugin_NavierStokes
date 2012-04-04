@@ -39,7 +39,7 @@ class NavierStokesInflow
 
 	public:
 		NavierStokesInflow(const char* functions, const char* subsets)
-			: m_spNeumannDisc(new FV1NeumannBoundaryElemDisc<TDomain>(subsets)),
+			: m_spNeumannDisc(new FV1NeumannBoundary<TDomain>(subsets)),
 			  m_spDirichletConstraint(new LagrangeDirichletBoundary<TDomain,TAlgebra>)
 		{
 			set_functions(functions);
@@ -87,7 +87,7 @@ class NavierStokesInflow
 		}
 
 	///	neumann disc for pressure equation
-		SmartPtr<FV1NeumannBoundaryElemDisc<TDomain> > m_spNeumannDisc;
+		SmartPtr<FV1NeumannBoundary<TDomain> > m_spNeumannDisc;
 
 	///	dirichlet disc for velocity components
 		SmartPtr<LagrangeDirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;

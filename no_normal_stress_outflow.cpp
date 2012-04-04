@@ -89,8 +89,7 @@ add
  */
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
 prepare_element_loop()
 {
 //	register subsetIndex at Geometry
@@ -103,11 +102,8 @@ prepare_element_loop()
 
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-	{
-		UG_LOG("ERROR in 'FVNavierStokesNoNormalStressOutflow::prepare_element_loop':"
-				" Kinematic Viscosity has not been set, but is required.\n");
-		return false;
-	}
+		UG_THROW_FATAL("FVNavierStokesNoNormalStressOutflow::prepare_element_loop:"
+						" Kinematic Viscosity has not been set, but is required.\n");
 
 //	set local positions for imports
 	typedef typename reference_element_traits<TElem>::reference_element_type
@@ -127,15 +123,11 @@ prepare_element_loop()
 	for(subsetIter = m_vBndSubSetIndex.begin();
 			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
 		geo.add_boundary_subset(*subsetIter);
-	
-//	we're done
-	return true;
 }
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
 finish_element_loop()
 {
 	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
@@ -145,15 +137,11 @@ finish_element_loop()
 	for(subsetIter = m_vBndSubSetIndex.begin();
 			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
 		geo.remove_boundary_subset(*subsetIter);
-	
-//	we're done
-	return true;
 }
 
 
 template<typename TDomain>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+bool FVNavierStokesNoNormalStressOutflow<TDomain>::
 time_point_changed(number time)
 {
 //	set new time point at imports
@@ -166,8 +154,7 @@ time_point_changed(number time)
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
 prepare_element(TElem* elem, const LocalVector& u)
 {
 //	get corners
@@ -176,10 +163,8 @@ prepare_element(TElem* elem, const LocalVector& u)
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-	{
-		UG_LOG("FVNavierStokesNoNormalStressOutflow::prepare_element:"
-				" Cannot update Finite Volume Geometry.\n"); return false;
-	}
+		UG_THROW_FATAL("FVNavierStokesNoNormalStressOutflow::prepare_element:"
+						" Cannot update Finite Volume Geometry.\n");
 
 //	set local positions for imports
 	if(TFVGeom<TElem, dim>::usesHangingNodes)
@@ -196,16 +181,12 @@ prepare_element(TElem* elem, const LocalVector& u)
 
 //	set global positions for imports
 	m_imKinViscosity.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
-
-//	we're done
-	return true;
 }
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
-assemble_JA(LocalMatrix& J, const LocalVector& u)
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -260,16 +241,12 @@ assemble_JA(LocalMatrix& J, const LocalVector& u)
 			}
 		}
 	}
-	
-// 	we're done
-	return true;
 }
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
-assemble_A(LocalVector& d, const LocalVector& u)
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_dA_elem(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -322,46 +299,28 @@ assemble_A(LocalVector& d, const LocalVector& u)
 				d(d1, bf.node_id()) += diffFlux[d1];
 		}
 	}
-
-// 	we're done
-	return true;
 }
 
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
-assemble_JM(LocalMatrix& J, const LocalVector& u)
-{
-// 	nothing to do
-	return true;
-}
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_JM_elem(LocalMatrix& J, const LocalVector& u)
+{}
 
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
-assemble_M(LocalVector& d, const LocalVector& u)
-{
-// 	nothing to do
-	return true;
-}
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_dM_elem(LocalVector& d, const LocalVector& u)
+{}
 
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-bool
-FVNavierStokesNoNormalStressOutflow<TDomain>::
-assemble_f(LocalVector& d)
-{
-// 	Only first order implementation
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
-
-// 	we're done
-	return true;
-}
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_rhs_elem(LocalVector& d)
+{}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -370,7 +329,7 @@ assemble_f(LocalVector& d)
 
 template<typename TDomain>
 FVNavierStokesNoNormalStressOutflow<TDomain>::
-FVNavierStokesNoNormalStressOutflow(SmartPtr< FVNavierStokesElemDisc<TDomain> > spMaster)
+FVNavierStokesNoNormalStressOutflow(SmartPtr< FV1NavierStokes<TDomain> > spMaster)
 : IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
 {
 //	check number of functions
@@ -422,11 +381,11 @@ register_fv1_func()
 	set_prep_elem_loop_fct(id, &T::template prepare_element_loop<TElem, TFVGeom>);
 	set_prep_elem_fct(	 id, &T::template prepare_element<TElem, TFVGeom>);
 	set_fsh_elem_loop_fct( id, &T::template finish_element_loop<TElem, TFVGeom>);
-	set_ass_JA_elem_fct(		 id, &T::template assemble_JA<TElem, TFVGeom>);
-	set_ass_JM_elem_fct(		 id, &T::template assemble_JM<TElem, TFVGeom>);
-	set_ass_dA_elem_fct(		 id, &T::template assemble_A<TElem, TFVGeom>);
-	set_ass_dM_elem_fct(		 id, &T::template assemble_M<TElem, TFVGeom>);
-	set_ass_rhs_elem_fct(	 id, &T::template assemble_f<TElem, TFVGeom>);
+	set_ass_JA_elem_fct(		 id, &T::template ass_JA_elem<TElem, TFVGeom>);
+	set_ass_JM_elem_fct(		 id, &T::template ass_JM_elem<TElem, TFVGeom>);
+	set_ass_dA_elem_fct(		 id, &T::template ass_dA_elem<TElem, TFVGeom>);
+	set_ass_dM_elem_fct(		 id, &T::template ass_dM_elem<TElem, TFVGeom>);
+	set_ass_rhs_elem_fct(	 id, &T::template ass_rhs_elem<TElem, TFVGeom>);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

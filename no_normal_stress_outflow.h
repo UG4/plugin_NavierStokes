@@ -49,7 +49,7 @@ class FVNavierStokesNoNormalStressOutflow
 
 	public:
 	///	Constructor (setting default values)
-		FVNavierStokesNoNormalStressOutflow(SmartPtr< FVNavierStokesElemDisc<TDomain> > spMaster);
+		FVNavierStokesNoNormalStressOutflow(SmartPtr< FV1NavierStokes<TDomain> > spMaster);
 	
 	///	adds a boundary segment
 		void add(const char* subsets);
@@ -80,12 +80,12 @@ class FVNavierStokesNoNormalStressOutflow
 	/**
 	 * \param[in]	bNonRegular		flag if non-regular grid needed.
 	 */
-		virtual bool treat_non_regular_grid(bool bNonRegular)
+		virtual bool request_non_regular_grid(bool bNonRegular)
 		{
 		//	switch, which assemble functions to use.
 			if(bNonRegular)
 			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::treat_non_regular_grid':"
+				UG_LOG("ERROR in 'FV1NavierStokes::request_non_regular_grid':"
 						" Non-regular grid not implemented.\n");
 				return false;
 			}
@@ -100,39 +100,39 @@ class FVNavierStokesNoNormalStressOutflow
 
 	///	prepares the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool prepare_element_loop();
+		void prepare_element_loop();
 
 	///	prepares the element for evaluation
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool prepare_element(TElem* elem, const LocalVector& u);
+		void prepare_element(TElem* elem, const LocalVector& u);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool finish_element_loop();
+		void finish_element_loop();
 
 	///	adds the stiffness part to the local jacobian
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_JA(LocalMatrix& J, const LocalVector& u);
+		void ass_JA_elem(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the stiffness part to the local defect
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_A(LocalVector& d, const LocalVector& u);
+		void ass_dA_elem(LocalVector& d, const LocalVector& u);
 
 	///	adds the mass part to the local jacobian
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_JM(LocalMatrix& J, const LocalVector& u);
+		void ass_JM_elem(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the mass part to the local defect
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_M(LocalVector& d, const LocalVector& u);
+		void ass_dM_elem(LocalVector& d, const LocalVector& u);
 
 	///	adds the source part to the local defect
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_f(LocalVector& d);
+		void ass_rhs_elem(LocalVector& d);
 
 	private:
 	/// The master discretization:
-		SmartPtr< FVNavierStokesElemDisc<TDomain> > m_spMaster;
+		SmartPtr< FV1NavierStokes<TDomain> > m_spMaster;
 	
 	/// The boundary subsets:
 		std::vector<std::string> m_vScheduledBndSubSets; // names

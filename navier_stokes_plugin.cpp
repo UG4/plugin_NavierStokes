@@ -80,7 +80,7 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 
 //	Navier-Stokes
 	{
-		typedef FVNavierStokesElemDisc<TDomain> T;
+		typedef FV1NavierStokes<TDomain> T;
 		typedef IDomainElemDisc<TDomain> TBase;
 		string name = string("FV1NavierStokes").append(dimSuffix);
 		reg.add_class_<T, TBase >(name, grp)
@@ -103,7 +103,7 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef IDomainElemDisc<TDomain> TBase;
 		string name = string("FVNavierStokesNoNormalStressOutflow").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(SmartPtr< FVNavierStokesElemDisc<TDomain> >)>("MasterDisc")
+			.template add_constructor<void (*)(SmartPtr< FV1NavierStokes<TDomain> >)>("MasterDisc")
 			.add_method("add", &T::add, "", "Subset(s)")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "FVNavierStokesNoNormalStressOutflow", dimTag);

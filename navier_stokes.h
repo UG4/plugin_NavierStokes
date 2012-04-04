@@ -116,7 +116,7 @@ namespace ug{
  * \tparam	TAlgebra	Algebra
  */
 template<	typename TDomain>
-class FVNavierStokesElemDisc
+class FV1NavierStokes
 	: public IDomainElemDisc<TDomain>
 {
 	private:
@@ -124,7 +124,7 @@ class FVNavierStokesElemDisc
 		typedef IDomainElemDisc<TDomain> base_type;
 
 	///	own type
-		typedef FVNavierStokesElemDisc<TDomain> this_type;
+		typedef FV1NavierStokes<TDomain> this_type;
 
 	public:
 	///	Domain type
@@ -138,7 +138,7 @@ class FVNavierStokesElemDisc
 
 	public:
 	///	Constructor (setting default values)
-		FVNavierStokesElemDisc(const char* functions, const char* subsets);
+		FV1NavierStokes(const char* functions, const char* subsets);
 
 	///	sets the kinematic viscosity
 	/**
@@ -220,12 +220,12 @@ class FVNavierStokesElemDisc
 	/**
 	 * \param[in]	bNonRegular		flag if non-regular grid needed.
 	 */
-		virtual bool treat_non_regular_grid(bool bNonRegular)
+		virtual bool request_non_regular_grid(bool bNonRegular)
 		{
 		//	switch, which assemble functions to use.
 			if(bNonRegular)
 			{
-				UG_LOG("ERROR in 'FVNavierStokesElemDisc::treat_non_regular_grid':"
+				UG_LOG("ERROR in 'FV1NavierStokes::request_non_regular_grid':"
 						" Non-regular grid not implemented.\n");
 				return false;
 			}
@@ -256,7 +256,7 @@ class FVNavierStokesElemDisc
 	 * the DataImports in case of element-fixed points.
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool prepare_element_loop();
+		void prepare_element_loop();
 
 	///	prepares the element for evaluation
 	/**
@@ -271,11 +271,11 @@ class FVNavierStokesElemDisc
 	 * \param[in]	glob_ind	global indices of the local vector components
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool prepare_element(TElem* elem, const LocalVector& u);
+		void prepare_element(TElem* elem, const LocalVector& u);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool finish_element_loop();
+		void finish_element_loop();
 
 	///	adds the stiffness part to the local jacobian
 	/**
@@ -283,7 +283,7 @@ class FVNavierStokesElemDisc
 	 * the local jacobian.
 	 *
 	 * For the definition of \f$ \vec{f}^{\text{diff}}|_{ip}\f$ and
-	 * \f$ \vec{f}^{\text{conv}}|_{ip}\f$ see assemble_A.
+	 * \f$ \vec{f}^{\text{conv}}|_{ip}\f$ see ass_dA_elem.
 	 *
 	 * The derivative of the diffusive flux is given by
 	 * \f{align*}
@@ -342,7 +342,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_JA(LocalMatrix& J, const LocalVector& u);
+		void ass_JA_elem(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the stiffness part to the local defect
 	/**
@@ -412,7 +412,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_A(LocalVector& d, const LocalVector& u);
+		void ass_dA_elem(LocalVector& d, const LocalVector& u);
 
 	///	adds the mass part to the local jacobian
 	/**
@@ -438,7 +438,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_JM(LocalMatrix& J, const LocalVector& u);
+		void ass_JM_elem(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the mass part to the local defect
 	/**
@@ -466,7 +466,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_M(LocalVector& d, const LocalVector& u);
+		void ass_dM_elem(LocalVector& d, const LocalVector& u);
 
 	///	adds the source part to the local defect
 	/**
@@ -489,7 +489,7 @@ class FVNavierStokesElemDisc
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		bool assemble_f(LocalVector& d);
+		void ass_rhs_elem(LocalVector& d);
 
 	///	computes the pecled blended Upwind veloctity
 	/**
