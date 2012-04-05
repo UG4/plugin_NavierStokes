@@ -177,6 +177,17 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesPositiveUpwind", dimTag);
 	}
 
+//	NavierStokesRegularUpwind
+	{
+		typedef NavierStokesRegularUpwind<dim> T;
+		typedef INavierStokesUpwind<dim> TBase;
+		string name = string("NavierStokesRegularUpwind").append(dimSuffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesRegularUpwind", dimTag);
+	}
+
 /////////////////////////////////////////////////////////////////////////////
 // Stabilization
 /////////////////////////////////////////////////////////////////////////////
