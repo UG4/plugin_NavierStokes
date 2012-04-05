@@ -477,6 +477,113 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	}
 }
 
+template <int TDim>
+template <typename TElem>
+void
+NavierStokesRegularUpwind<TDim>::
+compute(const FV1Geometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+
+// 	corners of geometry
+	const MathVector<dim>* vCornerCoords = geo->corners();
+
+//	loop all scvf
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+	//	get SubControlVolumeFace
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+		/*for(size_t i = 0; i < geo->num_scv(); ++i)
+		{
+			//	get SubControlVolume
+			const typename FV1Geometry<TElem, dim>::SCV& scv = geo->scv(i);
+
+			//	extract SCV corners
+			for(size_t j = 0; j < scv.num_corners(); ++j)
+			{
+				vCornerCoords = scv.global_corner(j);
+			}
+		}*/
+
+	// 	reset shapes to zero
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+			vUpShapeSh[ip][sh] = 0.0;
+
+	//	if the velocity is zero, there will be no possibility to find the
+	//	cutted side. In this case we have no velocity and therefore there is
+	//	no convection. We set all upwind shapes to zero.
+		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
+
+	// 	side and intersection vectors
+		static const int refDim = FV1Geometry<TElem, dim>::dim;
+		size_t side = 0;
+		MathVector<dim> globalIntersection;
+		MathVector<refDim> localIntersection;
+
+
+		MathVector<dim> ScvfCorner1;
+		size_t ip2count = 0.0;
+
+		for(size_t ip2 = 0; ip2 < geo->num_scvf(); ++ip2)
+		{
+			if (ip == ip2) continue;
+
+			const typename FV1Geometry<TElem, dim>::SCVF& scvf2 = geo->scvf(ip2);
+
+			for(size_t i = 0; i < scvf2.num_corners(); ++i)
+			{
+				ScvfCorner1 = scvf2.global_corner(i);
+			}
+
+			//jetzt: RayLineIntersection (in 2D) mit den beiden scvfCorners //scvf merken!
+			//wenn intersection gefunden ist, rausspringen!
+
+			ip2count++;
+		}
+
+		//2 x RayLineIntersection mit Global_IP und CO_SCVF aufrufen!
+
+		if (ip2count == geo->num_scvf()) //Elementkanten durchlaufen wie in LPS
+
+
+	// 	find local intersection and side
+		try{
+			ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
+			(	side, globalIntersection, localIntersection,
+				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
+		}UG_CATCH_THROW("GetRegularUpwindShapes: Cannot find cut side.");
+
+
+	// 	get linear trial space
+		const LocalShapeFunctionSet<typename FV1Geometry<TElem, dim>::ref_elem_type>& TrialSpace =
+				LocalShapeFunctionSetProvider::
+					get<typename FV1Geometry<TElem, dim>::ref_elem_type>
+					(LFEID(LFEID::LAGRANGE, 1));
+
+	// 	get Reference Element
+		typedef typename FV1Geometry<TElem, dim>::ref_elem_type ref_elem_type;
+		static const ref_elem_type& rRefElem
+			= Provider<ref_elem_type>::get();
+
+	// 	loop corners of side
+		for(size_t j = 0; j < rRefElem.num(dim-1, side, 0); ++j)
+		{
+		// 	get corner
+			const size_t co = rRefElem.id(dim-1, side, 0, j);
+
+		//	evaluate trial space
+			vUpShapeSh[ip][co] = TrialSpace.shape(co, localIntersection);
+		}
+
+	//	compute conv length
+		vConvLength[ip] = VecDistance(scvf.global_ip(), globalIntersection);
+	}
+}
+
 } // end namespace ug
 
 #endif /* NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND_IMPL__ */
