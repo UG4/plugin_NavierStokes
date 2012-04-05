@@ -2,7 +2,7 @@
  * diffusion_length.h
  *
  *  Created on: 29.10.2010
- *      Author: josefdubsky, andreasvogel
+ *      Author: josefdubsky, andreasvogel, raphaelprohl
  */
 
 #ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__DIFFUSION_LENGTH__
@@ -45,7 +45,7 @@ void NSDiffLengthFivePoint(number DiffLengthSqInv[], const TFVGeometry& geo)
 
 		if(dim == 2)
 		{
-			DiffLengthSqInv[i] = 2 * normNormalSq/ areaSCVSq + 8 / normNormalSq;
+			DiffLengthSqInv[i] = 2.0 * normNormalSq/ areaSCVSq + 8.0 / normNormalSq;
 		}
 		else if (dim == 3)
 		{
@@ -54,7 +54,7 @@ void NSDiffLengthFivePoint(number DiffLengthSqInv[], const TFVGeometry& geo)
 			const number distSq = VecDistanceSq(scvf.global_corner(0),
 												scvf.global_corner(2));
 
-			DiffLengthSqInv[i] = 2 * normNormalSq/ areaSCVSq + 8 * distSq / normNormalSq;
+			DiffLengthSqInv[i] = 2.0 * normNormalSq/ areaSCVSq + 8.0 * distSq / normNormalSq;
 		}
 		else
 			UG_THROW_FATAL("NSDiffLengthFivePoint not implemented for dimension "<<dim);
@@ -89,7 +89,7 @@ void NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
 
 		if(dim == 2)
 		{
-			DiffLengthSqInv[i] = 1 / (0.5*areaSCVSq/normNormalSq + 3*normNormalSq/8);
+			DiffLengthSqInv[i] = 1. / (0.5*areaSCVSq/normNormalSq + 3.0*normNormalSq/8.);
 		}
 		else if (dim == 3)
 		{
@@ -98,7 +98,7 @@ void NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
 			const number distSq = VecDistanceSq(scvf.global_corner(0),
 												scvf.global_corner(2));
 
-			DiffLengthSqInv[i] = 1 / (0.5*areaSCVSq/normNormalSq + 8 * 3*distSq/8);
+			DiffLengthSqInv[i] = 1. / (0.5*areaSCVSq/normNormalSq + 3.0*distSq/8.);
 		}
 		else
 			UG_THROW_FATAL("NSDiffLengthRaw not implemented for dimension "<<dim);
@@ -108,10 +108,67 @@ void NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
 template <typename TFVGeometry>
 void NSDiffLengthCor(number DiffLengthSqInv[], const TFVGeometry& geo)
 {
+    //	dimension of element
+	static const size_t dim = TFVGeometry::dim;
+
     // Check the SCVF - number of IPs (order of elements)
     UG_ASSERT(geo.scvf(0).num_ip() == 1, "Only implemented for first order.");
 
-    UG_THROW_FATAL("Not implemented.");
+    // compute min, max and avg of ||n||^2
+    number minNormSq = std::numeric_limits<number>::max();
+    number minDistSq = std::numeric_limits<number>::max();
+    number avgNormSq = 0.0;
+	for(size_t i = 0; i < geo.num_scvf(); ++i)
+	{
+	//	get SubControlVolumeFace
+		const typename TFVGeometry::SCVF& scvf = geo.scvf(i);
+
+	//	Norm of Normal to SCVF squared
+		const number normNormalSq = VecTwoNormSq(scvf.normal());
+
+	//	get min
+		if(normNormalSq < minNormSq) minNormSq = normNormalSq;
+
+	//	sum for average
+		avgNormSq += normNormalSq;
+
+	//	Distance between edge midpoint and center of element, that are part
+	//	of the SCVF
+		if(dim == 3)
+		{
+			const number distSq = VecDistanceSq(scvf.global_corner(0),
+											scvf.global_corner(2));
+
+		//	get min
+			if(distSq < minDistSq) minDistSq = distSq;
+		}
+	}
+
+	//	devide by num scvf
+	avgNormSq /= geo.num_scvf();
+
+	for(size_t i = 0; i < geo.num_scvf(); ++i)
+	{
+	//	get associated SubControlVolumes
+		const typename TFVGeometry::SCVF& scvf = geo.scvf(i);
+		const typename TFVGeometry::SCV& scvFrom = geo.scv(scvf.from());
+		const typename TFVGeometry::SCV& scvTo = geo.scv(scvf.to());
+
+	//	average squared size of associated SCV
+		number areaSCVSq = 0.5 * (scvFrom.volume() + scvTo.volume());
+		areaSCVSq *= areaSCVSq;
+
+		if(dim == 2)
+		{
+			DiffLengthSqInv[i] = 2.0 * minNormSq/ areaSCVSq + 8.0 / (3.0*avgNormSq);
+		}
+		else if (dim == 3)
+		{
+			DiffLengthSqInv[i] = 2.0 * minNormSq/ areaSCVSq + 8.0 * minDistSq / (3.0*avgNormSq);
+		}
+		else
+			UG_THROW_FATAL("NSDiffLengthCor not implemented for dimension "<<dim);
+	}
 }
 
 } // end namespace ug
