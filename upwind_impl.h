@@ -487,9 +487,11 @@ compute(const FV1Geometry<TElem, dim>* geo,
         number vUpShapeIp[maxNumSCVF][maxNumSCVF],
         number vConvLength[maxNumSCVF])
 {
+	const number eps = std::numeric_limits<number>::epsilon() * 10;
+	const int nc = geo->num_scv();
 
-// 	corners of geometry
-	const MathVector<dim>* vCornerCoords = geo->corners();
+	// ONLY 2D IMPLEMENTED
+	if(dim != 2) UG_THROW_FATAL("RegularUpwind only implemented for 2d.");
 
 //	loop all scvf
 	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
@@ -497,90 +499,155 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	//	get SubControlVolumeFace
 		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-		/*for(size_t i = 0; i < geo->num_scv(); ++i)
-		{
-			//	get SubControlVolume
-			const typename FV1Geometry<TElem, dim>::SCV& scv = geo->scv(i);
-
-			//	extract SCV corners
-			for(size_t j = 0; j < scv.num_corners(); ++j)
-			{
-				vCornerCoords = scv.global_corner(j);
-			}
-		}*/
-
 	// 	reset shapes to zero
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 			vUpShapeSh[ip][sh] = 0.0;
+		for(size_t ip2 = 0; ip2 < scvf.num_sh(); ++ip2)
+			vUpShapeIp[ip][ip2] = 0.0;
 
 	//	if the velocity is zero, there will be no possibility to find the
 	//	cutted side. In this case we have no velocity and therefore there is
 	//	no convection. We set all upwind shapes to zero.
-		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
+		const number normSq = VecTwoNormSq(vIPVel[ip]);
+		if(fabs(normSq) <= eps) continue;
+
+	//	flux over scvf
+		const number flux = VecProd(vIPVel[ip], scvf.normal());
+
+	//	check if flux is very small (e.g. due to orthogonality of normal and
+	//	flux direction)
+	//	todo: Think about the small constants.
+		if(fabs(flux) <= 100*eps)
+		{
+			// TODO: THIS IS 2D ONLY !!!!
+			// the convection is parallel to the subcontrol volume surface
+			flux = vIPVel[ip][0]*scvf.normal()[1] - vIPVel[ip][1]*scvf.normal()[0];
+			if (flux>0)
+			{
+				// the velocity is pointing to the element boundary
+				// take lin comb of pred and succ ip
+				vUpShapeIp[ip][(ip+nc-1)%nc] = vUpShapeIp[ip][(ip+1)%nc] = 0.5;
+			}
+			else
+			{
+				// the velocity is pointing to the element midpoint
+				// take lin comb of pred and succ node
+				vUpShapeSh[ip][ip] = vUpShapeSh[ip][(ip+1)%nc] = 0.5;
+			}
+			continue;
+	 	}
+
+	//	get upwind scv
+		int upwindSCV = -1;
+		if(flux > 0.0) upwindSCV = scvf.from();
+		else upwindSCV = scvf.to();
+
+	//	get corresponding scv
+		const typename FV1Geometry<TElem, dim>::SCV& scv = geo->scv(upwindSCV);
 
 	// 	side and intersection vectors
 		static const int refDim = FV1Geometry<TElem, dim>::dim;
 		size_t side = 0;
+		number lambda = 0.0;
 		MathVector<dim> globalIntersection;
 		MathVector<refDim> localIntersection;
 
-
-		MathVector<dim> ScvfCorner1;
-		size_t ip2count = 0.0;
-
-		for(size_t ip2 = 0; ip2 < geo->num_scvf(); ++ip2)
+		// TODO: THIS IS 2D ONLY !!!!
+		//a) check for scvf intersection
+		if(SCVFofSCVRayIntersection(side, lambda, globalIntersection, localIntersection,
+		                            scvf.global_ip(), vIPVel[ip], false, scv.global_corners()))
 		{
-			if (ip == ip2) continue;
-
-			const typename FV1Geometry<TElem, dim>::SCVF& scvf2 = geo->scvf(ip2);
-
-			for(size_t i = 0; i < scvf2.num_corners(); ++i)
+			int ipIntersect = (ip + 1) % nc;
+			int ipIntersectOppose = (ip + nc - 1) % nc;
+			if(flux > 0.0)
 			{
-				ScvfCorner1 = scvf2.global_corner(i);
+				ipIntersect = (ip + nc - 1) % nc;
+				ipIntersectOppose = (ip + 1) % nc;
 			}
 
-			//jetzt: RayLineIntersection (in 2D) mit den beiden scvfCorners //scvf merken!
-			//wenn intersection gefunden ist, rausspringen!
+		// 	a.1) between two ip points
+			if(lambda <= 0.5)
+			{
+				vUpShapeIp[ip][ipIntersectOppose] = lambda - 0.5;
+				vUpShapeIp[ip][ipIntersect] = 1.0-(lambda-0.5);
+			}
 
-			ip2count++;
+		// 	a.2) between ip point and elem side
+			else
+			{
+			//	interpolation between corners and ip
+				vUpShapeSh[ip][scvf.from()] = 0.5*2*(lambda-0.5);
+				vUpShapeSh[ip][scvf.to()] = 0.5*2*(lambda-0.5);
+				vUpShapeIp[ip][ipIntersect] = 1.0-2*(lambda-0.5);
+			}
+
+			continue;
 		}
-
-		//2 x RayLineIntersection mit Global_IP und CO_SCVF aufrufen!
-
-		if (ip2count == geo->num_scvf()) //Elementkanten durchlaufen wie in LPS
-
-
-	// 	find local intersection and side
-		try{
-			ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
-			(	side, globalIntersection, localIntersection,
-				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
-		}UG_CATCH_THROW("GetRegularUpwindShapes: Cannot find cut side.");
-
-
-	// 	get linear trial space
-		const LocalShapeFunctionSet<typename FV1Geometry<TElem, dim>::ref_elem_type>& TrialSpace =
-				LocalShapeFunctionSetProvider::
-					get<typename FV1Geometry<TElem, dim>::ref_elem_type>
-					(LFEID(LFEID::LAGRANGE, 1));
-
-	// 	get Reference Element
-		typedef typename FV1Geometry<TElem, dim>::ref_elem_type ref_elem_type;
-		static const ref_elem_type& rRefElem
-			= Provider<ref_elem_type>::get();
-
-	// 	loop corners of side
-		for(size_t j = 0; j < rRefElem.num(dim-1, side, 0); ++j)
+		//b) if not, on elem side intersection
+		else
 		{
-		// 	get corner
-			const size_t co = rRefElem.id(dim-1, side, 0, j);
-
-		//	evaluate trial space
-			vUpShapeSh[ip][co] = TrialSpace.shape(co, localIntersection);
+			if(flux > 0.0)
+			{
+				switch (side)
+				{
+					case 0:
+						// take linear profile between nodes on element side ip+1
+						vUpShapeSh[ip][ip]		  = 1.0-0.5*lambda;
+						vUpShapeSh[ip][(ip+1)%nc] = 0.5*lambda;
+						break;
+					case 3:
+						// take linear profile between nodes on element side ip
+						vUpShapeSh[ip][(ip+nc-1)%nc] = 1.0-0.5*(lambda+1.0);
+						vUpShapeSh[ip][ip]			 = 0.5*(lambda+1.0);
+						break;
+					default:
+						UG_THROW_FATAL("This should not happen.");
+				}
+			}
+			else
+			{
+				switch (side)
+				{
+					case 0:
+						// take linear profile between nodes on element side ip+1
+						vUpShapeSh[ip][(ip+1)%nc] = 1.0-0.5*lambda;
+						vUpShapeSh[ip][(ip+2)%nc] = 0.5*lambda;
+						break;
+					case 3:
+						// take linear profile between nodes on element side ip
+						vUpShapeSh[ip][ip]		  = 1.0-0.5*(lambda+1.0);
+						vUpShapeSh[ip][(ip+1)%nc] = 0.5*(lambda+1.0);
+						break;
+					default:
+						UG_THROW_FATAL("This should not happen.");
+				}
+			}
 		}
+	}
 
-	//	compute conv length
-		vConvLength[ip] = VecDistance(scvf.global_ip(), globalIntersection);
+//	compute convection length
+
+// 	corners of geometry
+	const MathVector<dim>* vCornerCoords = geo->corners();
+
+//	compute upwind point
+	MathVector<dim> upPos;
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+	//	get SubControlVolumeFace
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+	//	reset upwind point
+		VecSet(upPos, 0.0);
+
+	//	sum up contributions
+		for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
+			VecScaleAppend(upPos, vUpShapeSh[ip][sh], vCornerCoords[sh]);
+		for (size_t j = 0; j < geo->num_scvf(); ++j)
+			VecScaleAppend(upPos, vUpShapeIp[ip][j], geo->scvf(j).global_ip());
+
+	//	save convection length
+		vConvLength[ip] = VecDistance(scvf.global_ip(), upPos);
 	}
 }
 
