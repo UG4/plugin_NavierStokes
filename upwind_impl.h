@@ -512,7 +512,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 		if(fabs(normSq) <= eps) continue;
 
 	//	flux over scvf
-		const number flux = VecProd(vIPVel[ip], scvf.normal());
+		number flux = VecProd(vIPVel[ip], scvf.normal());
 
 	//	check if flux is very small (e.g. due to orthogonality of normal and
 	//	flux direction)
@@ -554,7 +554,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
 		// TODO: THIS IS 2D ONLY !!!!
 		//a) check for scvf intersection
-		if(SCVFofSCVRayIntersection(side, lambda, globalIntersection, localIntersection,
+		if(SCVFofSCVRayIntersection<refDim, dim>(side, lambda, globalIntersection, localIntersection,
 		                            scvf.global_ip(), vIPVel[ip], false, scv.global_corners()))
 		{
 			int ipIntersect = (ip + 1) % nc;
