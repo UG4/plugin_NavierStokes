@@ -95,8 +95,8 @@ class FVNavierStokesNoNormalStressOutflow
 		}
 
 	public:
-	///	prepares the discretization for time dependent discretization
-		virtual bool time_point_changed(number time);
+	///	returns if local time series is needed
+		virtual bool requests_local_time_series() {return true;}
 
 	///	prepares the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>

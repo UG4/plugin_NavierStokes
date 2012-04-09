@@ -141,18 +141,6 @@ finish_element_loop()
 
 
 template<typename TDomain>
-bool FVNavierStokesNoNormalStressOutflow<TDomain>::
-time_point_changed(number time)
-{
-//	set new time point at imports
-	m_imKinViscosity.set_time(time);
-
-//	this disc needs the old time solutions, thus, return true
-	return true;
-}
-
-
-template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void FVNavierStokesNoNormalStressOutflow<TDomain>::
 prepare_element(TElem* elem, const LocalVector& u)
