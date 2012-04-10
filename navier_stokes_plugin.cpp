@@ -42,13 +42,12 @@ static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
 
 //	NavierStokesInflow
 	{
-		typedef boost::function<void (MathVector<dim>& value, const MathVector<dim>& x, number time)> VectorFunctor;
 		typedef NavierStokesInflow<TDomain, TAlgebra> T;
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
 		string name = string("NavierStokesInflow").append(dimAlgSuffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
-			.add_method("add", static_cast<bool (T::*)(VectorFunctor&, const char*)>(&T::add))
+			.add_method("add", static_cast<bool (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >, const char*)>(&T::add))
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgTag);
 	}

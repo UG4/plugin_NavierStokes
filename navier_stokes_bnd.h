@@ -22,7 +22,6 @@ class NavierStokesInflow
 {
 	private:
 		const static int dim = TDomain::dim;
-		typedef boost::function<void (MathVector<dim>& value, const MathVector<dim>& x, number time)> VectorFunctor;
 
 	public:
 	///	returns the number of element discs
@@ -46,7 +45,7 @@ class NavierStokesInflow
 		}
 
 	///	sets the velocity to a given value
-		bool add(VectorFunctor& user, const char* subsetsBND)
+		bool add(SmartPtr<IPData<MathVector<dim>, dim> > user, const char* subsetsBND)
 		{
 			if(m_velNames.empty() || m_pressureName.empty())
 			{
