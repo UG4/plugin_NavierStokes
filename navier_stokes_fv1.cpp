@@ -808,6 +808,7 @@ register_fv1_func()
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
 
+	this->enable_fast_ass_elem(true);
 	set_prep_elem_loop_fct(	id, &T::template prepare_element_loop<TElem, TFVGeom>);
 	set_prep_elem_fct(	 	id, &T::template prepare_element<TElem, TFVGeom>);
 	set_fsh_elem_loop_fct( 	id, &T::template finish_element_loop<TElem, TFVGeom>);
