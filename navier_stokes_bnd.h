@@ -39,7 +39,7 @@ class NavierStokesInflow
 	public:
 		NavierStokesInflow(const char* functions, const char* subsets)
 			: m_spNeumannDisc(new FV1NeumannBoundary<TDomain>(subsets)),
-			  m_spDirichletConstraint(new LagrangeDirichletBoundary<TDomain,TAlgebra>)
+			  m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>)
 		{
 			set_functions(functions);
 		}
@@ -89,7 +89,7 @@ class NavierStokesInflow
 		SmartPtr<FV1NeumannBoundary<TDomain> > m_spNeumannDisc;
 
 	///	dirichlet disc for velocity components
-		SmartPtr<LagrangeDirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
+		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
 	///	name of velocity components
 		std::string m_velNames;
@@ -121,7 +121,7 @@ class NavierStokesWall
 
 	public:
 		NavierStokesWall(const char* functions)
-			: m_spDirichletConstraint(new LagrangeDirichletBoundary<TDomain,TAlgebra>)
+			: m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>)
 		{
 			set_functions(functions);
 		}
@@ -159,7 +159,7 @@ class NavierStokesWall
 		}
 
 	///	dirichlet disc for velocity components
-		SmartPtr<LagrangeDirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
+		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
 	///	name of velocity components
 		std::vector<std::string> m_velNames;
