@@ -49,7 +49,7 @@ class FVNavierStokesNoNormalStressOutflow
 
 	public:
 	///	Constructor (setting default values)
-		FVNavierStokesNoNormalStressOutflow(SmartPtr< FV1NavierStokes<TDomain> > spMaster);
+		FVNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster);
 	
 	///	adds a boundary segment
 		void add(const char* subsets);
@@ -85,7 +85,7 @@ class FVNavierStokesNoNormalStressOutflow
 		//	switch, which assemble functions to use.
 			if(bNonRegular)
 			{
-				UG_LOG("ERROR in 'FV1NavierStokes::request_non_regular_grid':"
+				UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
 						" Non-regular grid not implemented.\n");
 				return false;
 			}
@@ -132,7 +132,7 @@ class FVNavierStokesNoNormalStressOutflow
 
 	private:
 	/// The master discretization:
-		SmartPtr< FV1NavierStokes<TDomain> > m_spMaster;
+		SmartPtr< NavierStokes<TDomain> > m_spMaster;
 	
 	/// The boundary subsets:
 		std::vector<std::string> m_vScheduledBndSubSets; // names

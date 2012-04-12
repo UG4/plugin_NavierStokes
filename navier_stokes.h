@@ -116,7 +116,7 @@ namespace ug{
  * \tparam	TAlgebra	Algebra
  */
 template<	typename TDomain>
-class FV1NavierStokes
+class NavierStokes
 	: public IDomainElemDisc<TDomain>
 {
 	private:
@@ -124,7 +124,7 @@ class FV1NavierStokes
 		typedef IDomainElemDisc<TDomain> base_type;
 
 	///	own type
-		typedef FV1NavierStokes<TDomain> this_type;
+		typedef NavierStokes<TDomain> this_type;
 
 	public:
 	///	Domain type
@@ -138,7 +138,7 @@ class FV1NavierStokes
 
 	public:
 	///	Constructor (setting default values)
-		FV1NavierStokes(const char* functions, const char* subsets);
+		NavierStokes(const char* functions, const char* subsets);
 
 	///	sets the kinematic viscosity
 	/**
@@ -225,7 +225,7 @@ class FV1NavierStokes
 		//	switch, which assemble functions to use.
 			if(bNonRegular)
 			{
-				UG_LOG("ERROR in 'FV1NavierStokes::request_non_regular_grid':"
+				UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
 						" Non-regular grid not implemented.\n");
 				return false;
 			}

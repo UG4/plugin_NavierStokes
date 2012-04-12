@@ -317,7 +317,7 @@ ass_rhs_elem(LocalVector& d)
 
 template<typename TDomain>
 FVNavierStokesNoNormalStressOutflow<TDomain>::
-FVNavierStokesNoNormalStressOutflow(SmartPtr< FV1NavierStokes<TDomain> > spMaster)
+FVNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 : IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
 {
 //	check number of functions

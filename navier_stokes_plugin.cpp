@@ -79,9 +79,9 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 
 //	Navier-Stokes
 	{
-		typedef FV1NavierStokes<TDomain> T;
+		typedef NavierStokes<TDomain> T;
 		typedef IDomainElemDisc<TDomain> TBase;
-		string name = string("FV1NavierStokes").append(dimSuffix);
+		string name = string("NavierStokes").append(dimSuffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.add_method("set_kinematic_viscosity", &T::set_kinematic_viscosity)
@@ -93,7 +93,7 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 			.add_method("set_laplace", &T::set_laplace)
 			.add_method("set_stokes", &T::set_stokes)
 			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "FV1NavierStokes", dimTag);
+		reg.add_class_to_group(name, "NavierStokes", dimTag);
 	}
 
 //	FVNavierStokesNoNormalStressOutflow
@@ -102,7 +102,7 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		typedef IDomainElemDisc<TDomain> TBase;
 		string name = string("FVNavierStokesNoNormalStressOutflow").append(dimSuffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(SmartPtr< FV1NavierStokes<TDomain> >)>("MasterDisc")
+			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterDisc")
 			.add_method("add", &T::add, "", "Subset(s)")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "FVNavierStokesNoNormalStressOutflow", dimTag);

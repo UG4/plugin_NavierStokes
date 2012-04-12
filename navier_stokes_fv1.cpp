@@ -22,7 +22,7 @@ namespace ug{
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 prepare_element_loop()
 {
 // 	Only first order implementation
@@ -54,7 +54,7 @@ prepare_element_loop()
 
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW_FATAL("FV1NavierStokes::prepare_element_loop:"
+		UG_THROW_FATAL("NavierStokes::prepare_element_loop:"
 						" Kinematic Viscosity has not been set, but is required.");
 
 //	set local positions for imports
@@ -74,14 +74,14 @@ prepare_element_loop()
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 finish_element_loop()
 {}
 
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 prepare_element(TElem* elem, const LocalVector& u)
 {
 //	get corners
@@ -90,7 +90,7 @@ prepare_element(TElem* elem, const LocalVector& u)
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW_FATAL("FV1NavierStokes::prepare_element:"
+		UG_THROW_FATAL("NavierStokes::prepare_element:"
 						" Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
@@ -115,7 +115,7 @@ prepare_element(TElem* elem, const LocalVector& u)
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
@@ -136,7 +136,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 	//	get and check current and old solution
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
-			UG_THROW_FATAL("FV1NavierStokes::ass_dA_elem: "
+			UG_THROW_FATAL("NavierStokes::ass_dA_elem: "
 							" Stabilization needs exactly two time points.");
 
 	//	remember local solutions
@@ -454,7 +454,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 ass_dA_elem(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
@@ -475,7 +475,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 	//	get and check current and old solution
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
-			UG_THROW_FATAL("FV1NavierStokes::ass_dA_elem: "
+			UG_THROW_FATAL("NavierStokes::ass_dA_elem: "
 							" Stabilization needs exactly two time points.");
 
 	//	remember local solutions
@@ -633,7 +633,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 ass_JM_elem(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
@@ -663,7 +663,7 @@ ass_JM_elem(LocalMatrix& J, const LocalVector& u)
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 ass_dM_elem(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implementation
@@ -693,7 +693,7 @@ ass_dM_elem(LocalVector& d, const LocalVector& u)
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FV1NavierStokes<TDomain>::
+void NavierStokes<TDomain>::
 ass_rhs_elem(LocalVector& d)
 {
 // 	Only first order implementation
@@ -724,7 +724,7 @@ template<typename TDomain>
 template <typename SCVF>
 inline
 number
-FV1NavierStokes<TDomain>::
+NavierStokes<TDomain>::
 peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
              const MathVector<dim>& StdVel, number kinVisco)
 {
@@ -752,7 +752,7 @@ peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename TDomain>
-FV1NavierStokes<TDomain>::FV1NavierStokes(const char* functions, const char* subsets)
+NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
 : IDomainElemDisc<TDomain>(functions, subsets),
   m_bStokes(false),
   m_bLaplace(false),
@@ -788,7 +788,7 @@ FV1NavierStokes<TDomain>::FV1NavierStokes(const char* functions, const char* sub
 // register for 1D
 template<typename TDomain>
 void
-FV1NavierStokes<TDomain>::
+NavierStokes<TDomain>::
 register_all_fv1_funcs(bool bHang)
 {
 //	get all grid element types in this dimension and below
@@ -802,7 +802,7 @@ register_all_fv1_funcs(bool bHang)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void
-FV1NavierStokes<TDomain>::
+NavierStokes<TDomain>::
 register_fv1_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
@@ -823,9 +823,9 @@ register_fv1_func()
 //	explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
-template class FV1NavierStokes<Domain1d>;
-template class FV1NavierStokes<Domain2d>;
-template class FV1NavierStokes<Domain3d>;
+template class NavierStokes<Domain1d>;
+template class NavierStokes<Domain2d>;
+template class NavierStokes<Domain3d>;
 
 
 } // namespace ug
