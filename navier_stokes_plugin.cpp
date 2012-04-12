@@ -84,7 +84,21 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 		string name = string("NavierStokes").append(dimSuffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
-			.add_method("set_kinematic_viscosity", &T::set_kinematic_viscosity)
+
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<IPData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+#ifdef UG_FOR_LUA
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+#endif
+
+			.add_method("set_source", static_cast<void (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
+			.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
+			.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
+			.add_method("set_source", static_cast<void (T::*)(number,number,number)>(&T::set_source), "", "F_x, F_y, F_z")
+#ifdef UG_FOR_LUA
+			.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Velocity Field")
+#endif
+
 			.add_method("set_stabilization", &T::set_stabilization)
 			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesStabilization<dim> >)>(&T::set_conv_upwind))
 			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_conv_upwind))

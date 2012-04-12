@@ -146,18 +146,31 @@ class NavierStokes
 	 *
 	 * \param[in]	data		kinematic Viscosity
 	 */
-		void set_kinematic_viscosity(SmartPtr<IPData<number, dim> > data)
-			{m_imKinViscosity.set_data(data);}
-		SmartPtr<IPData<number, dim> > get_kinematic_viscosity_data()
-			{return m_imKinViscosity.ip_data ();}
+	///	\{
+		void set_kinematic_viscosity(SmartPtr<IPData<number, dim> > user);
+		void set_kinematic_viscosity(number val);
+#ifdef UG_FOR_LUA
+		void set_kinematic_viscosity(const char* fctName);
+#endif
+	///	\}
+
+	///	returns kinematic viscosity
+		SmartPtr<IPData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.ip_data ();}
 
 	///	sets the source function
 	/**
 	 * This method sets the source value. A zero value is assumed as default.
 	 * \param[in]	data		source data
 	 */
-		void set_source(SmartPtr<IPData<MathVector<dim>, dim> > data)
-			{m_imSource.set_data(data);}
+	///	\{
+		void set_source(SmartPtr<IPData<MathVector<dim>, dim> > user);
+		void set_source(number f_x);
+		void set_source(number f_x, number f_y);
+		void set_source(number f_x, number f_y, number f_z);
+#ifdef UG_FOR_LUA
+		void set_source(const char* fctName);
+#endif
+	///	\}
 
 	///	sets the stabilization used to compute the stabilized velocities
 	/**

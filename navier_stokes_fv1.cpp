@@ -9,8 +9,110 @@
 
 #include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/finite_volume_geometry.h"
+#include "lib_disc/spatial_disc/ip_data/const_user_data.h"
+#ifdef UG_FOR_LUA
+#include "bindings/lua/lua_user_data.h"
+#endif
 
 namespace ug{
+
+/////////// kinematic Viscosity
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_kinematic_viscosity(SmartPtr<IPData<number, dim> > data)
+{
+	m_imKinViscosity.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_kinematic_viscosity(number val)
+{
+	set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
+}
+
+#ifdef UG_FOR_LUA
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_kinematic_viscosity(const char* fctName)
+{
+	set_kinematic_viscosity(CreateSmartPtr(new LuaUserData<number, dim>(fctName)));
+}
+#endif
+
+/////////// Source
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_source(SmartPtr<IPData<MathVector<dim>, dim> > data)
+{
+	m_imSource.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_source(number f_x)
+{
+	UG_THROW_FATAL("NavierStokes: Setting source vector of dimension 1"
+					" to a Discretization for world dim " << dim);
+}
+
+template<>
+void NavierStokes<Domain1d>::
+set_source(number f_x)
+{
+	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
+	f->set_entry(0, f_x);
+	set_source(f);
+}
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_source(number f_x, number f_y)
+{
+	UG_THROW_FATAL("NavierStokes: Setting source vector of dimension 2"
+					" to a Discretization for world dim " << dim);
+}
+
+template<>
+void NavierStokes<Domain2d>::
+set_source(number f_x, number f_y)
+{
+	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
+	f->set_entry(0, f_x);
+	f->set_entry(1, f_y);
+	set_source(f);
+}
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_source(number f_x, number f_y, number f_z)
+{
+	UG_THROW_FATAL("NavierStokes: Setting source vector of dimension 3"
+					" to a Discretization for world dim " << dim);
+}
+
+template<>
+void NavierStokes<Domain3d>::
+set_source(number f_x, number f_y, number f_z)
+{
+	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
+	f->set_entry(0, f_x);
+	f->set_entry(1, f_y);
+	f->set_entry(2, f_z);
+	set_source(f);
+}
+
+
+#ifdef UG_FOR_LUA
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_source(const char* fctName)
+{
+	set_source(CreateSmartPtr(new LuaUserData<MathVector<dim>, dim>(fctName)));
+}
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
