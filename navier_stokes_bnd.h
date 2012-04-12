@@ -37,53 +37,23 @@ class NavierStokesInflow
 		virtual SmartPtr<IDomainConstraint<TDomain, TAlgebra> > constraint(size_t i) {return m_spDirichletConstraint;}
 
 	public:
-		NavierStokesInflow(const char* functions, const char* subsets)
-			: m_spNeumannDisc(new NeumannBoundary<TDomain>(subsets)),
-			  m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>)
-		{
-			set_functions(functions);
-		}
+	///	Constructor
+		NavierStokesInflow(const char* functions, const char* subsets);
 
 	///	sets the velocity to a given value
-		bool add(SmartPtr<IPData<MathVector<dim>, dim> > user, const char* subsetsBND)
-		{
-			if(m_velNames.empty() || m_pressureName.empty())
-			{
-				UG_LOG("ERROR in 'NavierStokesInflow::add': Symbolic names for"
-						" velocity and pressure not set. Please set them first.\n");
-				return false;
-			}
-			m_spNeumannDisc->add(user, m_pressureName.c_str(), subsetsBND);
-			m_spDirichletConstraint->add(user, m_velNames.c_str(), subsetsBND);
-
-			return true;
-		}
+	///	\{
+		void add(SmartPtr<IPData<MathVector<dim>, dim> > user, const char* subsetsBND);
+		void add(number vel_x, const char* subsetsBND);
+		void add(number vel_x, number vel_y, const char* subsetsBND);
+		void add(number vel_x, number vel_y, number vel_z, const char* subsetsBND);
+#ifdef UG_FOR_LUA
+		void add(const char* fctName, const char* subsetsBND);
+#endif
+	///	\}
 
 	protected:
 	///	sets the symbolic names for velocity and pressure
-		void set_functions(const char* functions)
-		{
-			std::string strFunctions(functions);
-			std::vector<std::string> tokens;
-
-			TokenizeString(strFunctions, tokens, ',');
-
-			if(tokens.size() != TDomain::dim + 1)
-			{
-				UG_THROW("ERROR in 'NavierStokesInflow::set_functions': This Boundary "
-						"Condition works on exactly dim+1 (velocity+pressure) "
-						"components, but "<<tokens.size()<<"components given.\n");
-			}
-
-			m_velNames.clear();
-			for(int i=0;i<TDomain::dim; ++i)
-			{
-				if(i>0) m_velNames.append(",");
-				m_velNames.append(tokens[i]);
-			}
-
-			m_pressureName = tokens[TDomain::dim];
-		}
+		void set_functions(const char* functions);
 
 	///	neumann disc for pressure equation
 		SmartPtr<NeumannBoundary<TDomain> > m_spNeumannDisc;
@@ -97,6 +67,10 @@ class NavierStokesInflow
 	///	name of pressure components
 		std::string m_pressureName;
 };
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 template <	typename TDomain,
 			typename TAlgebra>
@@ -120,43 +94,15 @@ class NavierStokesWall
 		~NavierStokesWall() {}
 
 	public:
-		NavierStokesWall(const char* functions)
-			: m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>)
-		{
-			set_functions(functions);
-		}
+	///	Constructor
+		NavierStokesWall(const char* functions);
 
 	///	sets the velocity to a given value
-		void add(const char* subsetsBND)
-		{
-			if(m_velNames.empty())
-			{
-				UG_THROW("ERROR in 'NavierStokesWall::add': Symbolic names for"
-						" velocity and pressure not set. Please set them first.\n");
-			}
-
-			for(int i = 0; i < TDomain::dim; ++i)
-			{
-				m_spDirichletConstraint->add(0.0, m_velNames[i].c_str(), subsetsBND);
-			}
-		}
+		void add(const char* subsetsBND);
 
 	protected:
 	///	sets the symbolic names for velocity and pressure
-		void set_functions(const char* functions)
-		{
-			std::string strFunctions(functions);
-
-			m_velNames.clear();
-			TokenizeString(strFunctions, m_velNames, ',');
-
-			if(m_velNames.size() != TDomain::dim + 1)
-			{
-				UG_THROW("ERROR in 'NavierStokesWall::set_functions': This Boundary "
-						"Condition works on exactly dim+1 (velocity+pressure) "
-						"components, but "<<m_velNames.size()<<"components given.\n");
-			}
-		}
+		void set_functions(const char* functions);
 
 	///	dirichlet disc for velocity components
 		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
@@ -166,5 +112,7 @@ class NavierStokesWall
 };
 
 } // end namespace ug
+
+#include "navier_stokes_bnd_impl.h"
 
 #endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__ */

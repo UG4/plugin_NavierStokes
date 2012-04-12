@@ -47,7 +47,15 @@ static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
 		string name = string("NavierStokesInflow").append(dimAlgSuffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
-			.add_method("add", static_cast<bool (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >, const char*)>(&T::add))
+
+			.add_method("add", static_cast<void (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
+			.add_method("add", static_cast<void (T::*)(number, const char*)>(&T::add), "", "Vel_x, Subset")
+			.add_method("add", static_cast<void (T::*)(number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Subset")
+			.add_method("add", static_cast<void (T::*)(number,number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Vel_z, Subset")
+#ifdef UG_FOR_LUA
+			.add_method("add", static_cast<void (T::*)(const char*, const char*)>(&T::add), "", "Velocity")
+#endif
+
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflow", dimAlgTag);
 	}
