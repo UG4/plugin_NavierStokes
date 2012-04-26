@@ -37,7 +37,7 @@ template<typename TDomain>
 void NavierStokes<TDomain>::
 set_kinematic_viscosity(const char* fctName)
 {
-	set_kinematic_viscosity(CreateSmartPtr(new LuaUserData<number, dim>(fctName)));
+	set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
 }
 #endif
 
@@ -110,7 +110,7 @@ template<typename TDomain>
 void NavierStokes<TDomain>::
 set_source(const char* fctName)
 {
-	set_source(CreateSmartPtr(new LuaUserData<MathVector<dim>, dim>(fctName)));
+	set_source(LuaUserDataFactory<MathVector<dim>, dim>::create(fctName));
 }
 #endif
 

@@ -113,7 +113,7 @@ template <typename TDomain, typename TAlgebra>
 void NavierStokesInflow<TDomain,TAlgebra>::
 add(const char* fctName, const char* subsetsBND)
 {
-	add(CreateSmartPtr(new LuaUserData<MathVector<dim>, dim>(fctName)), subsetsBND);
+	add(LuaUserDataFactory<MathVector<dim>, dim>::create(fctName), subsetsBND);
 }
 #endif
 
