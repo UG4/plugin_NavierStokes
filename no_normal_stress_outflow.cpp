@@ -198,34 +198,39 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 		// 	loop shape functions
 			for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 			{
-			//	1. Compute the total flux
+			//	A. The momentum equation:
+			//	A1. Compute the total flux
 				MathMatrix<dim,dim> diffFlux, tang_diffFlux;
+				MathVector<dim> normalStress;
 		
-			//	Add \nabla u
+			//	- add \nabla u
 				MatSet (diffFlux, 0);
-				MatDiagSet (diffFlux, VecDot (bf.global_grad (sh), bf.normal ()));
+				MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
 		
-			//	Add (\nabla u)^T
+			//	- add (\nabla u)^T
 				if(!m_spMaster->get_laplace())
 					for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
 						for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-							diffFlux(d1,d2) += bf.global_grad (sh) [d1] * bf.normal () [d2];
+							diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
 			
-			//	2. Subtract the normal part:
+			//	A2. Subtract the normal part:
 				tang_diffFlux = diffFlux;
-				for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						for (size_t k = 0; k < (size_t)dim; ++k)
-							tang_diffFlux(d1,d2) -= bf.normal () [d1]
-								* diffFlux(d2,k) * bf.normal () [k];
+				MatVecMult(normalStress, diffFlux, bf.normal ());
+				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+					for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
 		
-			//	3. Scale by viscosity
+			//	A3. Scale by viscosity
 				tang_diffFlux *= - m_imKinViscosity[i];
 		
-			//	4. Add flux to local defect
+			//	A4. Add flux to local defect
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 						J(d1, bf.node_id(), d2, sh) += tang_diffFlux (d1, d2);
+			
+			// B. The continuity equation
+				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
+					J(_P_, bf.node_id (), d2, sh) += bf.shape(sh) * bf.normal()[d2];
 			}
 		}
 	}
@@ -254,8 +259,10 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 		{
 		// get current BF
 			const typename TFVGeom<TElem, dim>::BF& bf = geo.bf(bndSubset, i);
-
-		// 	1. Interpolate Functional Matrix of velocity at ip
+		
+		// A. Momentum equation:
+		
+		// 	A1. Get the gradient of the velocity at ip
 			MathMatrix<dim, dim> gradVel;
 			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
@@ -266,25 +273,35 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 						gradVel(d1, d2) += bf.global_grad(sh)[d2] * u(d1, sh);
 				}
 	
-		//	2. Compute the total flux
+		//	A2. Compute the total flux
 			MathVector<dim> diffFlux;
 	
-		//	Add (\nabla u) \cdot \vec{n}
+		//	- add (\nabla u) \cdot \vec{n}
 			MatVecMult(diffFlux, gradVel, bf.normal());
 	
-		//	Add (\nabla u)^T \cdot \vec{n}
+		//	- add (\nabla u)^T \cdot \vec{n}
 			if(!m_spMaster->get_laplace())
 				TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
 		
-		//	3. Subtract the normal part:
-			VecScaleAppend (diffFlux, - VecDot (diffFlux, bf.normal ()), bf.normal ());
+		//	A3. Subtract the normal part:
+			VecScaleAppend (diffFlux, - VecDot (diffFlux, bf.normal()), bf.normal());
 	
-		//	4. Scale by viscosity
+		//	A4. Scale by viscosity
 			diffFlux *= - m_imKinViscosity[i];
 	
-		//	5. Add flux to local defect
+		//	A5. Add flux to local defect
 			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				d(d1, bf.node_id()) += diffFlux[d1];
+		
+		// B. Continuity equation:
+			{
+				MathVector<dim> stdVel;
+				VecSet (stdVel, 0);
+				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+						stdVel[d1] += u(d1, sh) * bf.shape(sh);
+				d(_P_, bf.node_id()) += VecDot (stdVel, bf.normal());
+			}
 		}
 	}
 }
