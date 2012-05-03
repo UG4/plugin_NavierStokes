@@ -131,6 +131,26 @@ class FVNavierStokesNoNormalStressOutflow
 		void ass_rhs_elem(LocalVector& d);
 
 	private:
+	/// adds the diffusive part of the local Jacobian of the momentum equation
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		inline void ass_diffusive_flux_Jac
+		(
+			const size_t ip,
+			const size_t sh,
+			const typename TFVGeom<TElem, dim>::BF& bf,
+			LocalMatrix& J,
+			const LocalVector& u
+		);
+	/// adds the diffusive part of the local defect of the momentum equation
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		inline void ass_diffusive_flux_defect
+		(
+			const size_t ip,
+			const typename TFVGeom<TElem, dim>::BF& bf,
+			LocalVector& d,
+			const LocalVector& u
+		);
+	
 	/// The master discretization:
 		SmartPtr< NavierStokes<TDomain> > m_spMaster;
 	
@@ -143,6 +163,9 @@ class FVNavierStokesNoNormalStressOutflow
 		
 	///	Data import for kinematic viscosity
 		DataImport<number, dim> m_imKinViscosity;
+	/// Boundary integration points of the viscosity
+		std::vector<MathVector<dim> > m_vLocIP;
+		std::vector<MathVector<dim> > m_vGloIP;
 
 	/// position access
 		const position_type* m_vCornerCoords;

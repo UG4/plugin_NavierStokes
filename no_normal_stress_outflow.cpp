@@ -86,6 +86,7 @@ add
 
 /**
  * Prepares the element loop for a given element type: computes the FV-geo, ...
+ * Note that there are separate loops for every type of the grid elements.
  */
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
@@ -105,18 +106,6 @@ prepare_element_loop()
 		UG_THROW_FATAL("FVNavierStokesNoNormalStressOutflow::prepare_element_loop:"
 						" Kinematic Viscosity has not been set, but is required.\n");
 
-//	set local positions for imports
-	typedef typename reference_element_traits<TElem>::reference_element_type
-																ref_elem_type;
-	static const int refDim = ref_elem_type::dim;
-
-	if(!TFVGeom<TElem, dim>::usesHangingNodes)
-	{
-		TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
-		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
-		                                                geo.num_scvf_ips());
-	}
-
 //	request the subset indices as boundary subset. This will force the
 //	creation of boundary subsets when calling geo.update
 	typename std::vector<int>::const_iterator subsetIter;
@@ -125,6 +114,9 @@ prepare_element_loop()
 		geo.add_boundary_subset(*subsetIter);
 }
 
+/**
+ * Finalizes the element loop for a given element type.
+ */
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void FVNavierStokesNoNormalStressOutflow<TDomain>::
@@ -140,6 +132,9 @@ finish_element_loop()
 }
 
 
+/**
+ * General initializations of a given grid element for the assembling.
+ */
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void FVNavierStokesNoNormalStressOutflow<TDomain>::
@@ -154,21 +149,118 @@ prepare_element(TElem* elem, const LocalVector& u)
 		UG_THROW_FATAL("FVNavierStokesNoNormalStressOutflow::prepare_element:"
 						" Cannot update Finite Volume Geometry.\n");
 
-//	set local positions for imports
-	if(TFVGeom<TElem, dim>::usesHangingNodes)
+//	find and set the local and the global positions of the IPs for imports
+	typedef typename TFVGeom<TElem, dim>::BF BF;
+	typename std::vector<int>::const_iterator subsetIter;
+	
+	m_vLocIP.clear(); m_vGloIP.clear();
+	for(subsetIter = m_vBndSubSetIndex.begin();
+			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
 	{
-	//	set local positions for imports
-		typedef typename reference_element_traits<TElem>::reference_element_type
-																	ref_elem_type;
-		static const int refDim = ref_elem_type::dim;
-
-	//	request ip series
-		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
-		                                                geo.num_scvf_ips());
+		const int bndSubset = *subsetIter;
+		if(geo.num_bf(bndSubset) == 0) continue;
+		const std::vector<BF>& vBF = geo.bf(bndSubset);
+		for(size_t i = 0; i < vBF.size(); ++i)
+		{
+			m_vLocIP.push_back(vBF[i].local_ip());
+			m_vGloIP.push_back(vBF[i].global_ip());
+		}
 	}
+	// REMARK: The loop above determines the ordering of the integration points:
+	// The "outer ordering" corresponds to the ordering of the subsets in
+	// m_vBndSubSetIndex, and "inside" of this ordering, the ip's are ordered
+	// according to the order of the boundary faces in the FV geometry structure.
 
-//	set global positions for imports
-	m_imKinViscosity.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
+	m_imKinViscosity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	m_imKinViscosity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+}
+
+/// Assembling of the diffusive flux (due to the viscosity) in the Jacobian of the momentum eq.
+template<typename TDomain>
+template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_diffusive_flux_Jac
+(
+	const size_t ip, // index of the integration point (for the viscosity)
+	const size_t sh, // index of the shape (corner)
+	const typename TFVGeom<TElem, dim>::BF& bf, // boundary face to assemble
+	LocalMatrix& J, // local Jacobian to update
+	const LocalVector& u // local solution
+)
+{
+//	1. Compute the total flux
+	MathMatrix<dim,dim> diffFlux, tang_diffFlux;
+	MathVector<dim> normalStress;
+
+//	- add \nabla u
+	MatSet (diffFlux, 0);
+	MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
+
+//	- add (\nabla u)^T
+	if(!m_spMaster->get_laplace())
+		for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
+				diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
+
+//	2. Subtract the normal part:
+	tang_diffFlux = diffFlux;
+	TransposedMatVecMult(normalStress, diffFlux, bf.normal ());
+	for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
+		for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
+
+//	3. Scale by viscosity
+	tang_diffFlux *= - m_imKinViscosity[ip];
+
+//	4. Add flux to local defect
+	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+			J(d1, bf.node_id(), d2, sh) += tang_diffFlux (d1, d2);
+}
+
+/// Assembling of the diffusive flux (due to the viscosity) in the defect of the momentum eq.
+template<typename TDomain>
+template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_diffusive_flux_defect
+(
+	const size_t ip, // index of the integration point (for the viscosity)
+	const typename TFVGeom<TElem, dim>::BF& bf, // boundary face to assemble
+	LocalVector& d, // local defect to update
+	const LocalVector& u // local solution
+)
+{
+	MathMatrix<dim, dim> gradVel;
+	MathVector<dim> diffFlux;
+	
+// 	1. Get the gradient of the velocity at ip
+	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+		{
+		//	sum up contributions of each shape
+			gradVel(d1, d2) = 0.0;
+			for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+				gradVel(d1, d2) += bf.global_grad(sh)[d2] * u(d1, sh);
+		}
+
+//	2. Compute the total flux
+
+//	- add (\nabla u) \cdot \vec{n}
+	MatVecMult(diffFlux, gradVel, bf.normal());
+
+//	- add (\nabla u)^T \cdot \vec{n}
+	if(!m_spMaster->get_laplace())
+		TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
+
+//	3. Subtract the normal part:
+	VecScaleAppend (diffFlux, - VecDot (diffFlux, bf.normal()), bf.normal());
+
+//	A4. Scale by viscosity
+	diffFlux *= - m_imKinViscosity[ip];
+
+//	5. Add flux to local defect
+	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		d(d1, bf.node_id()) += diffFlux[d1];
 }
 
 template<typename TDomain>
@@ -181,57 +273,37 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 
 // 	get finite volume geometry
 	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	typedef typename TFVGeom<TElem, dim>::BF BF;
 
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
-	for(subsetIter = m_vBndSubSetIndex.begin(); subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
+	size_t ip = 0;
+	for(subsetIter = m_vBndSubSetIndex.begin();
+		subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
 	{
 	//	get subset index corresponding to boundary
 		const int bndSubset = *subsetIter;
 		
-	// 	loop Boundary Faces
-		for(size_t i = 0; i < geo.num_bf(bndSubset); ++i)
-		{
-		// get current BF
-			const typename TFVGeom<TElem, dim>::BF& bf = geo.bf(bndSubset, i);
+	//	get the list of the ip's:
+		if(geo.num_bf(bndSubset) == 0) continue;
+		const std::vector<BF>& vBF = geo.bf(bndSubset);
 
-		// 	loop shape functions
-			for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+	// 	loop the boundary faces
+		typename std::vector<BF>::const_iterator bf;
+		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
+		{
+			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
 			{
 			//	A. The momentum equation:
-			//	A1. Compute the total flux
-				MathMatrix<dim,dim> diffFlux, tang_diffFlux;
-				MathVector<dim> normalStress;
-		
-			//	- add \nabla u
-				MatSet (diffFlux, 0);
-				MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
-		
-			//	- add (\nabla u)^T
-				if(!m_spMaster->get_laplace())
-					for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-							diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
-			
-			//	A2. Subtract the normal part:
-				tang_diffFlux = diffFlux;
-				MatVecMult(normalStress, diffFlux, bf.normal ());
-				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-					for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
-		
-			//	A3. Scale by viscosity
-				tang_diffFlux *= - m_imKinViscosity[i];
-		
-			//	A4. Add flux to local defect
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						J(d1, bf.node_id(), d2, sh) += tang_diffFlux (d1, d2);
+				ass_diffusive_flux_Jac<TElem, TFVGeom> (ip, sh, *bf, J, u);
 			
 			// B. The continuity equation
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-					J(_P_, bf.node_id (), d2, sh) += bf.shape(sh) * bf.normal()[d2];
+					J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2];
 			}
+		
+		// Next IP:
+			ip++;
 		}
 	}
 }
@@ -246,62 +318,40 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 
 // 	get finite volume geometry
 	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	typedef typename TFVGeom<TElem, dim>::BF BF;
 
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
-	for(subsetIter = m_vBndSubSetIndex.begin(); subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
+	size_t ip = 0;
+	for(subsetIter = m_vBndSubSetIndex.begin();
+		subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
 	{
 	//	get subset index corresponding to boundary
 		const int bndSubset = *subsetIter;
+		
+	//	get the list of the ip's:
+		if(geo.num_bf(bndSubset) == 0) continue;
+		const std::vector<BF>& vBF = geo.bf(bndSubset);
 
-	// 	loop Boundary Faces
-		for(size_t i = 0; i < geo.num_bf(bndSubset); ++i)
+	// 	loop the boundary faces
+		typename std::vector<BF>::const_iterator bf;
+		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
 		{
-		// get current BF
-			const typename TFVGeom<TElem, dim>::BF& bf = geo.bf(bndSubset, i);
-		
 		// A. Momentum equation:
-		
-		// 	A1. Get the gradient of the velocity at ip
-			MathMatrix<dim, dim> gradVel;
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-				{
-				//	sum up contributions of each shape
-					gradVel(d1, d2) = 0.0;
-					for(size_t sh = 0; sh < bf.num_sh(); ++sh)
-						gradVel(d1, d2) += bf.global_grad(sh)[d2] * u(d1, sh);
-				}
-	
-		//	A2. Compute the total flux
-			MathVector<dim> diffFlux;
-	
-		//	- add (\nabla u) \cdot \vec{n}
-			MatVecMult(diffFlux, gradVel, bf.normal());
-	
-		//	- add (\nabla u)^T \cdot \vec{n}
-			if(!m_spMaster->get_laplace())
-				TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
-		
-		//	A3. Subtract the normal part:
-			VecScaleAppend (diffFlux, - VecDot (diffFlux, bf.normal()), bf.normal());
-	
-		//	A4. Scale by viscosity
-			diffFlux *= - m_imKinViscosity[i];
-	
-		//	A5. Add flux to local defect
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				d(d1, bf.node_id()) += diffFlux[d1];
+			ass_diffusive_flux_defect<TElem, TFVGeom> (ip, *bf, d, u);
 		
 		// B. Continuity equation:
 			{
 				MathVector<dim> stdVel;
 				VecSet (stdVel, 0);
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					for(size_t sh = 0; sh < bf.num_sh(); ++sh)
-						stdVel[d1] += u(d1, sh) * bf.shape(sh);
-				d(_P_, bf.node_id()) += VecDot (stdVel, bf.normal());
+					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						stdVel[d1] += u(d1, sh) * bf->shape(sh);
+				d(_P_, bf->node_id()) += VecDot (stdVel, bf->normal());
 			}
+		
+		// Next IP:
+			ip++;
 		}
 	}
 }
@@ -367,7 +417,9 @@ FVNavierStokesNoNormalStressOutflow<TDomain>::
 register_all_fv1_funcs(bool bHang)
 {
 //	get all grid element types in this dimension and below
-	typedef typename domain_traits<dim>::AllElemList ElemList;
+	typedef typename domain_traits<dim>::DimElemList ElemList;
+	// REMARK: Note that we register this boundary condition only
+	// for the full-dimensional elements (DimElemList instead of AllElemList).
 
 //	switch assemble functions
 	if(!bHang) boost::mpl::for_each<ElemList>( RegisterFV1<FV1Geometry>(this) );
