@@ -57,7 +57,7 @@ void NSDiffLengthFivePoint(number DiffLengthSqInv[], const TFVGeometry& geo)
 			DiffLengthSqInv[i] = 2.0 * normNormalSq/ areaSCVSq + 8.0 * distSq / normNormalSq;
 		}
 		else
-			UG_THROW_FATAL("NSDiffLengthFivePoint not implemented for dimension "<<dim);
+			UG_THROW("NSDiffLengthFivePoint not implemented for dimension "<<dim);
 	}
 }
 
@@ -101,7 +101,7 @@ void NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
 			DiffLengthSqInv[i] = 1. / (0.5*areaSCVSq/normNormalSq + 3.0*distSq/8.);
 		}
 		else
-			UG_THROW_FATAL("NSDiffLengthRaw not implemented for dimension "<<dim);
+			UG_THROW("NSDiffLengthRaw not implemented for dimension "<<dim);
     }
 }
 
@@ -167,7 +167,7 @@ void NSDiffLengthCor(number DiffLengthSqInv[], const TFVGeometry& geo)
 			DiffLengthSqInv[i] = 2.0 * minNormSq/ areaSCVSq + 8.0 * minDistSq / (3.0*avgNormSq);
 		}
 		else
-			UG_THROW_FATAL("NSDiffLengthCor not implemented for dimension "<<dim);
+			UG_THROW("NSDiffLengthCor not implemented for dimension "<<dim);
 	}
 }
 

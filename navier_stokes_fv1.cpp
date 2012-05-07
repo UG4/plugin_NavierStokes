@@ -54,7 +54,7 @@ template<typename TDomain>
 void NavierStokes<TDomain>::
 set_source(number f_x)
 {
-	UG_THROW_FATAL("NavierStokes: Setting source vector of dimension 1"
+	UG_THROW("NavierStokes: Setting source vector of dimension 1"
 					" to a Discretization for world dim " << dim);
 }
 
@@ -71,7 +71,7 @@ template<typename TDomain>
 void NavierStokes<TDomain>::
 set_source(number f_x, number f_y)
 {
-	UG_THROW_FATAL("NavierStokes: Setting source vector of dimension 2"
+	UG_THROW("NavierStokes: Setting source vector of dimension 2"
 					" to a Discretization for world dim " << dim);
 }
 
@@ -89,7 +89,7 @@ template<typename TDomain>
 void NavierStokes<TDomain>::
 set_source(number f_x, number f_y, number f_z)
 {
-	UG_THROW_FATAL("NavierStokes: Setting source vector of dimension 3"
+	UG_THROW("NavierStokes: Setting source vector of dimension 3"
 					" to a Discretization for world dim " << dim);
 }
 
@@ -129,12 +129,12 @@ prepare_element_loop()
 {
 // 	Only first order implementation
 	if(!(TFVGeom<TElem, dim>::order == 1))
-		UG_THROW_FATAL("Only first order implementation, but other Finite Volume"
+		UG_THROW("Only first order implementation, but other Finite Volume"
 						" Geometry set.");
 
 //	check, that stabilization has been set
 	if(m_spStab.invalid())
-		UG_THROW_FATAL("Stabilization has not been set.");
+		UG_THROW("Stabilization has not been set.");
 
 //	init stabilization for element type
 	m_spStab->template set_geometry_type<TFVGeom<TElem, dim> >();
@@ -143,7 +143,7 @@ prepare_element_loop()
 	{
 	//	check, that convective upwinding has been set
 		if(m_spConvStab.invalid()  && m_spConvUpwind.invalid())
-			UG_THROW_FATAL("Upwinding for convective Term in Momentum eq. not set.");
+			UG_THROW("Upwinding for convective Term in Momentum eq. not set.");
 	
 	//	init convection stabilization for element type
 		if(m_spConvStab.valid())
@@ -156,7 +156,7 @@ prepare_element_loop()
 
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW_FATAL("NavierStokes::prepare_element_loop:"
+		UG_THROW("NavierStokes::prepare_element_loop:"
 						" Kinematic Viscosity has not been set, but is required.");
 
 //	set local positions for imports
@@ -192,7 +192,7 @@ prepare_element(TElem* elem, const LocalVector& u)
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW_FATAL("NavierStokes::prepare_element:"
+		UG_THROW("NavierStokes::prepare_element:"
 						" Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
@@ -238,7 +238,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 	//	get and check current and old solution
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
-			UG_THROW_FATAL("NavierStokes::ass_dA_elem: "
+			UG_THROW("NavierStokes::ass_dA_elem: "
 							" Stabilization needs exactly two time points.");
 
 	//	remember local solutions
@@ -347,7 +347,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 			//	switch PAC
 				if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 				else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(ip);
-				else UG_THROW_FATAL("Cannot find upwind for convective term.");
+				else UG_THROW("Cannot find upwind for convective term.");
 	
 			//	peclet blend
 				number w = 1.0;
@@ -577,7 +577,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 	//	get and check current and old solution
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
-			UG_THROW_FATAL("NavierStokes::ass_dA_elem: "
+			UG_THROW("NavierStokes::ass_dA_elem: "
 							" Stabilization needs exactly two time points.");
 
 	//	remember local solutions
@@ -684,7 +684,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 		//	switch PAC
 			if(m_spConvUpwind.valid())  UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 			else if (m_spConvStab.valid()) UpwindVel = convStab.stab_vel(ip);
-			else UG_THROW_FATAL("Cannot find upwind for convective term.");
+			else UG_THROW("Cannot find upwind for convective term.");
 	
 		//	Peclet Blend
 			if(m_bPecletBlend)
@@ -864,7 +864,7 @@ NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
 {
 //	check number of functions
 	if(this->num_fct() != dim+1)
-		UG_THROW_FATAL("Wrong number of functions: The ElemDisc 'NavierStokes'"
+		UG_THROW("Wrong number of functions: The ElemDisc 'NavierStokes'"
 					   " needs exactly "<<dim+1<<" symbolic function.");
 
 //	set default options
@@ -898,7 +898,7 @@ register_all_fv1_funcs(bool bHang)
 
 //	switch assemble functions
 	if(!bHang) boost::mpl::for_each<ElemList>( RegisterFV1<FV1Geometry>(this) );
-	else throw(UGFatalError("Not implemented."));
+	else throw(UGError("Not implemented."));
 }
 
 template<typename TDomain>

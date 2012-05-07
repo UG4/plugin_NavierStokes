@@ -98,12 +98,12 @@ prepare_element_loop()
 
 // 	Only first order implementation
 	if(!(TFVGeom<TElem, dim>::order == 1))
-		UG_THROW_FATAL("Only first order implementation, but other Finite Volume"
+		UG_THROW("Only first order implementation, but other Finite Volume"
 						" Geometry set.");
 
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW_FATAL("FVNavierStokesNoNormalStressOutflow::prepare_element_loop:"
+		UG_THROW("FVNavierStokesNoNormalStressOutflow::prepare_element_loop:"
 						" Kinematic Viscosity has not been set, but is required.\n");
 
 //	request the subset indices as boundary subset. This will force the
@@ -146,7 +146,7 @@ prepare_element(TElem* elem, const LocalVector& u)
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW_FATAL("FVNavierStokesNoNormalStressOutflow::prepare_element:"
+		UG_THROW("FVNavierStokesNoNormalStressOutflow::prepare_element:"
 						" Cannot update Finite Volume Geometry.\n");
 
 //	find and set the local and the global positions of the IPs for imports
@@ -389,7 +389,7 @@ FVNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 {
 //	check number of functions
 	if(this->num_fct() != dim+1)
-		UG_THROW_FATAL("Wrong number of functions: The ElemDisc 'NavierStokes'"
+		UG_THROW("Wrong number of functions: The ElemDisc 'NavierStokes'"
 					   " needs exactly "<<dim+1<<" symbolic function.");
 	
 //	yet no boundary subsets
@@ -423,7 +423,7 @@ register_all_fv1_funcs(bool bHang)
 
 //	switch assemble functions
 	if(!bHang) boost::mpl::for_each<ElemList>( RegisterFV1<FV1Geometry>(this) );
-	else throw(UGFatalError("Not implemented."));
+	else throw(UGError("Not implemented."));
 }
 
 template<typename TDomain>

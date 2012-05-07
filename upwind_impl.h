@@ -56,7 +56,7 @@ set_geometry_type()
 
 //	check that function exists
 	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
-		UG_THROW_FATAL("No update function registered for Geometry "<<id);
+		UG_THROW("No update function registered for Geometry "<<id);
 
 //	set current geometry
 	m_id = id;
@@ -196,7 +196,7 @@ void GetNodeNextToCut(size_t& coOut,
 	if(!ElementSideRayIntersection<TRefElem, TWorldDim>
 		(	side, globalIntersection, localIntersection,
 			IP, IPVel, false /* i.e. search upwind */, vCornerCoords))
-		UG_THROW_FATAL("GetNodeNextToCut: Cannot find cut side.");
+		UG_THROW("GetNodeNextToCut: Cannot find cut side.");
 
 //	get reference element
 	static const TRefElem& rRefElem = Provider<TRefElem>::get();
@@ -491,7 +491,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	const int nc = geo->num_scv();
 
 	// ONLY 2D IMPLEMENTED
-	if(dim != 2) UG_THROW_FATAL("RegularUpwind only implemented for 2d.");
+	if(dim != 2) UG_THROW("RegularUpwind only implemented for 2d.");
 
 //	loop all scvf
 	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
@@ -601,7 +601,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 						vUpShapeSh[ip][ip]			 = 0.5*(lambda+1.0);
 						break;
 					default:
-						UG_THROW_FATAL("This should not happen.");
+						UG_THROW("This should not happen.");
 				}
 			}
 			else
@@ -619,7 +619,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 						vUpShapeSh[ip][(ip+1)%nc] = 0.5*(lambda+1.0);
 						break;
 					default:
-						UG_THROW_FATAL("This should not happen.");
+						UG_THROW("This should not happen.");
 				}
 			}
 		}

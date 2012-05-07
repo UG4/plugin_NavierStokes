@@ -52,7 +52,7 @@ set_geometry_type()
 
 //	check that function exists
 	if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == NULL)
-		UG_THROW_FATAL("No update function registered for Geometry "<<id);
+		UG_THROW("No update function registered for Geometry "<<id);
 
 //	set current geometry
 	m_id = id;
@@ -64,7 +64,7 @@ set_geometry_type()
 
 //	set sizes in upwind
 	if(m_spUpwind != NULL) m_spUpwind->set_geometry_type<TFVGeom>();
-	else UG_THROW_FATAL("Upwind missing.");
+	else UG_THROW("Upwind missing.");
 }
 
 template <int dim>
@@ -76,7 +76,7 @@ set_diffusion_length(std::string diffLength)
 	else if (diffLength == "FIVEPOINT")  m_diffLengthType = FIVEPOINT;
 	else if (diffLength == "COR")        m_diffLengthType = COR;
 	else
-		UG_THROW_FATAL("Diffusion Length calculation method not found."
+		UG_THROW("Diffusion Length calculation method not found."
 						" Use one of [RAW, FIVEPOINT, COR].");
 }
 
@@ -92,7 +92,7 @@ compute_diff_length(const TFVGeom& geo)
 		case FIVEPOINT: NSDiffLengthFivePoint(m_vDiffLengthSqInv, geo); return;
 		case RAW:       NSDiffLengthRaw(m_vDiffLengthSqInv, geo); return;
 		case COR:       NSDiffLengthCor(m_vDiffLengthSqInv, geo); return;
-        default: UG_THROW_FATAL(" Diffusion Length type not found.");
+        default: UG_THROW(" Diffusion Length type not found.");
 	}
 }
 
@@ -105,7 +105,7 @@ compute_upwind(const TFVGeom& geo,
 {
 //	check, that upwind has been set
 	if(m_spUpwind == NULL)
-       	UG_THROW_FATAL("No upwind method has been specified.");
+       	UG_THROW("No upwind method has been specified.");
 
 //	compute upwind
 	m_spUpwind->update_upwind(geo, vStdVel);
@@ -120,7 +120,7 @@ compute_downwind(const TFVGeom& geo,
 {
 //	check, that upwind has been set
 	if(m_spUpwind == NULL)
-       	UG_THROW_FATAL("No upwind method has been specified.");
+       	UG_THROW("No upwind method has been specified.");
 
 //	compute downwind
 	m_spUpwind->update_downwind(geo, vStdVel);
@@ -299,7 +299,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 
 	//	get the inverse
 		if(!GetInverse(inv, mat))
-			UG_THROW_FATAL("Could not compute inverse.");
+			UG_THROW("Could not compute inverse.");
 
 	//	loop dimensions (i.e. components of the velocity)
 		for(int d = 0; d < dim; ++d)
@@ -622,7 +622,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 
 	//	get the inverse
 		if(!GetInverse(inv, mat))
-			UG_THROW_FATAL("Could not compute inverse.");
+			UG_THROW("Could not compute inverse.");
 
 
 	//	create vectors

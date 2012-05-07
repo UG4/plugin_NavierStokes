@@ -39,7 +39,7 @@ set_functions(const char* functions)
 	TokenizeString(strFunctions, tokens, ',');
 
 	if(tokens.size() != TDomain::dim + 1)
-		UG_THROW_FATAL("NavierStokesInflow::set_functions: This Boundary "
+		UG_THROW("NavierStokesInflow::set_functions: This Boundary "
 				"Condition works on exactly dim+1 (velocity+pressure) "
 				"components, but "<<tokens.size()<<"components given.");
 
@@ -58,7 +58,7 @@ void NavierStokesInflow<TDomain,TAlgebra>::
 add(SmartPtr<IPData<MathVector<dim>, dim> > user, const char* subsetsBND)
 {
 	if(m_velNames.empty() || m_pressureName.empty())
-		UG_THROW_FATAL("NavierStokesInflow::add: Symbolic names for"
+		UG_THROW("NavierStokesInflow::add: Symbolic names for"
 				" velocity and pressure not set. Please set them first.");
 
 	m_spNeumannDisc->add(user, m_pressureName.c_str(), subsetsBND);
@@ -70,7 +70,7 @@ void NavierStokesInflow<TDomain,TAlgebra>::
 add(number vel_x, const char* subsetsBND)
 {
 	if(dim != 1)
-		UG_THROW_FATAL("NavierStokesInflow: Setting velocity vector of dimension 1"
+		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension 1"
 						" to a Discretization for world dim " << dim);
 
 	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
@@ -83,7 +83,7 @@ void NavierStokesInflow<TDomain,TAlgebra>::
 add(number vel_x, number vel_y, const char* subsetsBND)
 {
 	if(dim != 2)
-		UG_THROW_FATAL("NavierStokesInflow: Setting velocity vector of dimension 2"
+		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension 2"
 						" to a Discretization for world dim " << dim);
 
 	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
@@ -97,7 +97,7 @@ void NavierStokesInflow<TDomain,TAlgebra>::
 add(number vel_x, number vel_y, number vel_z, const char* subsetsBND)
 {
 	if(dim != 3)
-		UG_THROW_FATAL("NavierStokesInflow: Setting velocity vector of dimension 3"
+		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension 3"
 						" to a Discretization for world dim " << dim);
 
 	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
@@ -135,7 +135,7 @@ void NavierStokesWall<TDomain,TAlgebra>::
 add(const char* subsetsBND)
 {
 	if(m_velNames.empty())
-		UG_THROW_FATAL("NavierStokesWall::add: Symbolic names for"
+		UG_THROW("NavierStokesWall::add: Symbolic names for"
 				" velocity and pressure not set. Please set them first.");
 
 	for(int i = 0; i < TDomain::dim; ++i)
@@ -154,7 +154,7 @@ set_functions(const char* functions)
 	TokenizeString(strFunctions, m_velNames, ',');
 
 	if(m_velNames.size() != TDomain::dim + 1)
-		UG_THROW_FATAL("NavierStokesWall::set_functions: This Boundary "
+		UG_THROW("NavierStokesWall::set_functions: This Boundary "
 				"Condition works on exactly dim+1 (velocity+pressure) "
 				"components, but "<<m_velNames.size()<<"components given.");
 }
