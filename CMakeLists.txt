@@ -18,10 +18,11 @@ set(SOURCES	navier_stokes_fv1.cpp
 			no_normal_stress_outflow.cpp)
 
 
-add_library(NavierStokesPlugin SHARED ${SOURCES})
 
 if(STATIC)
-	target_link_libraries (NavierStokesPlugin ug4_s)
+	# add the sources to ug4's sources
+	EXPORTSOURCES(plugins/experimental/navier_stokes ${SOURCES})
 else(STATIC)
+	add_library(NavierStokesPlugin SHARED ${SOURCES})
 	target_link_libraries (NavierStokesPlugin ug4)
 endif(STATIC)

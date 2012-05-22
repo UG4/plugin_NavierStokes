@@ -294,7 +294,8 @@ static bool Register__Algebra(bridge::Registry& reg, string parentGroup)
 	return true;
 }
 
-extern "C" void InitUGPlugin(ug::bridge::Registry* reg, std::string parentGroup)
+extern "C" void
+InitUGPlugin_NavierStokesPlugin(ug::bridge::Registry* reg, std::string parentGroup)
 {
 	std::string grp(parentGroup); grp.append("NavierStokes/");
 
