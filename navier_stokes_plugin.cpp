@@ -82,8 +82,8 @@ static void Register__Domain(Registry& reg, string grp)
 	static const int dim = TDomain::dim;
 
 //	suffix and tag
-	string dimSuffix = GetDomainSuffix<dim>();
-	string dimTag = GetDomainTag<dim>();
+	string dimSuffix = GetDomainSuffix<TDomain>();
+	string dimTag = GetDomainTag<TDomain>();
 
 //	Navier-Stokes
 	{
