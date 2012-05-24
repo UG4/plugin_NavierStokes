@@ -15,6 +15,7 @@
 #endif
 
 namespace ug{
+namespace NavierStokes{
 
 /////////// kinematic Viscosity
 
@@ -930,4 +931,5 @@ template class NavierStokes<Domain2d>;
 template class NavierStokes<Domain3d>;
 
 
+} // namespace NavierStokes
 } // namespace ug

@@ -21,6 +21,7 @@
 #include "lib_algebra/algebra_type.h"
 
 namespace ug {
+namespace NavierStokes{
 
 /////////////////////////////////////////////////////////////////////////////
 // Interface for Upwinds
@@ -651,6 +652,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	}
 }
 
+} // namespace NavierStokes
 } // end namespace ug
 
 #endif /* NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND_IMPL__ */

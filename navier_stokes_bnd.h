@@ -14,6 +14,7 @@
 #include "lib_disc/spatial_disc/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
 
 namespace ug{
+namespace NavierStokes{
 
 template <	typename TDomain,
 			typename TAlgebra>
@@ -111,6 +112,7 @@ class NavierStokesWall
 		std::vector<std::string> m_velNames;
 };
 
+} // namespace NavierStokes
 } // end namespace ug
 
 #include "navier_stokes_bnd_impl.h"

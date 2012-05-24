@@ -10,6 +10,7 @@
 #include "lib_disc/spatial_disc/disc_util/finite_volume_geometry.h"
 
 namespace ug{
+namespace NavierStokes{
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -455,4 +456,5 @@ template class FVNavierStokesNoNormalStressOutflow<Domain2d>;
 template class FVNavierStokesNoNormalStressOutflow<Domain3d>;
 
 
+} // namespace NavierStokes
 } // namespace ug

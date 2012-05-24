@@ -21,6 +21,7 @@
 #include "navier_stokes.h"
 
 namespace ug{
+namespace NavierStokes{
 
 
 /// \ingroup lib_disc_elem_disc
@@ -190,6 +191,7 @@ class FVNavierStokesNoNormalStressOutflow
 
 /// @}
 
+} // namespace NavierStokes
 } // end namespace ug
 
 #endif /*__H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW__*/

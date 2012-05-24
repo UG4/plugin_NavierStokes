@@ -15,6 +15,7 @@
 #include "common/math/math_vector_matrix/math_matrix_functions.h"
 
 namespace ug{
+namespace NavierStokes{
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -755,6 +756,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 	} // end switch for non-diag
 }
 
+} // namespace NavierStokes
 } // end namespace ug
 
 #endif /* NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__STABILIZATION_IMPL__ */

@@ -12,6 +12,7 @@
 #include "common/common.h"
 
 namespace ug{
+namespace NavierStokes{
 
 /**
  *
@@ -171,6 +172,7 @@ void NSDiffLengthCor(number DiffLengthSqInv[], const TFVGeometry& geo)
 	}
 }
 
+} // namespace NavierStokes
 } // end namespace ug
 
 #endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__DIFFUSION_LENGTH__ */

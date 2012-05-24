@@ -18,13 +18,13 @@
 #include "lib_algebra/cpu_algebra_types.h"
 
 using namespace std;
-
-namespace ug{
-
 using namespace ug::bridge;
 
+namespace ug{
+namespace NavierStokes{
+
 template <typename TDomain, typename TAlgebra>
-static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
+static void Register__Algebra_Domain(Registry& reg, string parentGroup)
 {
 //	typedef
 	static const int dim = TDomain::dim;
@@ -75,7 +75,7 @@ static void Register__Algebra_Domain(bridge::Registry& reg, string parentGroup)
 }
 
 template <typename TDomain>
-static void Register__Domain(bridge::Registry& reg, string grp)
+static void Register__Domain(Registry& reg, string grp)
 {
 
 //	dimension of domain
@@ -251,7 +251,7 @@ static void Register__Domain(bridge::Registry& reg, string grp)
 
 
 template <typename TAlgebra>
-static bool Register__Algebra(bridge::Registry& reg, string parentGroup)
+static bool Register__Algebra(Registry& reg, string parentGroup)
 {
 //	get group string
 	string grp = parentGroup; grp.append("/Discretization");
@@ -294,30 +294,28 @@ static bool Register__Algebra(bridge::Registry& reg, string parentGroup)
 	return true;
 }
 
-extern "C" void
-InitUGPlugin_NavierStokesPlugin(ug::bridge::Registry* reg, std::string parentGroup)
+void Register(Registry* reg, string parentGroup)
 {
-	std::string grp(parentGroup); grp.append("NavierStokes/");
-
-	bool bReturn = true;
-#ifdef UG_CPU_1
-	bReturn &= Register__Algebra<CPUAlgebra>(*reg, grp);
-#endif
-#ifdef UG_CPU_2
-	bReturn &= Register__Algebra<CPUBlockAlgebra<2> >(*reg, grp);
-#endif
-#ifdef UG_CPU_3
-	bReturn &= Register__Algebra<CPUBlockAlgebra<3> >(*reg, grp);
-#endif
-#ifdef UG_CPU_4
-	bReturn &= Register__Algebra<CPUBlockAlgebra<4> >(*reg, grp);
-#endif
-#ifdef UG_CPU_VAR
-	bReturn &= Register__Algebra<CPUVariableBlockAlgebra >(*reg, grp);
-#endif
+	string grp(parentGroup); grp.append("NavierStokes/");
 
 	try
 	{
+#ifdef UG_CPU_1
+	Register__Algebra<CPUAlgebra>(*reg, grp);
+#endif
+#ifdef UG_CPU_2
+	Register__Algebra<CPUBlockAlgebra<2> >(*reg, grp);
+#endif
+#ifdef UG_CPU_3
+	Register__Algebra<CPUBlockAlgebra<3> >(*reg, grp);
+#endif
+#ifdef UG_CPU_4
+	Register__Algebra<CPUBlockAlgebra<4> >(*reg, grp);
+#endif
+#ifdef UG_CPU_VAR
+	Register__Algebra<CPUVariableBlockAlgebra >(*reg, grp);
+#endif
+
 #ifdef UG_DIM_1
 			Register__Domain<Domain1d>(*reg, grp);
 #endif
@@ -330,7 +328,7 @@ InitUGPlugin_NavierStokesPlugin(ug::bridge::Registry* reg, std::string parentGro
 	}
 	catch(UG_REGISTRY_ERROR_RegistrationFailed ex)
 	{
-		UG_LOG("### ERROR in RegisterLibDisc_ElemDisc: "
+		UG_LOG("### ERROR in NavierStokes plugin: "
 				"Registration failed (using name " << ex.name << ").\n");
 		return;
 	}
@@ -338,5 +336,12 @@ InitUGPlugin_NavierStokesPlugin(ug::bridge::Registry* reg, std::string parentGro
 	return;
 }
 
+} // namespace NavierStokes
+
+extern "C" void
+InitUGPlugin_NavierStokes(Registry* reg, string parentGroup)
+{
+	NavierStokes::Register(reg, parentGroup);
+}
 
 }// end of namespace

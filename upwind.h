@@ -19,6 +19,7 @@
 #include "lib_disc/spatial_disc/disc_util/finite_volume_geometry.h"
 
 namespace ug{
+namespace NavierStokes{
 
 /////////////////////////////////////////////////////////////////////////////
 // Interface for Upwinds
@@ -730,6 +731,7 @@ class NavierStokesRegularUpwind
 		}
 };
 
+} // namespace NavierStokes
 } // end namespace ug
 
 // include implementation

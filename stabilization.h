@@ -15,6 +15,7 @@
 #include "upwind.h"
 
 namespace ug{
+namespace NavierStokes{
 
 template <int dim>
 class INavierStokesStabilization
@@ -463,7 +464,7 @@ class NavierStokesFLOWStabilization
 		}
 };
 
-
+} // namespace NavierStokes
 } // end namespace ug
 
 // include implementation

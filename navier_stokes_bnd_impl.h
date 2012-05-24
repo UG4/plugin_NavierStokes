@@ -14,6 +14,7 @@
 #endif
 
 namespace ug{
+namespace NavierStokes{
 
 ////////////////////////////////////////////////////////////////////////////////
 //	NavierStokesInflow
@@ -159,6 +160,7 @@ set_functions(const char* functions)
 				"components, but "<<m_velNames.size()<<"components given.");
 }
 
+} // namespace NavierStokes
 } // end namespace ug
 
 #endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND_IMPL__ */
