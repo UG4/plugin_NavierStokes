@@ -280,7 +280,7 @@ static void Dimension(Registry& reg, string grp)
 extern "C" void
 InitUGPlugin_NavierStokes(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/NavierStokes/");
+	grp.append("/SpatialDisc/NavierStokes");
 	typedef NavierStokes::Functionality Functionality;
 
 	try{
