@@ -575,7 +575,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 	number dt = 0.0;
 	if(this->is_time_dependent())
 	{
-	//	get and check current and old solution
+	//	get and check current and old solution 
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
 			UG_THROW("NavierStokes::ass_dA_elem: "
