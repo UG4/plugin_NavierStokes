@@ -157,6 +157,23 @@ class NavierStokes
 	///	returns kinematic viscosity
 		SmartPtr<IPData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.ip_data ();}
 
+	///	sets the density
+	/**
+	 * This method sets the density value.
+	 *
+	 * \param[in]	data		density
+	 */
+	///	\{
+		void set_density(SmartPtr<IPData<number, dim> > user);
+		void set_density(number val);
+#ifdef UG_FOR_LUA
+		void set_density(const char* fctName);
+#endif
+	///	\}
+
+	///	returns density
+		SmartPtr<IPData<number, dim> > get_density() {return m_imDensitySCVF.ip_data ();}
+
 	///	sets the source function
 	/**
 	 * This method sets the source value. A zero value is assumed as default.
@@ -551,6 +568,10 @@ class NavierStokes
 
 	///	Data import for kinematic viscosity
 		DataImport<number, dim> m_imKinViscosity;
+
+	///	Data import for kinematic viscosity
+		DataImport<number, dim> m_imDensitySCVF;
+		DataImport<number, dim> m_imDensitySCV;
 
 	///	Stabilization for velocity in continuity equation
 		SmartPtr<INavierStokesStabilization<dim> > m_spStab;

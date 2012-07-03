@@ -306,10 +306,9 @@ compute(const FV1Geometry<TElem, dim>* geo,
  		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
 
  	// 	get linear trial space
- 		const LocalShapeFunctionSet<typename FV1Geometry<TElem, dim>::ref_elem_type>& TrialSpace =
- 				LocalShapeFunctionSetProvider::
- 					get<typename FV1Geometry<TElem, dim>::ref_elem_type>
- 					(LFEID(LFEID::LAGRANGE, 1));
+ 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
+ 		const LocalShapeFunctionSet<refDim>& TrialSpace =
+ 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, 1));
 
  	// 	get Reference Element
  		typedef typename FV1Geometry<TElem, dim>::ref_elem_type ref_elem_type;

@@ -42,6 +42,32 @@ set_kinematic_viscosity(const char* fctName)
 }
 #endif
 
+/////////// density
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_density(SmartPtr<IPData<number, dim> > data)
+{
+	m_imDensitySCVF.set_data(data);
+	m_imDensitySCV.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_density(number val)
+{
+	set_density(CreateSmartPtr(new ConstUserNumber<dim>(val)));
+}
+
+#ifdef UG_FOR_LUA
+template<typename TDomain>
+void NavierStokes<TDomain>::
+set_density(const char* fctName)
+{
+	set_density(LuaUserDataFactory<number, dim>::create(fctName));
+}
+#endif
+
 /////////// Source
 
 template<typename TDomain>
@@ -160,6 +186,16 @@ prepare_element_loop()
 		UG_THROW("NavierStokes::prepare_element_loop:"
 						" Kinematic Viscosity has not been set, but is required.");
 
+//	check, that Density has been set
+	if(!m_imDensitySCVF.data_given())
+		UG_THROW("NavierStokes::prepare_element_loop:"
+						" Density has not been set, but is required.");
+
+//	check, that Density has been set
+	if(!m_imDensitySCV.data_given())
+		UG_THROW("NavierStokes::prepare_element_loop:"
+						" Density has not been set, but is required.");
+
 //	set local positions for imports
 	typedef typename reference_element_traits<TElem>::reference_element_type
 																ref_elem_type;
@@ -170,6 +206,10 @@ prepare_element_loop()
 		TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
 		                                                geo.num_scvf_ips());
+		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
+		                                                geo.num_scvf_ips());
+		m_imDensitySCV.template set_local_ips<refDim>(geo.scv_local_ips(),
+		                                          geo.num_scv_ips());
 		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
 		                                          geo.num_scv_ips());
 	}
@@ -207,12 +247,18 @@ prepare_element(TElem* elem, const LocalVector& u)
 	//	request ip series
 		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
 		                                                geo.num_scvf_ips());
+		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
+		                                                geo.num_scvf_ips());
+		m_imDensitySCV.template set_local_ips<refDim>(geo.scv_local_ips(),
+		                                          geo.num_scv_ips());
 		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
 		                                          geo.num_scv_ips());
 	}
 
 //	set global positions for imports
 	m_imKinViscosity.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
+	m_imDensitySCVF.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
+	m_imDensitySCV.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 	m_imSource.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 }
 
@@ -302,7 +348,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 			////////////////////////////////////////////////////
 
 		// 	Compute flux derivative at IP
-			const number flux_sh =  -1.0 * m_imKinViscosity[ip]
+			const number flux_sh =  -1.0 * m_imKinViscosity[ip] * m_imDensitySCVF[ip]
 									* VecDot(scvf.global_grad(sh), scvf.normal());
 
 		// 	Add flux derivative  to local matrix
@@ -317,7 +363,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 				for(int d1 = 0; d1 < dim; ++d1)
 					for(int d2 = 0; d2 < dim; ++d2)
 					{
-						const number flux2_sh = -1.0 * m_imKinViscosity[ip]
+						const number flux2_sh = -1.0 * m_imKinViscosity[ip] * m_imDensitySCVF[ip]
 												* scvf.global_grad(sh)[d1] * scvf.normal()[d2];
 						J(d1, scvf.from(), d2, sh) += flux2_sh;
 						J(d1, scvf.to()  , d2, sh) -= flux2_sh;
@@ -356,7 +402,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 					w = peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
 
 			//	compute product of stabilized vel and normal
-				const number prod = VecProd(StdVel[ip], scvf.normal());
+				const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
 	
 			///////////////////////////////////
 			//	Add fixpoint linearization
@@ -461,6 +507,8 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 								prod_vel = convStab.stab_shape_vel(ip, d1, d1, sh)
 													* scvf.normal()[d1];
 	
+							prod_vel *= m_imDensitySCVF[ip];
+
 							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
 							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
 							}
@@ -474,6 +522,8 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 								prod_p += convStab.stab_shape_p(ip, k, sh)
 													* scvf.normal()[k];
 	
+							prod_p *= m_imDensitySCVF[ip];
+
 							J(d1, scvf.from(), _P_, sh) += prod_p * UpwindVel[d1];
 							J(d1, scvf.to()  , _P_, sh) -= prod_p * UpwindVel[d1];
 						}
@@ -488,7 +538,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 							{
 							//	derivatives w.r.t. velocity
 								number prod_vel = w * upwind.upwind_shape_sh(ip,sh)
-													* scvf.normal()[d2];
+													* scvf.normal()[d2] * m_imDensitySCVF[ip];
 
 								J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
 								J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
@@ -503,7 +553,8 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 							{
 								const number convFluxPe = UpwindVel[d1] * (1.0-w)
 														  * scvf.shape(sh)
-														  * scvf.normal()[d2];
+														  * scvf.normal()[d2]
+														  * m_imDensitySCVF[ip];
 								J(d1, scvf.from(), d2, sh) += convFluxPe;
 								J(d1, scvf.to()  , d2, sh) -= convFluxPe;
 							}
@@ -526,7 +577,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 					number contFlux_vel = 0.0;
 					for(int d2 = 0; d2 < dim; ++d2)
 						contFlux_vel += stab.stab_shape_vel(ip, d2, d1, sh)
-										* scvf.normal()[d2];
+										* scvf.normal()[d2] * m_imDensitySCVF[ip];
 
 					J(_P_, scvf.from(), d1, sh) += contFlux_vel;
 					J(_P_, scvf.to()  , d1, sh) -= contFlux_vel;
@@ -537,7 +588,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 				for(int d1 = 0; d1 < dim; ++d1)
 				{
 					const number contFlux_vel = stab.stab_shape_vel(ip, d1, d1, sh)
-													* scvf.normal()[d1];
+													* scvf.normal()[d1] * m_imDensitySCVF[ip];
 
 					J(_P_, scvf.from(), d1, sh) += contFlux_vel;
 					J(_P_, scvf.to()  , d1, sh) -= contFlux_vel;
@@ -547,7 +598,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 		//	Add derivative of stabilized flux w.r.t pressure to local matrix
 			number contFlux_p = 0.0;
 			for(int d1 = 0; d1 < dim; ++d1)
-				contFlux_p += stab.stab_shape_p(ip, d1, sh) * scvf.normal()[d1];
+				contFlux_p += stab.stab_shape_p(ip, d1, sh) * scvf.normal()[d1] * m_imDensitySCVF[ip];
 
 			J(_P_, scvf.from(), _P_, sh) += contFlux_p;
 			J(_P_, scvf.to()  , _P_, sh) -= contFlux_p;
@@ -664,7 +715,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 			TransposedMatVecMultAdd(diffFlux, gradVel, scvf.normal());
 
 	//	scale by viscosity
-		VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip]);
+		VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip] * m_imDensitySCVF[ip]);
 
 	//	3. Add flux to local defect
 		for(int d1 = 0; d1 < dim; ++d1)
@@ -692,7 +743,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 				peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
 	
 		//	compute product of standard velocity and normal
-			const number prod = VecProd(StdVel[ip], scvf.normal());
+			const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
 	
 		//	Add contributions to local velocity components
 			for(int d1 = 0; d1 < dim; ++d1)
@@ -725,7 +776,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 		////////////////////////////////////////////////////
 
 	//	compute flux at ip
-		const number contFlux = VecProd(stab.stab_vel(ip), scvf.normal());
+		const number contFlux = VecProd(stab.stab_vel(ip), scvf.normal()) * m_imDensitySCVF[ip];
 
 	//	Add contributions to local defect
 		d(_P_, scvf.from()) += contFlux;
@@ -758,7 +809,7 @@ ass_JM_elem(LocalMatrix& J, const LocalVector& u)
 		for(int d1 = 0; d1 < dim; ++d1)
 		{
 		// 	Add to local matrix
-			J(d1, sh, d1, sh) += scv.volume();
+			J(d1, sh, d1, sh) += scv.volume() * m_imDensitySCV[ip];
 		}
 	}
 }
@@ -788,7 +839,7 @@ ass_dM_elem(LocalVector& d, const LocalVector& u)
 		for(int d1 = 0; d1 < dim; ++d1)
 		{
 		// 	Add to local matrix
-			d(d1, sh) += u(d1, sh) * scv.volume();
+			d(d1, sh) += u(d1, sh) * scv.volume() * m_imDensitySCV[ip];
 		}
 	}
 }
@@ -876,8 +927,14 @@ NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
 //	register imports
 	register_import(m_imSource);
 	register_import(m_imKinViscosity);
+	register_import(m_imDensitySCVF);
+	register_import(m_imDensitySCV);
 
 	m_imSource.set_rhs_part(true);
+	m_imDensitySCV.set_mass_part(true);
+
+//	default value for density
+	set_density(1.0);
 
 //	register assemble functions
 	register_all_fv1_funcs(false);

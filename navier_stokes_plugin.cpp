@@ -106,6 +106,12 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 #endif
 
+			.add_method("set_density", static_cast<void (T::*)(SmartPtr<IPData<number, dim> >)>(&T::set_density), "", "Density")
+			.add_method("set_density", static_cast<void (T::*)(number)>(&T::set_density), "", "Density")
+#ifdef UG_FOR_LUA
+			.add_method("set_density", static_cast<void (T::*)(const char*)>(&T::set_density), "", "Density")
+#endif
+
 			.add_method("set_source", static_cast<void (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
 			.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
 			.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
