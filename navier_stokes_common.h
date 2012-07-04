@@ -9,7 +9,7 @@
 #include "common/common.h"
 #include "lib_grid/lg_base.h"
 
-#include "lib_disc/spatial_disc/ip_data/const_user_data.h"
+#include "lib_disc/spatial_disc/user_data/const_user_data.h"
 #ifdef UG_FOR_LUA
 #include "bindings/lua/lua_user_data.h"
 #endif
@@ -115,7 +115,7 @@ set_ass_funcs()
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
-set_kinematic_viscosity(SmartPtr<IPData<number, dim> > data)
+set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
 {
 	m_imKinViscosity.set_data(data);
 }
@@ -140,7 +140,7 @@ set_kinematic_viscosity(const char* fctName)
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
-set_density(SmartPtr<IPData<number, dim> > data)
+set_density(SmartPtr<UserData<number, dim> > data)
 {
 	m_imDensitySCVF.set_data(data);
 	m_imDensitySCV.set_data(data);
@@ -166,7 +166,7 @@ set_density(const char* fctName)
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
-set_source(SmartPtr<IPData<MathVector<dim>, dim> > data)
+set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
 {
 	m_imSource.set_data(data);
 }

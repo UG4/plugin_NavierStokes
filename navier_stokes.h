@@ -14,7 +14,8 @@
 
 // library intern headers
 #include "lib_disc/spatial_disc/elem_disc/elem_disc_interface.h"
-#include "lib_disc/spatial_disc/ip_data/data_import_export.h"
+#include "lib_disc/spatial_disc/user_data/data_export.h"
+#include "lib_disc/spatial_disc/user_data/data_import.h"
 
 #include "navier_stokes.h"
 #include "upwind.h"
@@ -148,7 +149,7 @@ class NavierStokes
 	 * \param[in]	data		kinematic Viscosity
 	 */
 	///	\{
-		void set_kinematic_viscosity(SmartPtr<IPData<number, dim> > user);
+		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user);
 		void set_kinematic_viscosity(number val);
 #ifdef UG_FOR_LUA
 		void set_kinematic_viscosity(const char* fctName);
@@ -156,7 +157,7 @@ class NavierStokes
 	///	\}
 
 	///	returns kinematic viscosity
-		SmartPtr<IPData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.ip_data ();}
+		SmartPtr<UserData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.user_data ();}
 
 	///	sets the density
 	/**
@@ -165,7 +166,7 @@ class NavierStokes
 	 * \param[in]	data		density
 	 */
 	///	\{
-		void set_density(SmartPtr<IPData<number, dim> > user);
+		void set_density(SmartPtr<UserData<number, dim> > user);
 		void set_density(number val);
 #ifdef UG_FOR_LUA
 		void set_density(const char* fctName);
@@ -173,7 +174,7 @@ class NavierStokes
 	///	\}
 
 	///	returns density
-		SmartPtr<IPData<number, dim> > get_density() {return m_imDensitySCVF.ip_data ();}
+		SmartPtr<UserData<number, dim> > get_density() {return m_imDensitySCVF.user_data ();}
 
 	///	sets the source function
 	/**
@@ -181,7 +182,7 @@ class NavierStokes
 	 * \param[in]	data		source data
 	 */
 	///	\{
-		void set_source(SmartPtr<IPData<MathVector<dim>, dim> > user);
+		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);
 		void set_source(number f_x);
 		void set_source(number f_x, number f_y);
 		void set_source(number f_x, number f_y, number f_z);
