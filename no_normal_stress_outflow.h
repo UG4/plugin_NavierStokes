@@ -62,7 +62,7 @@ class FVNavierStokesNoNormalStressOutflow
 	 *
 	 * \param[in]	data		kinematic Viscosity
 	 */
-		void set_kinematic_viscosity(SmartPtr<IPData<number, dim> > data)
+		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
 			{m_imKinViscosity.set_data(data);}
 
 	public:

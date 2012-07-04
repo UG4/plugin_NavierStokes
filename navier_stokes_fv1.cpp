@@ -21,7 +21,7 @@ namespace NavierStokes{
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
-set_kinematic_viscosity(SmartPtr<IPData<number, dim> > data)
+set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
 {
 	m_imKinViscosity.set_data(data);
 }
@@ -46,7 +46,7 @@ set_kinematic_viscosity(const char* fctName)
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
-set_density(SmartPtr<IPData<number, dim> > data)
+set_density(SmartPtr<UserData<number, dim> > data)
 {
 	m_imDensitySCVF.set_data(data);
 	m_imDensitySCV.set_data(data);
@@ -72,7 +72,7 @@ set_density(const char* fctName)
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
-set_source(SmartPtr<IPData<MathVector<dim>, dim> > data)
+set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
 {
 	m_imSource.set_data(data);
 }

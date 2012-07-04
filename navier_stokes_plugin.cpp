@@ -51,7 +51,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
 
-			.add_method("add", static_cast<void (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
+			.add_method("add", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
 			.add_method("add", static_cast<void (T::*)(number, const char*)>(&T::add), "", "Vel_x, Subset")
 			.add_method("add", static_cast<void (T::*)(number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Subset")
 			.add_method("add", static_cast<void (T::*)(number,number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Vel_z, Subset")
@@ -100,19 +100,19 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<IPData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 #ifdef UG_FOR_LUA
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 #endif
 
-			.add_method("set_density", static_cast<void (T::*)(SmartPtr<IPData<number, dim> >)>(&T::set_density), "", "Density")
+			.add_method("set_density", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_density), "", "Density")
 			.add_method("set_density", static_cast<void (T::*)(number)>(&T::set_density), "", "Density")
 #ifdef UG_FOR_LUA
 			.add_method("set_density", static_cast<void (T::*)(const char*)>(&T::set_density), "", "Density")
 #endif
 
-			.add_method("set_source", static_cast<void (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
+			.add_method("set_source", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
 			.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
 			.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
 			.add_method("set_source", static_cast<void (T::*)(number,number,number)>(&T::set_source), "", "F_x, F_y, F_z")
