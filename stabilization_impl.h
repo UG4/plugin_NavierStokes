@@ -27,7 +27,7 @@ template <int dim>
 
 template <typename TFVGeom, typename TAssFunc>
 void
-INavierStokesStabilization<dim>::
+INavierStokesFV1Stabilization<dim>::
 register_update_func(TAssFunc func)
 {
 //	get unique geometry id
@@ -45,7 +45,7 @@ register_update_func(TAssFunc func)
 template <int dim>
 template <typename TFVGeom>
 void
-INavierStokesStabilization<dim>::
+INavierStokesFV1Stabilization<dim>::
 set_geometry_type()
 {
 //	get unique geometry id
@@ -70,7 +70,7 @@ set_geometry_type()
 
 template <int dim>
 void
-INavierStokesStabilization<dim>::
+INavierStokesFV1Stabilization<dim>::
 set_diffusion_length(std::string diffLength)
 {
 	if      (diffLength == "RAW")        m_diffLengthType = RAW;
@@ -84,7 +84,7 @@ set_diffusion_length(std::string diffLength)
 template <int dim>
 template <typename TFVGeom>
 void
-INavierStokesStabilization<dim>::
+INavierStokesFV1Stabilization<dim>::
 compute_diff_length(const TFVGeom& geo)
 {
 // 	Compute Diffusion Length in corresponding IPs
@@ -100,7 +100,7 @@ compute_diff_length(const TFVGeom& geo)
 template <int dim>
 template <typename TFVGeom>
 void
-INavierStokesStabilization<dim>::
+INavierStokesFV1Stabilization<dim>::
 compute_upwind(const TFVGeom& geo,
                const MathVector<dim> vStdVel[])
 {
@@ -115,7 +115,7 @@ compute_upwind(const TFVGeom& geo,
 template <int dim>
 template <typename TFVGeom>
 void
-INavierStokesStabilization<dim>::
+INavierStokesFV1Stabilization<dim>::
 compute_downwind(const TFVGeom& geo,
                  const MathVector<dim> vStdVel[])
 {

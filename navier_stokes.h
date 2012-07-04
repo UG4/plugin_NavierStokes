@@ -14,9 +14,9 @@
 
 // library intern headers
 #include "lib_disc/spatial_disc/elem_disc/elem_disc_interface.h"
-#include "lib_disc/spatial_disc/user_data/data_export.h"
-#include "lib_disc/spatial_disc/user_data/data_import.h"
+#include "lib_disc/spatial_disc/ip_data/data_import_export.h"
 
+#include "navier_stokes.h"
 #include "upwind.h"
 #include "stabilization.h"
 
@@ -148,7 +148,7 @@ class NavierStokes
 	 * \param[in]	data		kinematic Viscosity
 	 */
 	///	\{
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user);
+		void set_kinematic_viscosity(SmartPtr<IPData<number, dim> > user);
 		void set_kinematic_viscosity(number val);
 #ifdef UG_FOR_LUA
 		void set_kinematic_viscosity(const char* fctName);
@@ -156,7 +156,7 @@ class NavierStokes
 	///	\}
 
 	///	returns kinematic viscosity
-		SmartPtr<UserData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.user_data ();}
+		SmartPtr<IPData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.ip_data ();}
 
 	///	sets the density
 	/**
@@ -165,7 +165,7 @@ class NavierStokes
 	 * \param[in]	data		density
 	 */
 	///	\{
-		void set_density(SmartPtr<UserData<number, dim> > user);
+		void set_density(SmartPtr<IPData<number, dim> > user);
 		void set_density(number val);
 #ifdef UG_FOR_LUA
 		void set_density(const char* fctName);
@@ -173,7 +173,7 @@ class NavierStokes
 	///	\}
 
 	///	returns density
-		SmartPtr<UserData<number, dim> > get_density() {return m_imDensitySCVF.user_data ();}
+		SmartPtr<IPData<number, dim> > get_density() {return m_imDensitySCVF.ip_data ();}
 
 	///	sets the source function
 	/**
@@ -181,7 +181,7 @@ class NavierStokes
 	 * \param[in]	data		source data
 	 */
 	///	\{
-		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);
+		void set_source(SmartPtr<IPData<MathVector<dim>, dim> > user);
 		void set_source(number f_x);
 		void set_source(number f_x, number f_y);
 		void set_source(number f_x, number f_y, number f_z);
@@ -194,7 +194,7 @@ class NavierStokes
 	/**
 	 * \param[in]	stab		Stabilization
 	 */
-		void set_stabilization(SmartPtr<INavierStokesStabilization<dim> > spStab)
+		void set_stabilization(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
 			{m_spStab = spStab;}
 	
 	/// switches the convective terms off (to solve the Stokes equation)
@@ -221,11 +221,11 @@ class NavierStokes
 		bool get_laplace() {return m_bLaplace;}
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)
-        void set_conv_upwind(SmartPtr<INavierStokesStabilization<dim> > spStab)
+        void set_conv_upwind(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
         	{m_spConvStab = spStab; m_spConvUpwind = NULL;}
 
 	///	sets an upwinding for the convective term of momentum equation
-		void set_conv_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
+		void set_conv_upwind(SmartPtr<INavierStokesFV1Upwind<dim> > spUpwind)
 			{m_spConvStab = NULL; m_spConvUpwind = spUpwind;}
 
     ///	sets if peclet blending is used in momentum equation
@@ -236,16 +236,7 @@ class NavierStokes
 
 	public:
 	///	type of trial space for each function used
-		virtual bool request_finite_element_id(const std::vector<LFEID>& vLfeID)
-		{
-		//	check number
-			if(vLfeID.size() != dim+1) return false;
-
-		//	check that Lagrange 1st order
-			for(size_t i = 0; i < vLfeID.size(); ++i)
-				if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
-			return true;
-		}
+		bool request_finite_element_id(const std::vector<LFEID>& vLfeID);
 
 	///	switches between non-regular and regular grids
 	/**
@@ -264,6 +255,21 @@ class NavierStokes
 		//	this disc supports regular grids
 			return true;
 		}
+		
+		///	sets the disc scheme
+		void set_disc_scheme(const char* c_scheme);
+		
+	protected:
+	///	current type of disc scheme
+		std::string m_discScheme;
+
+	///	current order of disc scheme
+		int m_order;
+
+	///	current shape function set
+		LFEID m_lfeID;
+		
+		void set_ass_funcs();
 
 	public:
 	///	returns if local time series is needed
@@ -280,7 +286,7 @@ class NavierStokes
 	 * the DataImports in case of element-fixed points.
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prepare_element_loop();
+		void prepare_element_loop_fv1();
 
 	///	prepares the element for evaluation
 	/**
@@ -295,11 +301,11 @@ class NavierStokes
 	 * \param[in]	glob_ind	global indices of the local vector components
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prepare_element(TElem* elem, const LocalVector& u);
+		void prepare_element_fv1(TElem* elem, const LocalVector& u);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void finish_element_loop();
+		void finish_element_loop_fv1();
 
 	///	adds the stiffness part to the local jacobian
 	/**
@@ -366,7 +372,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_JA_elem(LocalMatrix& J, const LocalVector& u);
+		void ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the stiffness part to the local defect
 	/**
@@ -436,7 +442,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_dA_elem(LocalVector& d, const LocalVector& u);
+		void ass_dA_elem_fv1(LocalVector& d, const LocalVector& u);
 
 	///	adds the mass part to the local jacobian
 	/**
@@ -462,7 +468,7 @@ class NavierStokes
 	 * \tparam	TFVGeom Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_JM_elem(LocalMatrix& J, const LocalVector& u);
+		void ass_JM_elem_fv1(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the mass part to the local defect
 	/**
@@ -490,7 +496,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_dM_elem(LocalVector& d, const LocalVector& u);
+		void ass_dM_elem_fv1(LocalVector& d, const LocalVector& u);
 
 	///	adds the source part to the local defect
 	/**
@@ -513,7 +519,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_rhs_elem(LocalVector& d);
+		void ass_rhs_elem_fv1(LocalVector& d);
 
 	///	computes the pecled blended Upwind veloctity
 	/**
@@ -575,14 +581,14 @@ class NavierStokes
 		DataImport<number, dim> m_imDensitySCV;
 
 	///	Stabilization for velocity in continuity equation
-		SmartPtr<INavierStokesStabilization<dim> > m_spStab;
+		SmartPtr<INavierStokesFV1Stabilization<dim> > m_spStab;
 
 	///	Stabilization for velocity in convective term of momentum equation
 	///	Here, the stabilization is used as an upwinding
-		SmartPtr<INavierStokesStabilization<dim> > m_spConvStab;
+		SmartPtr<INavierStokesFV1Stabilization<dim> > m_spConvStab;
 
 	///	Upwinding for velocity in convective term of momentum equation
-		SmartPtr<INavierStokesUpwind<dim> > m_spConvUpwind;
+		SmartPtr<INavierStokesFV1Upwind<dim> > m_spConvUpwind;
 
 	/// position access
 		const position_type* m_vCornerCoords;
@@ -600,9 +606,56 @@ class NavierStokes
 				template< typename TElem > void operator()(TElem&)
 				{m_pThis->register_fv1_func<TElem, TFVGeom>();}
 		};
+		
+		template <template <class Elem, int WorldDim> class TFVGeom>
+		struct RegisterCR {
+				RegisterCR(this_type* pThis) : m_pThis(pThis){}
+				this_type* m_pThis;
+				template< typename TElem > void operator()(TElem&)
+				{m_pThis->register_cr_func<TElem, TFVGeom>();}
+		};
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void register_fv1_func();
+		
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void register_cr_func();
+
+		/* members for staggered grid discretization */
+	public:
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void prepare_element_loop_cr();
+
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void prepare_element_cr(TElem* elem, const LocalVector& u);
+
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void finish_element_loop_cr();
+		
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u);
+		
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void ass_dM_elem_cr(LocalVector& d, const LocalVector& u);
+
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void ass_dA_elem_cr(LocalVector& d, const LocalVector& u);
+
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void ass_JM_elem_cr(LocalMatrix& J, const LocalVector& u);
+
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void ass_rhs_elem_cr(LocalVector& d);
+
+		///	sets an upwinding for the convective term of momentum equation
+		void set_conv_upwind(SmartPtr<INavierStokesCRUpwind<dim> > spUpwind)
+		{m_spConvCRUpwind = spUpwind;}
+
+	private:
+		void register_all_cr_funcs(bool bHang);
+
+		///	Upwinding for velocity in convective term of momentum equation
+		SmartPtr<INavierStokesCRUpwind<dim> > m_spConvCRUpwind;
 };
 
 /// @}

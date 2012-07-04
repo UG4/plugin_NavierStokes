@@ -43,7 +43,7 @@ class NavierStokesInflow
 
 	///	sets the velocity to a given value
 	///	\{
-		void add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND);
+		void add(SmartPtr<IPData<MathVector<dim>, dim> > user, const char* subsetsBND);
 		void add(number vel_x, const char* subsetsBND);
 		void add(number vel_x, number vel_y, const char* subsetsBND);
 		void add(number vel_x, number vel_y, number vel_z, const char* subsetsBND);

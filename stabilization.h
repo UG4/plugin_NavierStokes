@@ -18,7 +18,7 @@ namespace ug{
 namespace NavierStokes{
 
 template <int dim>
-class INavierStokesStabilization
+class INavierStokesFV1Stabilization
 {
 	protected:
 	///	used traits
@@ -36,7 +36,7 @@ class INavierStokesStabilization
 
 	public:
 	/// Abbreviation for own type
-		typedef INavierStokesStabilization<dim> this_type;
+		typedef INavierStokesFV1Stabilization<dim> this_type;
 
 		enum DiffusionLength
 		{
@@ -47,7 +47,7 @@ class INavierStokesStabilization
 
 	public:
 	///	constructor
-		INavierStokesStabilization()
+		INavierStokesFV1Stabilization()
 			:  m_spUpwind(NULL), m_spConstUpwind(NULL),
 			   m_numScvf(0), m_numSh(0)
 		{
@@ -61,14 +61,14 @@ class INavierStokesStabilization
 		void set_diffusion_length(std::string diffLength);
 
 	///	sets the upwind method
-		void set_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
+		void set_upwind(SmartPtr<INavierStokesFV1Upwind<dim> > spUpwind)
 		{
 			m_spUpwind = spUpwind;
 			m_spConstUpwind = spUpwind;
 		}
 
 	///	returns the upwind
-		ConstSmartPtr<INavierStokesUpwind<dim> > upwind() const {return m_spConstUpwind;}
+		ConstSmartPtr<INavierStokesFV1Upwind<dim> > upwind() const {return m_spConstUpwind;}
 
 	///	diff length
 		number diff_length_sq_inv(size_t scvf) const
@@ -225,8 +225,8 @@ class INavierStokesStabilization
 
 	protected:
 	///	Upwind values
-		SmartPtr<INavierStokesUpwind<dim> > m_spUpwind;
-		ConstSmartPtr<INavierStokesUpwind<dim> > m_spConstUpwind;
+		SmartPtr<INavierStokesFV1Upwind<dim> > m_spUpwind;
+		ConstSmartPtr<INavierStokesFV1Upwind<dim> > m_spConstUpwind;
 
 	///	number of current scvf
 		size_t m_numScvf;
@@ -291,11 +291,11 @@ class INavierStokesStabilization
 
 template <int TDim>
 class NavierStokesFIELDSStabilization
-	: public INavierStokesStabilization<TDim>
+	: public INavierStokesFV1Stabilization<TDim>
 {
 	public:
 	///	Base class
-		typedef INavierStokesStabilization<TDim> base_type;
+		typedef INavierStokesFV1Stabilization<TDim> base_type;
 
 	///	This class
 		typedef NavierStokesFIELDSStabilization<TDim> this_type;
@@ -381,11 +381,11 @@ class NavierStokesFIELDSStabilization
 
 template <int TDim>
 class NavierStokesFLOWStabilization
-	: public INavierStokesStabilization<TDim>
+	: public INavierStokesFV1Stabilization<TDim>
 {
 	public:
 	///	Base class
-		typedef INavierStokesStabilization<TDim> base_type;
+		typedef INavierStokesFV1Stabilization<TDim> base_type;
 
 	///	This class
 		typedef NavierStokesFLOWStabilization<TDim> this_type;

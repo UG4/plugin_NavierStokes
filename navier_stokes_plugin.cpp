@@ -51,7 +51,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
 
-			.add_method("add", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
+			.add_method("add", static_cast<void (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
 			.add_method("add", static_cast<void (T::*)(number, const char*)>(&T::add), "", "Vel_x, Subset")
 			.add_method("add", static_cast<void (T::*)(number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Subset")
 			.add_method("add", static_cast<void (T::*)(number,number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Vel_z, Subset")
@@ -100,19 +100,19 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<IPData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 #ifdef UG_FOR_LUA
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 #endif
 
-			.add_method("set_density", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_density), "", "Density")
+			.add_method("set_density", static_cast<void (T::*)(SmartPtr<IPData<number, dim> >)>(&T::set_density), "", "Density")
 			.add_method("set_density", static_cast<void (T::*)(number)>(&T::set_density), "", "Density")
 #ifdef UG_FOR_LUA
 			.add_method("set_density", static_cast<void (T::*)(const char*)>(&T::set_density), "", "Density")
 #endif
 
-			.add_method("set_source", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
+			.add_method("set_source", static_cast<void (T::*)(SmartPtr<IPData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
 			.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
 			.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
 			.add_method("set_source", static_cast<void (T::*)(number,number,number)>(&T::set_source), "", "F_x, F_y, F_z")
@@ -121,12 +121,14 @@ static void Domain(Registry& reg, string grp)
 #endif
 
 			.add_method("set_stabilization", &T::set_stabilization)
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesStabilization<dim> >)>(&T::set_conv_upwind))
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_conv_upwind))
+			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesFV1Stabilization<dim> >)>(&T::set_conv_upwind))
+			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesFV1Upwind<dim> >)>(&T::set_conv_upwind))
+			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesCRUpwind<dim> >)>(&T::set_conv_upwind))
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
 			.add_method("set_laplace", &T::set_laplace)
 			.add_method("set_stokes", &T::set_stokes)
+			.add_method("set_disc_scheme", &T::set_disc_scheme)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokes", tag);
 	}
@@ -163,18 +165,18 @@ static void Dimension(Registry& reg, string grp)
 // Upwind
 /////////////////////////////////////////////////////////////////////////////
 
-//	INavierStokesUpwind
+//	INavierStokesFV1Upwind
 	{
-		typedef INavierStokesUpwind<dim> T;
-		string name = string("INavierStokesUpwind").append(suffix);
+		typedef INavierStokesFV1Upwind<dim> T;
+		string name = string("INavierStokesFV1Upwind").append(suffix);
 		reg.add_class_<T>(name, grp);
-		reg.add_class_to_group(name, "INavierStokesUpwind", tag);
+		reg.add_class_to_group(name, "INavierStokesFV1Upwind", tag);
 	}
 
 //	NavierStokesNoUpwind
 	{
 		typedef NavierStokesNoUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		typedef INavierStokesFV1Upwind<dim> TBase;
 		string name = string("NavierStokesNoUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -185,7 +187,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesFullUpwind
 	{
 		typedef NavierStokesFullUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		typedef INavierStokesFV1Upwind<dim> TBase;
 		string name = string("NavierStokesFullUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -196,7 +198,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesSkewedUpwind
 	{
 		typedef NavierStokesSkewedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		typedef INavierStokesFV1Upwind<dim> TBase;
 		string name = string("NavierStokesSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -207,7 +209,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesLinearProfileSkewedUpwind
 	{
 		typedef NavierStokesLinearProfileSkewedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		typedef INavierStokesFV1Upwind<dim> TBase;
 		string name = string("NavierStokesLinearProfileSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -218,7 +220,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesPositiveUpwind
 	{
 		typedef NavierStokesPositiveUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		typedef INavierStokesFV1Upwind<dim> TBase;
 		string name = string("NavierStokesPositiveUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -229,7 +231,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesRegularUpwind
 	{
 		typedef NavierStokesRegularUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		typedef INavierStokesFV1Upwind<dim> TBase;
 		string name = string("NavierStokesRegularUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -242,20 +244,20 @@ static void Dimension(Registry& reg, string grp)
 /////////////////////////////////////////////////////////////////////////////
 
 
-//	INavierStokesStabilization
+//	INavierStokesFV1Stabilization
 	{
-		typedef INavierStokesStabilization<dim> T;
-		string name = string("INavierStokesStabilization").append(suffix);
+		typedef INavierStokesFV1Stabilization<dim> T;
+		string name = string("INavierStokesFV1Stabilization").append(suffix);
 		reg.add_class_<T>(name, grp)
 			.add_method("set_upwind", &T::set_upwind)
 			.add_method("set_diffusion_length", &T::set_diffusion_length);
-		reg.add_class_to_group(name, "INavierStokesStabilization", tag);
+		reg.add_class_to_group(name, "INavierStokesFV1Stabilization", tag);
 	}
 
 //	NavierStokesFIELDSStabilization
 	{
 		typedef NavierStokesFIELDSStabilization<dim> T;
-		typedef INavierStokesStabilization<dim> TBase;
+		typedef INavierStokesFV1Stabilization<dim> TBase;
 		string name = string("NavierStokesFIELDSStabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -266,7 +268,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesFLOWStabilization
 	{
 		typedef NavierStokesFLOWStabilization<dim> T;
-		typedef INavierStokesStabilization<dim> TBase;
+		typedef INavierStokesFV1Stabilization<dim> TBase;
 		string name = string("NavierStokesFLOWStabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()

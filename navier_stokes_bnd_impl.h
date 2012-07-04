@@ -56,7 +56,7 @@ set_functions(const char* functions)
 
 template <typename TDomain, typename TAlgebra>
 void NavierStokesInflow<TDomain,TAlgebra>::
-add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND)
+add(SmartPtr<IPData<MathVector<dim>, dim> > user, const char* subsetsBND)
 {
 	if(m_velNames.empty() || m_pressureName.empty())
 		UG_THROW("NavierStokesInflow::add: Symbolic names for"

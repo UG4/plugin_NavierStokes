@@ -24,14 +24,14 @@ namespace ug {
 namespace NavierStokes{
 
 /////////////////////////////////////////////////////////////////////////////
-// Interface for Upwinds
+// Interface for FV1 collocated grid upwinds
 /////////////////////////////////////////////////////////////////////////////
 
 //	register a update function for a Geometry
 template <int dim>
 template <typename TFVGeom, typename TAssFunc>
 void
-INavierStokesUpwind<dim>::
+INavierStokesFV1Upwind<dim>::
 register_update_func(TAssFunc func)
 {
 //	get unique geometry id
@@ -49,7 +49,7 @@ register_update_func(TAssFunc func)
 template <int dim>
 template <typename TFVGeom>
 void
-INavierStokesUpwind<dim>::
+INavierStokesFV1Upwind<dim>::
 set_geometry_type()
 {
 //	get unique geometry id
@@ -73,7 +73,7 @@ set_geometry_type()
 ///	upwind velocity
 template <int dim>
 MathVector<dim>
-INavierStokesUpwind<dim>::
+INavierStokesFV1Upwind<dim>::
 upwind_vel(const size_t scvf,
            const LocalVector& CornerVel,
            const MathVector<dim> vStdVel[]) const
@@ -648,6 +648,207 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
 	//	save convection length
 		vConvLength[ip] = VecDistance(scvf.global_ip(), upPos);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Interface for staggered CR type grid upwinds
+/////////////////////////////////////////////////////////////////////////////
+
+//	register a update function for a Geometry
+template <int dim>
+template <typename TFVGeom, typename TAssFunc>
+void
+INavierStokesCRUpwind<dim>::
+register_update_func(TAssFunc func)
+{
+//	get unique geometry id
+	size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+//	make sure that there is enough space
+	if((size_t)id >= m_vComputeFunc.size())
+		m_vComputeFunc.resize(id+1, NULL);
+
+//	set pointer
+	m_vComputeFunc[id] = (ComputeFunc)func;
+}
+
+//	set the Geometry type to use for next updates
+template <int dim>
+template <typename TFVGeom>
+void
+INavierStokesCRUpwind<dim>::
+set_geometry_type()
+{
+//	get unique geometry id
+	size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+//	check that function exists
+	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
+		UG_THROW("No update function registered for Geometry "<<id);
+
+//	set current geometry
+	m_id = id;
+
+//	set sizes
+	TFVGeom& geo = Provider<TFVGeom>::get();
+	m_numScvf = geo.num_scvf();
+	m_numSh = geo.num_scv();
+	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
+	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
+}
+
+///	upwind velocity
+template <int dim>
+MathVector<dim>
+INavierStokesCRUpwind<dim>::
+upwind_vel(const size_t scvf,
+           const LocalVector& CornerVel,
+           const MathVector<dim> vStdVel[]) const
+{
+//	reset result
+	MathVector<dim> vel; VecSet(vel, 0.0);
+
+//	add corner shapes
+	for(size_t sh = 0; sh < num_sh(); ++sh)
+		for(int d = 0; d < dim; ++d)
+			vel[d] += upwind_shape_sh(scvf, sh) * CornerVel(d, sh);
+
+//	done if only depending on shapes
+	if(!non_zero_shape_ip()) return vel;
+
+//	compute ip vel
+	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
+		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), vStdVel[scvf2]);
+
+//	return value
+	return vel;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// No Upwind
+/////////////////////////////////////////////////////////////////////////////
+
+template <int TDim>
+template <typename TElem>
+void
+NavierStokesCRNoUpwind<TDim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+//	set shapes
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+	//	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+		{
+		//	set upwind shape
+			vUpShapeSh[ip][sh] = scvf.shape(sh);
+		}
+
+	//	compute convection length
+	//  \todo: (optional) A convection length is not really defined for no upwind.
+	//	       but in the computation of a stabilization the term cancels, so
+	//   	   we only have to ensure that the conv_lengh is non-zero
+        vConvLength[ip] = 1.0;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Full Upwind
+/////////////////////////////////////////////////////////////////////////////
+
+template <int TDim>
+template <typename TElem>
+void
+NavierStokesCRFullUpwind<TDim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+//	two help vectors
+	MathVector<dim> dist;
+
+// 	get corners of elem
+    const MathVector<dim>* corners = geo->corners();
+
+// 	set shapes
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+    //	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+    //  reset shapes to zero for all IPs
+        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
+        	vUpShapeSh[ip][sh]=0.0;
+
+    // 	switch upwind
+        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
+        if(flux > 0.0)
+        {
+        	vUpShapeSh[ip][scvf.from()] = 1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.from()]);
+        }
+        else
+        {
+        	vUpShapeSh[ip][scvf.to()] = 1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.to()]);
+        }
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Skewed Upwind and Linear Profile Skewed Upwind
+/////////////////////////////////////////////////////////////////////////////
+
+/// computes the closest node to a elem side ray intersection
+template <typename TRefElem, int TWorldDim>
+void GetNodeNextToCutCR(size_t& coOut,
+                      const MathVector<TWorldDim>& IP,
+                      const MathVector<TWorldDim>& IPVel,
+                      const MathVector<TWorldDim>* vCornerCoords)
+{
+//	help variables
+	size_t side = 0;
+	MathVector<TWorldDim> globalIntersection;
+	MathVector<TRefElem::dim> localIntersection;
+
+//	compute intersection of ray in direction of ip velocity with elem side
+//	we search the ray only in upwind direction
+	if(!ElementSideRayIntersection<TRefElem, TWorldDim>
+		(	side, globalIntersection, localIntersection,
+			IP, IPVel, false /* i.e. search upwind */, vCornerCoords))
+		UG_THROW("GetNodeNextToCut: Cannot find cut side.");
+
+//	get reference element
+	static const TRefElem& rRefElem = Provider<TRefElem>::get();
+	const int dim = TRefElem::dim;
+
+// 	reset minimum
+	number min = std::numeric_limits<number>::max();
+
+// 	loop corners of side
+	for(size_t i = 0; i < rRefElem.num(dim-1, side, 0); ++i)
+	{
+	// 	get corner
+		const size_t co = rRefElem.id(dim-1, side, 0, i);
+
+	// 	Compute Distance to intersection
+		number dist = VecDistanceSq(globalIntersection, vCornerCoords[co]);
+
+	// 	if distance is smaller, choose this node
+		if(dist < min)
+		{
+			min = dist;
+			coOut = co;
+		}
 	}
 }
 
