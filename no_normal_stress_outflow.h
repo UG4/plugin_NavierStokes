@@ -13,8 +13,8 @@
 
 // library intern headers
 #include "lib_disc/spatial_disc/elem_disc/elem_disc_interface.h"
-#include "lib_disc/spatial_disc/ip_data/data_export.h"
-#include "lib_disc/spatial_disc/ip_data/data_import.h"
+#include "lib_disc/spatial_disc/user_data/data_export.h"
+#include "lib_disc/spatial_disc/user_data/data_import.h"
 
 #include "upwind.h"
 #include "stabilization.h"

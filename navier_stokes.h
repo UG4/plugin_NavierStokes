@@ -14,8 +14,8 @@
 
 // library intern headers
 #include "lib_disc/spatial_disc/elem_disc/elem_disc_interface.h"
-#include "lib_disc/spatial_disc/ip_data/data_export.h"
-#include "lib_disc/spatial_disc/ip_data/data_import.h"
+#include "lib_disc/spatial_disc/user_data/data_export.h"
+#include "lib_disc/spatial_disc/user_data/data_import.h"
 
 #include "upwind.h"
 #include "stabilization.h"
@@ -156,7 +156,7 @@ class NavierStokes
 	///	\}
 
 	///	returns kinematic viscosity
-		SmartPtr<UserData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.ip_data ();}
+		SmartPtr<UserData<number, dim> > get_kinematic_viscosity_data() {return m_imKinViscosity.user_data ();}
 
 	///	sets the density
 	/**
@@ -173,7 +173,7 @@ class NavierStokes
 	///	\}
 
 	///	returns density
-		SmartPtr<UserData<number, dim> > get_density() {return m_imDensitySCVF.ip_data ();}
+		SmartPtr<UserData<number, dim> > get_density() {return m_imDensitySCVF.user_data ();}
 
 	///	sets the source function
 	/**
