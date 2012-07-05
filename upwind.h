@@ -828,21 +828,21 @@ class INavierStokesCRUpwind
 			}
 
 		///	compute values for new geometry and corner velocities
-			void update(const FVGeometryBase* geo,
+			void update(const CRFVGeometryBase* geo,
 			            const MathVector<dim> vStdVel[])
 			{
 				update_upwind(geo, vStdVel);
 			}
 
 		///	compute values for new geometry and corner velocities
-			void update_upwind(const FVGeometryBase* geo,
+			void update_upwind(const CRFVGeometryBase* geo,
 							   const MathVector<dim> vStdVel[])
 			{
 				compute(geo, vStdVel, m_vvUpShapeSh, m_vvUpShapeIp, m_vUpConvLength);
 			}
 
 		///	compute values for new geometry and corner velocities
-			void update_downwind(const FVGeometryBase* geo,
+			void update_downwind(const CRFVGeometryBase* geo,
 			                     const MathVector<dim> vStdVel[])
 			{
 				MathVector<dim> vDownIPVel[maxNumSCVF];
@@ -928,7 +928,7 @@ class INavierStokesCRUpwind
 			number m_vvDownShapeIp[maxNumSCVF][maxNumSCVF];
 
 		///	compute values for new geometry and corner velocities
-			void compute(const FVGeometryBase* geo,
+			void compute(const CRFVGeometryBase* geo,
 			             const MathVector<dim> vIPVel[maxNumSCVF],
 			             number vUpShapeSh[maxNumSCVF][maxNumSH],
 			             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -957,7 +957,7 @@ class INavierStokesCRUpwind
 
 		///	type of update function
 			typedef void (this_type::*ComputeFunc)(
-									const FVGeometryBase* obj,
+									const CRFVGeometryBase* obj,
 									const MathVector<dim> vIPVel[maxNumSCVF],
 									number vUpShapeSh[maxNumSCVF][maxNumSH],
 									number vUpShapeIp[maxNumSCVF][maxNumSCVF],
