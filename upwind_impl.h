@@ -777,7 +777,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 	MathVector<dim> dist;
 
 // 	get corners of elem
-    const MathVector<dim>* corners = geo->corners();
+    const MathVector<dim>* elementfaces = geo->scv_global_ips();
 
 // 	set shapes
 	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
@@ -794,12 +794,12 @@ compute(const CRFVGeometry<TElem, dim>* geo,
         if(flux > 0.0)
         {
         	vUpShapeSh[ip][scvf.from()] = 1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.from()]);
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
         }
         else
         {
         	vUpShapeSh[ip][scvf.to()] = 1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.to()]);
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
         }
     }
 }

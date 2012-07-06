@@ -41,7 +41,7 @@ prepare_element_loop_cr()
 		if(m_spConvCRUpwind.invalid()){
 			UG_THROW("Upwinding for convective Term in Momentum eq. not set.");
 		}else
-			m_spConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
+			m_spConvCRUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
 	}
 
 //	check, that kinematic Viscosity has been set
@@ -240,7 +240,7 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 				//		w = peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
 
 				//	compute product of stabilized vel and normal todo which is better upwindVel or StdVel?
-					const number prod = VecProd(UpwindVel, scvf.normal()) * m_imDensitySCVF[ip];
+					const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
 
 				///////////////////////////////////
 				//	Add fixpoint linearization
@@ -255,7 +255,7 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 				//	approximate upwind only from the corner velocities by using
 				//	u_up = \sum shape_co U_co + \sum shape_ip \tilde{u}_ip
 				//	     = \sum shape_co U_co + \sum \sum shape_ip norm_shape_co|_ip * U_co
-					if(m_spConvUpwind->non_zero_shape_ip())
+					if(upwind.non_zero_shape_ip())
 					{
 						for(size_t ip2 = 0; ip2 < geo.num_scvf(); ++ip2)
 						{

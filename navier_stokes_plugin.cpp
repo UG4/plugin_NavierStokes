@@ -164,6 +164,8 @@ static void Dimension(Registry& reg, string grp)
 /////////////////////////////////////////////////////////////////////////////
 // Upwind
 /////////////////////////////////////////////////////////////////////////////
+	
+//  FV1 collocated
 
 //	INavierStokesFV1Upwind
 	{
@@ -238,6 +240,39 @@ static void Dimension(Registry& reg, string grp)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesRegularUpwind", tag);
 	}
+	
+// CR staggered	
+	
+	//	INavierStokesCRUpwind
+	{
+		typedef INavierStokesCRUpwind<dim> T;
+		string name = string("INavierStokesCRUpwind").append(suffix);
+		reg.add_class_<T>(name, grp);
+		reg.add_class_to_group(name, "INavierStokesCRUpwind", tag);
+	}
+	
+	//	NavierStokesCRNoUpwind
+	{
+		typedef NavierStokesCRNoUpwind<dim> T;
+		typedef INavierStokesCRUpwind<dim> TBase;
+		string name = string("NavierStokesCRNoUpwind").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+		.add_constructor()
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesCRNoUpwind", tag);
+	}
+	
+	//	NavierStokesCRFullUpwind
+	{
+		typedef NavierStokesCRFullUpwind<dim> T;
+		typedef INavierStokesCRUpwind<dim> TBase;
+		string name = string("NavierStokesCRFullUpwind").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+		.add_constructor()
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesCRFullUpwind", tag);
+	}
+	
 
 /////////////////////////////////////////////////////////////////////////////
 // Stabilization

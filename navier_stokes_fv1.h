@@ -1,5 +1,5 @@
 /*
- * navier_stokes_fv1.h
+ * navier_stokes_fv1.cpp
  *
  *  Created on: 20.09.2010
  *      Author: andreasvogel

@@ -85,6 +85,7 @@ template<typename TDomain>
 bool NavierStokes<TDomain>::
 request_finite_element_id(const std::vector<LFEID>& vLfeID)
 {
+	return true;// todo check
 	if(m_discScheme != "staggered"){
 	//	check number
 		if(vLfeID.size() != dim+1) return false;

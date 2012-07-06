@@ -984,7 +984,7 @@ template <int TDim>
 			typedef INavierStokesCRUpwind<TDim> base_type;
 
 		///	This class
-			typedef NavierStokesNoUpwind<TDim> this_type;
+			typedef NavierStokesCRNoUpwind<TDim> this_type;
 
 		///	Dimension
 			static const int dim = TDim;
@@ -1063,7 +1063,7 @@ class NavierStokesCRFullUpwind
 			typedef INavierStokesCRUpwind<TDim> base_type;
 
 		///	This class
-			typedef NavierStokesFullUpwind<TDim> this_type;
+			typedef NavierStokesCRFullUpwind<TDim> this_type;
 
 		///	Dimension
 			static const int dim = TDim;
