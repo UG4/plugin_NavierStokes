@@ -136,27 +136,6 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 	// 	get finite volume geometry
 		static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 
-	/*	check for source term to pass to the stabilization
-		const DataImport<MathVector<dim>, dim>* pSource = NULL;
-		if(m_imSource.data_given())	pSource = &m_imSource;
-
-	//	check for solutions to pass to stabilization in time-dependent case
-		const LocalVector *pSol = &u, *pOldSol = NULL;
-		number dt = 0.0;
-		if(this->is_time_dependent())
-		{
-		//	get and check current and old solution
-			const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-			if(vLocSol->size() != 2)
-				UG_THROW("NavierStokes::ass_dA_elem: "
-								" Stabilization needs exactly two time points.");
-
-		//	remember local solutions
-			pSol = &vLocSol->solution(0);
-			pOldSol = &vLocSol->solution(1);
-			dt = vLocSol->time(0) - vLocSol->time(1);
-		}*/
-
 	//	interpolate velocity at ip with standard lagrange interpolation
 		static const size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
 		MathVector<dim> StdVel[numSCVF];
@@ -170,8 +149,6 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 					StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 		}
 
-	//	compute stabilized velocities and shapes for continuity equation
-	//	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 		const INavierStokesCRUpwind<dim>& upwind = *m_spConvCRUpwind;
 
 		if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
@@ -373,8 +350,6 @@ ass_dA_elem_cr(LocalVector& d, const LocalVector& u)
 					StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 		}
 
-		//	compute stabilized velocities and shapes for continuity equation
-		//	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
 		const INavierStokesCRUpwind<dim>& upwind = *m_spConvCRUpwind;
 
 		if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
@@ -573,7 +548,6 @@ ass_rhs_elem_cr(LocalVector& d)
 			d(d1, sh) += m_imSource[ip][d1] * scv.volume();
 	}
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //	register assemble functions
