@@ -1,7 +1,8 @@
 /*
  * no_normal_stress_outflow.h
  *
- *  Created on: 27.03.2011
+ *  Created on: 27.03.2012
+ *  D. Logashenko, A. Vogel
  */
 
 #ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW__
@@ -28,6 +29,21 @@ namespace NavierStokes{
 /// \ingroup lib_disc_elem_disc
 /// @{
 
+/// The zero-stress (neutral) outflow boundary condition for the incompressible NS equation
+/**
+ * This class implements the so-called neutral boundary condition for outflow
+ * boundaries. Note that this class can be used only with the stabilized
+ * vertex-centered discretization of the Navier-Stokes equations.
+ *
+ * This boundary condition imposes two equations on the unknown functions
+ * at the outflow boundary \f$ F \f$:
+ * <ul>
+ * <li> \f$ \int_F p ds = 0 \f$, and
+ * <li> \f$ \sigma \vec{n} \cdot \vec{n} = 0 \f$ on \f$ F \f$.
+ * </ul>
+ * where \f$ \vec{n} \f$ is the outer normal at \f$ F \f$ and
+ * \f$ \sigma = \mu (\nabla \vec{u} + (\nabla \vec{u})^T) \f$ the stress tensor.
+ */
 template<	typename TDomain>
 class FVNavierStokesNoNormalStressOutflow
 	: public IDomainElemDisc<TDomain>

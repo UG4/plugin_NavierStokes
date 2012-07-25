@@ -1,7 +1,8 @@
 /*
  * no_normal_stress_outflow.cpp
  *
- *  Created on: 27.03.2011
+ *  Created on: 27.03.2012
+ *  D. Logashenko, A. Vogel
  */
 
 #include "no_normal_stress_outflow.h"
