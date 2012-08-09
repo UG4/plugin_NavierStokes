@@ -555,7 +555,12 @@ class NavierStokes
 	 * \return			\f$\omega\f$ 	weighting factor
 	 */
 		template <typename TFVGeom>
-		inline number peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
+		inline number peclet_blend_fv1(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
+		                           const MathVector<dim>& StdVel, number kinVisco);
+
+	 // mixed upwind for Crouzeix-Raviart elements
+		template <typename TFVGeom>
+		inline number peclet_blend_cr(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 		                           const MathVector<dim>& StdVel, number kinVisco);
 
 	private:
@@ -628,7 +633,7 @@ class NavierStokes
 		void prepare_element_loop_cr();
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prepare_element_cr(TElem* elem, const LocalVector& u);
+		void prepare_element_cr(TElem* elem, LocalVector& u);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void finish_element_loop_cr();

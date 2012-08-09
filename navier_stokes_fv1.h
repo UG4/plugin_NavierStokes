@@ -1,5 +1,5 @@
 /*
- * navier_stokes_fv1.cpp
+ * navier_stokes_fv1.h
  *
  *  Created on: 20.09.2010
  *      Author: andreasvogel
@@ -232,7 +232,7 @@ ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 				J(d1, scvf.from(), d1, sh) += flux_sh;
 				J(d1, scvf.to()  , d1, sh) -= flux_sh;
 			}
-
+			
 			if(!m_bLaplace)
 			{
 				for(int d1 = 0; d1 < dim; ++d1)
@@ -274,7 +274,7 @@ ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 			//	peclet blend
 				number w = 1.0;
 				if(m_bPecletBlend)
-					w = peclet_blend(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
+					w = peclet_blend_fv1(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 
 			//	compute product of stabilized vel and normal
 				const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
@@ -615,7 +615,7 @@ ass_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 	
 		//	Peclet Blend
 			if(m_bPecletBlend)
-				peclet_blend(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
+				peclet_blend_fv1(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 	
 		//	compute product of standard velocity and normal
 			const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
@@ -754,12 +754,12 @@ template<typename TFVGeom>
 inline
 number
 NavierStokes<TDomain>::
-peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
+peclet_blend_fv1(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
              const MathVector<dim>& StdVel, number kinVisco)
 {
 	const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
 //	compute peclet number
-	number Pe = VecProd(StdVel, scvf.normal())
+	number Pe = VecProd(StdVel, scvf.normal())/VecTwoNormSq(scvf.normal())
 	 * VecDistance(geo.corners() [scvf.to()], geo.corners() [scvf.from()]) / kinVisco;
 
 //	compute weight

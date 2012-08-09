@@ -88,7 +88,7 @@ finish_element_loop_cr()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-prepare_element_cr(TElem* elem, const LocalVector& u)
+prepare_element_cr(TElem* elem, LocalVector& u)
 {
 //	get corners
 	m_vCornerCoords = this->template element_corners<TElem>(elem);
@@ -124,6 +124,30 @@ prepare_element_cr(TElem* elem, const LocalVector& u)
 	m_imDensitySCV.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 	m_imSource.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 }
+
+template<typename TDomain>
+template<typename TFVGeom>
+inline
+number
+NavierStokes<TDomain>::
+peclet_blend_cr(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
+             const MathVector<dim>& StdVel, number kinVisco)
+{
+	const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+//	compute peclet number
+	number Pe = VecProd(StdVel, scvf.normal())/VecTwoNormSq(scvf.normal())
+	 * VecDistance( geo.scv(scvf.to()).global_ip(), geo.scv(scvf.from()).global_ip() ) / kinVisco;
+
+//	compute weight
+	const number Pe2 = Pe * Pe;
+	number w = Pe2 / (5.0 + Pe2);
+
+//	compute upwind vel
+	VecScaleAdd(UpwindVel, w, UpwindVel, (1.0-w), StdVel);
+
+	return w;
+}
+
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
@@ -186,7 +210,7 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 					J(d1, scvf.from(), d1, sh) += flux_sh;
 					J(d1, scvf.to()  , d1, sh) -= flux_sh;
 				}
-
+//				UG_LOG("---------------------------------------------------\n");
 				if(!m_bLaplace)
 				{
 					for(int d1 = 0; d1 < dim; ++d1)
@@ -194,6 +218,7 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 						{
 							const number flux2_sh = -1.0 * m_imKinViscosity[ip] * m_imDensitySCVF[ip]
 													* scvf.global_grad(sh)[d1] * scvf.normal()[d2];
+//	UG_LOG("d1 = " << d1  << " scvf.global_grad(sh)[d1] = " << scvf.global_grad(sh)[d1] << " d2 = " << d2 << " scvf.normal()[d2] = " << scvf.normal()[d2] << "\n");
 							J(d1, scvf.from(), d2, sh) += flux2_sh;
 							J(d1, scvf.to()  , d2, sh) -= flux2_sh;
 						}
@@ -213,8 +238,8 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 
 				//	peclet blend
 					number w = 1.0;
-				//	if(m_bPecletBlend)
-				//		w = peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
+					if(m_bPecletBlend)
+						w = peclet_blend_cr(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 
 				//	compute product of stabilized vel and normal todo which is better upwindVel or StdVel?
 					const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
@@ -250,15 +275,15 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 					}
 
 				//	derivative due to peclet blending
-				//	if(m_bPecletBlend)
-				//	{
-				//		const number convFluxPe = prod * (1.0-w) * scvf.shape(sh);
-				//		for(int d1 = 0; d1 < dim; ++d1)
-				//		{
-				//			J(d1, scvf.from(), d1, sh) += convFluxPe;
-				//			J(d1, scvf.to()  , d1, sh) -= convFluxPe;
-				//		}
-				//	}
+					if(m_bPecletBlend)
+					{
+						const number convFluxPe = prod * (1.0-w) * scvf.shape(sh);
+						for(int d1 = 0; d1 < dim; ++d1)
+						{
+							J(d1, scvf.from(), d1, sh) += convFluxPe;
+							J(d1, scvf.to()  , d1, sh) -= convFluxPe;
+						}
+					}
 
 				/////////////////////////////////////////
 				//	Add full jacobian (remaining part)
@@ -422,8 +447,8 @@ ass_dA_elem_cr(LocalVector& d, const LocalVector& u)
 				UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 
 			//	Peclet Blend
-			//	if(m_bPecletBlend)
-			//		peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
+				if(m_bPecletBlend)
+					peclet_blend_cr(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 
 			//	compute product of standard velocity and normal
 				const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
