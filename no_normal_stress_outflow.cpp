@@ -179,13 +179,13 @@ prepare_element(TElem* elem, const LocalVector& u)
 
 /// Assembling of the diffusive flux (due to the viscosity) in the Jacobian of the momentum eq.
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename BF>
 void FVNavierStokesNoNormalStressOutflow<TDomain>::
 ass_diffusive_flux_Jac
 (
 	const size_t ip, // index of the integration point (for the viscosity)
 	const size_t sh, // index of the shape (corner)
-	const typename TFVGeom<TElem, dim>::BF& bf, // boundary face to assemble
+	const BF& bf, // boundary face to assemble
 	LocalMatrix& J, // local Jacobian to update
 	const LocalVector& u // local solution
 )
@@ -222,12 +222,12 @@ ass_diffusive_flux_Jac
 
 /// Assembling of the diffusive flux (due to the viscosity) in the defect of the momentum eq.
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename BF>
 void FVNavierStokesNoNormalStressOutflow<TDomain>::
 ass_diffusive_flux_defect
 (
 	const size_t ip, // index of the integration point (for the viscosity)
-	const typename TFVGeom<TElem, dim>::BF& bf, // boundary face to assemble
+	const BF& bf, // boundary face to assemble
 	LocalVector& d, // local defect to update
 	const LocalVector& u // local solution
 )
@@ -297,9 +297,9 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
 			{
 			//	A. The momentum equation:
-				ass_diffusive_flux_Jac<TElem, TFVGeom> (ip, sh, *bf, J, u);
+				ass_diffusive_flux_Jac<BF> (ip, sh, *bf, J, u);
 			
-			// B. The continuity equation
+			//	B. The continuity equation
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2];
 			}
@@ -340,7 +340,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
 		{
 		// A. Momentum equation:
-			ass_diffusive_flux_defect<TElem, TFVGeom> (ip, *bf, d, u);
+			ass_diffusive_flux_defect<BF> (ip, *bf, d, u);
 		
 		// B. Continuity equation:
 			{
