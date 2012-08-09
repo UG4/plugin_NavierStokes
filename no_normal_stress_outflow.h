@@ -154,7 +154,6 @@ class FVNavierStokesNoNormalStressOutflow
 		inline void ass_diffusive_flux_Jac
 		(
 			const size_t ip,
-			const size_t sh,
 			const BF& bf,
 			LocalMatrix& J,
 			const LocalVector& u
@@ -162,6 +161,24 @@ class FVNavierStokesNoNormalStressOutflow
 	/// adds the diffusive part of the local defect of the momentum equation
 		template <typename BF>
 		inline void ass_diffusive_flux_defect
+		(
+			const size_t ip,
+			const BF& bf,
+			LocalVector& d,
+			const LocalVector& u
+		);
+	/// adds the convective part of the local Jacobian of the momentum equation
+		template <typename BF>
+		inline void ass_convective_flux_Jac
+		(
+			const size_t ip,
+			const BF& bf,
+			LocalMatrix& J,
+			const LocalVector& u
+		);
+	/// adds the convective part of the local defect of the momentum equation
+		template <typename BF>
+		inline void ass_convective_flux_defect
 		(
 			const size_t ip,
 			const BF& bf,

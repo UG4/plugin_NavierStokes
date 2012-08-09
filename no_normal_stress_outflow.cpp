@@ -184,40 +184,42 @@ void FVNavierStokesNoNormalStressOutflow<TDomain>::
 ass_diffusive_flux_Jac
 (
 	const size_t ip, // index of the integration point (for the viscosity)
-	const size_t sh, // index of the shape (corner)
 	const BF& bf, // boundary face to assemble
 	LocalMatrix& J, // local Jacobian to update
 	const LocalVector& u // local solution
 )
 {
-//	1. Compute the total flux
 	MathMatrix<dim,dim> diffFlux, tang_diffFlux;
 	MathVector<dim> normalStress;
-
-//	- add \nabla u
-	MatSet (diffFlux, 0);
-	MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
-
-//	- add (\nabla u)^T
-	if(!m_spMaster->get_laplace())
-		for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-			for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-				diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
-
-//	2. Subtract the normal part:
-	tang_diffFlux = diffFlux;
-	TransposedMatVecMult(normalStress, diffFlux, bf.normal ());
-	for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-		for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-			tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
-
-//	3. Scale by viscosity
-	tang_diffFlux *= - m_imKinViscosity[ip];
-
-//	4. Add flux to local defect
-	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-		for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-			J(d1, bf.node_id(), d2, sh) += tang_diffFlux (d1, d2);
+	
+	for(size_t sh = 0; sh < bf.num_sh(); ++sh) // loop shape functions
+	{
+	//	1. Compute the total flux
+	//	- add \nabla u
+		MatSet (diffFlux, 0);
+		MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
+	
+	//	- add (\nabla u)^T
+		if(!m_spMaster->get_laplace())
+			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
+					diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
+	
+	//	2. Subtract the normal part:
+		tang_diffFlux = diffFlux;
+		TransposedMatVecMult(normalStress, diffFlux, bf.normal ());
+		for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
+			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
+	
+	//	3. Scale by viscosity
+		tang_diffFlux *= - m_imKinViscosity[ip];
+	
+	//	4. Add flux to local Jacobian
+		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+				J(d1, bf.node_id(), d2, sh) += tang_diffFlux (d1, d2);
+	}
 }
 
 /// Assembling of the diffusive flux (due to the viscosity) in the defect of the momentum eq.
@@ -265,6 +267,72 @@ ass_diffusive_flux_defect
 		d(d1, bf.node_id()) += diffFlux[d1];
 }
 
+/// Assembling of the convective flux (due to the quadratic inertial term) in the Jacobian of the momentum eq.
+template<typename TDomain>
+template<typename BF>
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_convective_flux_Jac
+(
+	const size_t ip, // index of the integration point (for the density)
+	const BF& bf, // boundary face to assemble
+	LocalMatrix& J, // local Jacobian to update
+	const LocalVector& u // local solution
+)
+{
+	MathVector<dim> StdVel;
+	number old_momentum_flux, t;
+	
+// The convection velocity according to the current approximation:
+	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
+			StdVel[d1] += u(d1, sh) * bf.shape(sh);
+	old_momentum_flux = VecDot (StdVel, bf.normal ());
+	// Multiply old_momentum_flux by the density here!
+	
+// We assume that there should be no inflow through the outflow boundary:
+	if (old_momentum_flux < 0)
+		old_momentum_flux = 0;
+	
+//	Add flux to local Jacobian
+	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+	{
+		t = old_momentum_flux * bf.shape(sh);
+		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
+			J(d1, bf.node_id(), d1, sh) += t;
+	}
+}
+
+/// Assembling of the convective flux (due to the quadratic inertial term) in the defect of the momentum eq.
+template<typename TDomain>
+template<typename BF>
+void FVNavierStokesNoNormalStressOutflow<TDomain>::
+ass_convective_flux_defect
+(
+	const size_t ip, // index of the integration point (for the density)
+	const BF& bf, // boundary face to assemble
+	LocalVector& d, // local defect to update
+	const LocalVector& u // local solution
+)
+{
+	MathVector<dim> StdVel;
+	number old_momentum_flux;
+	
+// The convection velocity according to the current approximation:
+	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
+			StdVel[d1] += u(d1, sh) * bf.shape(sh);
+	old_momentum_flux = VecDot (StdVel, bf.normal ());
+	// Multiply old_momentum_flux by the density here!
+	
+// We assume that there should be no inflow through the outflow boundary:
+	if (old_momentum_flux < 0)
+		old_momentum_flux = 0;
+	
+// Add the flux to the defect:
+	for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
+		d(d1, bf.node_id()) += old_momentum_flux * StdVel[d1];
+}
+
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void FVNavierStokesNoNormalStressOutflow<TDomain>::
@@ -294,15 +362,15 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 		typename std::vector<BF>::const_iterator bf;
 		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
 		{
-			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
-			{
-			//	A. The momentum equation:
-				ass_diffusive_flux_Jac<BF> (ip, sh, *bf, J, u);
+		//	A. The momentum equation:
+			ass_diffusive_flux_Jac<BF> (ip, *bf, J, u);
+			if (!m_spMaster->get_stokes ())
+				ass_convective_flux_Jac<BF> (ip, *bf, J, u);
 			
-			//	B. The continuity equation
+		//	B. The continuity equation
+			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2];
-			}
 		
 		// Next IP:
 			ip++;
@@ -341,6 +409,8 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 		{
 		// A. Momentum equation:
 			ass_diffusive_flux_defect<BF> (ip, *bf, d, u);
+			if (!m_spMaster->get_stokes ())
+				ass_convective_flux_defect<BF> (ip, *bf, d, u);
 		
 		// B. Continuity equation:
 			{
