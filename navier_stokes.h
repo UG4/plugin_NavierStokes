@@ -554,8 +554,8 @@ class NavierStokes
 	 * \param[in]		kinVisco		kinematic Viscosity at scvf
 	 * \return			\f$\omega\f$ 	weighting factor
 	 */
-		template <typename SCVF>
-		inline number peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
+		template <typename TFVGeom>
+		inline number peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 		                           const MathVector<dim>& StdVel, number kinVisco);
 
 	private:

@@ -274,7 +274,7 @@ ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 			//	peclet blend
 				number w = 1.0;
 				if(m_bPecletBlend)
-					w = peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
+					w = peclet_blend(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 
 			//	compute product of stabilized vel and normal
 				const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
@@ -615,7 +615,7 @@ ass_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 	
 		//	Peclet Blend
 			if(m_bPecletBlend)
-				peclet_blend(UpwindVel, scvf, StdVel[ip], m_imKinViscosity[ip]);
+				peclet_blend(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 	
 		//	compute product of standard velocity and normal
 			const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
@@ -750,20 +750,17 @@ ass_rhs_elem_fv1(LocalVector& d)
 }
 
 template<typename TDomain>
-template <typename SCVF>
+template<typename TFVGeom>
 inline
 number
 NavierStokes<TDomain>::
-peclet_blend(MathVector<dim>& UpwindVel, const SCVF& scvf,
+peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
              const MathVector<dim>& StdVel, number kinVisco)
 {
+	const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
 //	compute peclet number
-	number Pe = VecProd(StdVel, scvf.normal());
-	// \todo: ATTENTION: scvf.global_corner(0) gives edge midpoint of corresponding
-	//					 edge, but this is not defined as an interface specification,
-	//					 but only a feature of the special implementation (specify it)
-	Pe *= VecDistance(scvf.global_ip(), scvf.global_corner(0));
-	Pe /= kinVisco;
+	number Pe = VecProd(StdVel, scvf.normal())
+	 * VecDistance(geo.corners() [scvf.to()], geo.corners() [scvf.from()]) / kinVisco;
 
 //	compute weight
 	const number Pe2 = Pe * Pe;
