@@ -74,12 +74,21 @@ class FVNavierStokesNoNormalStressOutflow
 	
 	///	sets the kinematic viscosity
 	/**
-	 * This method sets the kinematic viscosity value.
+	 * This method sets the kinematic viscosity parameter.
 	 *
 	 * \param[in]	data		kinematic Viscosity
 	 */
 		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
 			{m_imKinViscosity.set_data(data);}
+
+	///	sets the density
+	/**
+	 * This method sets the density parameter.
+	 *
+	 * \param[in]	data		Density
+	 */
+		void set_density(SmartPtr<UserData<number, dim> > data)
+			{m_imDensity.set_data(data);}
 
 	public:
 	///	type of trial space for each function used
@@ -198,7 +207,9 @@ class FVNavierStokesNoNormalStressOutflow
 		
 	///	Data import for kinematic viscosity
 		DataImport<number, dim> m_imKinViscosity;
-	/// Boundary integration points of the viscosity
+	/// Data import for density
+		DataImport<number, dim> m_imDensity;
+	/// Boundary integration points of the viscosity and the density
 		std::vector<MathVector<dim> > m_vLocIP;
 		std::vector<MathVector<dim> > m_vGloIP;
 

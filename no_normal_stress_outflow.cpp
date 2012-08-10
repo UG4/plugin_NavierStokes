@@ -103,10 +103,15 @@ prepare_element_loop()
 		UG_THROW("Only first order implementation, but other Finite Volume"
 						" Geometry set.");
 
-//	check, that kinematic Viscosity has been set
+//	check if kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
 		UG_THROW("FVNavierStokesNoNormalStressOutflow::prepare_element_loop:"
 						" Kinematic Viscosity has not been set, but is required.\n");
+
+//	check if Density has been set
+	if(!m_imDensity.data_given())
+		UG_THROW("FVNavierStokesNoNormalStressOutflow::prepare_element_loop:"
+						" Density has not been set, but is required.\n");
 
 //	request the subset indices as boundary subset. This will force the
 //	creation of boundary subsets when calling geo.update
@@ -175,6 +180,9 @@ prepare_element(TElem* elem, const LocalVector& u)
 
 	m_imKinViscosity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imKinViscosity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+	
+	m_imDensity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	m_imDensity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 }
 
 /// Assembling of the diffusive flux (due to the viscosity) in the Jacobian of the momentum eq.
@@ -286,8 +294,7 @@ ass_convective_flux_Jac
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 			StdVel[d1] += u(d1, sh) * bf.shape(sh);
-	old_momentum_flux = VecDot (StdVel, bf.normal ());
-	// Multiply old_momentum_flux by the density here!
+	old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
 	
 // We assume that there should be no inflow through the outflow boundary:
 	if (old_momentum_flux < 0)
@@ -321,8 +328,7 @@ ass_convective_flux_defect
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 			StdVel[d1] += u(d1, sh) * bf.shape(sh);
-	old_momentum_flux = VecDot (StdVel, bf.normal ());
-	// Multiply old_momentum_flux by the density here!
+	old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
 	
 // We assume that there should be no inflow through the outflow boundary:
 	if (old_momentum_flux < 0)
@@ -370,7 +376,8 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 		//	B. The continuity equation
 			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-					J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2];
+					J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2]
+						* m_imDensity [ip];
 		
 		// Next IP:
 			ip++;
@@ -419,7 +426,7 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 						stdVel[d1] += u(d1, sh) * bf->shape(sh);
-				d(_P_, bf->node_id()) += VecDot (stdVel, bf->normal());
+				d(_P_, bf->node_id()) += VecDot (stdVel, bf->normal()) * m_imDensity[ip];
 			}
 		
 		// Next IP:
@@ -469,9 +476,11 @@ FVNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 
 //	register imports
 	register_import(m_imKinViscosity);
+	register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
 	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity_data ());
+	m_imDensity.set_data(spMaster->get_density ());
 
 //	register assemble functions
 	register_all_fv1_funcs(false);
