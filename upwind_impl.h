@@ -65,7 +65,7 @@ set_geometry_type()
 //	set sizes
 	TFVGeom& geo = Provider<TFVGeom>::get();
 	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_scv();
+	m_numSh = geo.num_sh();
 	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
 	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
 }
@@ -693,7 +693,7 @@ set_geometry_type()
 //	set sizes
 	TFVGeom& geo = Provider<TFVGeom>::get();
 	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_scv();
+	m_numSh = geo.num_sh();
 	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
 	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
 }

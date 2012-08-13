@@ -61,7 +61,7 @@ set_geometry_type()
 //	set sizes
 	TFVGeom& geo = Provider<TFVGeom>::get();
 	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_scv();
+	m_numSh = geo.num_sh();
 
 //	set sizes in upwind
 	if(m_spUpwind != NULL) m_spUpwind->set_geometry_type<TFVGeom>();
