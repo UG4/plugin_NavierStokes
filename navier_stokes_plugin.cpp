@@ -318,6 +318,17 @@ static void Dimension(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesCRFullUpwind", tag);
 	}
 	
+	//	NavierStokesCRWeightedUpwind
+	{
+		typedef NavierStokesCRWeightedUpwind<dim> T;
+		typedef INavierStokesCRUpwind<dim> TBase;
+		string name = string("NavierStokesCRWeightedUpwind").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+		.template add_constructor<void (*)(number)>("Weight factor")
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesCRWeightedUpwind", tag);
+	}
+	
 
 /////////////////////////////////////////////////////////////////////////////
 // Stabilization

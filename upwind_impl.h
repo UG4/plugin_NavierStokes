@@ -804,52 +804,58 @@ compute(const CRFVGeometry<TElem, dim>* geo,
     }
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Skewed Upwind and Linear Profile Skewed Upwind
-/////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+// Weighted Upwind on Crouzeix-Raviart type elements
+// upwinding between full and no upwind
+// shapes computed as (1-m_weight)*no_upwind_shape + m_weight*full_upwind_shape
+//////////////////////////////////////////////////////////////////////////////////
 
-/// computes the closest node to a elem side ray intersection
-template <typename TRefElem, int TWorldDim>
-void GetNodeNextToCutCR(size_t& coOut,
-                      const MathVector<TWorldDim>& IP,
-                      const MathVector<TWorldDim>& IPVel,
-                      const MathVector<TWorldDim>* vCornerCoords)
+template <int TDim>
+template <typename TElem>
+void
+NavierStokesCRWeightedUpwind<TDim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
 {
-//	help variables
-	size_t side = 0;
-	MathVector<TWorldDim> globalIntersection;
-	MathVector<TRefElem::dim> localIntersection;
+//	two help vectors
+	MathVector<dim> dist;
 
-//	compute intersection of ray in direction of ip velocity with elem side
-//	we search the ray only in upwind direction
-	if(!ElementSideRayIntersection<TRefElem, TWorldDim>
-		(	side, globalIntersection, localIntersection,
-			IP, IPVel, false /* i.e. search upwind */, vCornerCoords))
-		UG_THROW("GetNodeNextToCut: Cannot find cut side.");
+// 	get corners of elem
+    const MathVector<dim>* elementfaces = geo->scv_global_ips();
 
-//	get reference element
-	static const TRefElem& rRefElem = Provider<TRefElem>::get();
-	const int dim = TRefElem::dim;
-
-// 	reset minimum
-	number min = std::numeric_limits<number>::max();
-
-// 	loop corners of side
-	for(size_t i = 0; i < rRefElem.num(dim-1, side, 0); ++i)
+// 	set full upwind shapes
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
-	// 	get corner
-		const size_t co = rRefElem.id(dim-1, side, 0, i);
+    //	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
-	// 	Compute Distance to intersection
-		number dist = VecDistanceSq(globalIntersection, vCornerCoords[co]);
+    //  reset shapes to zero for all IPs
+        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
+        	vUpShapeSh[ip][sh]=0.0;
 
-	// 	if distance is smaller, choose this node
-		if(dist < min)
+	// 	compute upwind shapes
+        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
+        if(flux > 0.0)
+        {
+        	vUpShapeSh[ip][scvf.from()] = m_weight*1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
+        }
+        else
+        {
+        	vUpShapeSh[ip][scvf.to()] = m_weight*1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
+        }
+		
+	//	add no upwind shapes
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 		{
-			min = dist;
-			coOut = co;
-		}
-	}
+			//	set upwind shape
+			vUpShapeSh[ip][sh] += (1-m_weight) * scvf.shape(sh);
+		}	
+    }
 }
 
 } // namespace NavierStokes
