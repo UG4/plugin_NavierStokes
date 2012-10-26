@@ -160,7 +160,7 @@ ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 	//	get and check current and old solution
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
-			UG_THROW("NavierStokes::ass_dA_elem: "
+			UG_THROW("NavierStokes::ass_JA_elem: "
 							" Stabilization needs exactly two time points.");
 
 	//	remember local solutions
