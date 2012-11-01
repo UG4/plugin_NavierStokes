@@ -107,6 +107,20 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "CRNavierStokesWall", tag);
 	}
 	
+	typedef ug::GridFunction<TDomain, SurfaceDoFDistribution, TAlgebra> TFct;
+	
+	//	TurbulentViscosityData
+	{
+		string name = string("TurbulentViscosityData").append(suffix);
+		typedef TurbulentViscosityData<TFct> T;
+		typedef UserData<number, dim> TBase;
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)()>(" ")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "TurbulentViscosityData", tag);
+	}
+
+	
 }
 
 /**
