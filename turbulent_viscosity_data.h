@@ -188,7 +188,7 @@ class TurbulentViscosityData
 			//	get grid of domain
 			grid_type& grid = *domain.grid();
 						
-		//	grid.template grid.attach_to<VertexBase>(aTurbulentViscosity);
+			grid.template attach_to<side_type>(aTurbulentViscosity);
 			
 		};
 

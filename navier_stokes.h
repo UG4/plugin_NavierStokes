@@ -20,6 +20,7 @@
 #include "navier_stokes.h"
 #include "upwind.h"
 #include "stabilization.h"
+#include "turbulent_viscosity_data.h"
 
 namespace ug{
 namespace NavierStokes{
