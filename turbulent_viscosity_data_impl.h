@@ -10,6 +10,7 @@
 
 #include "common/common.h"
 
+#include "turbulent_viscosity_data.h"
 #include "lib_disc/common/subset_group.h"
 #include "lib_disc/common/function_group.h"
 #include "lib_disc/common/groups_util.h"
@@ -20,12 +21,20 @@
 
 
 namespace ug{
+namespace NavierStokes{
 
 template<typename TGridFunction>
-void TurbulentViscosityData<TGridFunction>::update(TGridFunction u){
-	
-} 
-	
+bool CRSmagorinskyTurbViscData<TGridFunction>::update(const TGridFunction& u){
+	return true;
+}
+
+template<typename TGridFunction>
+bool CRDynamicTurbViscData<TGridFunction>::update(const TGridFunction& u){
+	UG_LOG("Dynamic model not implemented yet.\n");
+	return true;
+}
+
+} // namespace NavierStokes
 } // end namespace ug
 
 #endif /* __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA_IMPL_H_ */

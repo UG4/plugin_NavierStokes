@@ -17,6 +17,7 @@
 #include "lib_disc/spatial_disc/user_data/user_data.h"
 
 namespace ug{
+namespace NavierStokes{
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 class StdTurbulentViscosityData
@@ -137,15 +138,18 @@ class StdTurbulentViscosityData
 
 
 template <typename TGridFunction>
-class SmagorinskiViscosityData
+class CRSmagorinskyTurbViscData
 	: public StdTurbulentViscosityData<number, TGridFunction::dim,
-	  	  	  SmagorinskiViscosityData<TGridFunction>,TGridFunction >
+	  	  	  CRSmagorinskyTurbViscData<TGridFunction>,TGridFunction >
 {
 	///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
 
 	///	algebra type
 		typedef typename TGridFunction::algebra_type algebra_type;
+
+	/// position accessor type
+		typedef typename domain_type::position_accessor_type position_accessor_type;
 
 	///	world dimension
 		static const int dim = domain_type::dim;
@@ -159,24 +163,22 @@ class SmagorinskiViscosityData
     /// side type
 		typedef typename elem_type::side side_type;
 
-		typedef typename Grid::VertexAttachmentAccessor<Attachment<number > > aNumber;
+		typedef typename Grid::AttachmentAccessor<side_type,Attachment<number > > aNumber;
 
 	private:
-	// grid function
-		SmartPtr<TGridFunction> m_spGridFct;
 		
-	//  
+		grid_type* m_grid;
+
+	//  turbulent viscosity attachment
 		aNumber m_aTurbulentViscosity;
-
-	//	component of function
-		size_t m_fct;
-
-	//	local finite element id
-		LFEID m_lfeID;
 		
 		bool m_init;
 		
+	//  Smagorinsky model parameter, typical values [0.01 0.1]
+		number m_c;
+
 		void initTVAttachment(TGridFunction u){
+
 			//	get domain of grid function
 			domain_type& domain = *u.domain().get();
 
@@ -186,7 +188,7 @@ class SmagorinskiViscosityData
 			//	get grid of domain
 			grid_type& grid = *domain.grid();
 
-			// grid_type::template traits<side_type>::secure_container sides;
+			m_grid = grid;
 						
 			grid.template attach_to<side_type>(m_aTurbulentViscosity);
 			
@@ -194,9 +196,15 @@ class SmagorinskiViscosityData
 
 	public:
 	/// constructor
-		SmagorinskiViscosityData(){ m_init = false; }
+		CRSmagorinskyTurbViscData(number c = 0.05) : m_init(false) {
+			m_c = c;
+		}
 		
-		virtual ~SmagorinskiViscosityData() {};
+		virtual ~CRSmagorinskyTurbViscData() {};
+
+		void set_model_parameter(number c){
+			m_c = c;
+		}
 
 		void reset(){ m_init=false; }
 		
@@ -212,12 +220,18 @@ class SmagorinskiViscosityData
 		                     const MathMatrix<refDim, dim>* vJT = NULL) const
 		{
 		//	reference object id
-			const ReferenceObjectID roid = elem->reference_object_id();
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
 		//	get trial space
 			try{
 			const LocalShapeFunctionSet<refDim>& rTrialSpace =
-					LocalShapeFunctionSetProvider::get<refDim>(roid, m_lfeID);
+					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
 
 		//	memory for shapes
 			std::vector<number> vShape;
@@ -228,29 +242,144 @@ class SmagorinskiViscosityData
 			//	evaluate at shapes at ip
 				rTrialSpace.shapes(vShape, vLocIP[ip]);
 
-			//	get multiindices of element
-				std::vector<MultiIndex<2> > ind;
-				m_spGridFct->multi_indices(elem, m_fct, ind);
-
 			// 	compute solution at integration point
 				vValue[ip] = 0.0;
 				for(size_t sh = 0; sh < vShape.size(); ++sh)
 				{
-					const number valSH = DoFRef(*m_spGridFct, ind[sh]);
+					const number valSH = m_aTurbulentViscosity[sides[sh]];
 					 vValue[ip] += valSH * vShape[sh];
 				}
 			}
 
 			}catch(UGError_LocalShapeFunctionSetNotRegistered& ex){
 				UG_THROW("TurbulentViscosityData: "<< ex.get_msg()<<", Reference Object: "
-				         <<roid<<", Trial Space: "<<m_lfeID<<", refDim="<<refDim);
+				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
 			}
 		}
 		
-		virtual bool update(const TGridFunction& u){return true;};
+		bool update(const TGridFunction& u);
+};
+
+template <typename TGridFunction>
+class CRDynamicTurbViscData
+	: public StdTurbulentViscosityData<number, TGridFunction::dim,
+	  	  	  CRDynamicTurbViscData<TGridFunction>,TGridFunction >
+{
+	///	domain type
+		typedef typename TGridFunction::domain_type domain_type;
+
+	///	algebra type
+		typedef typename TGridFunction::algebra_type algebra_type;
+
+	/// position accessor type
+		typedef typename domain_type::position_accessor_type position_accessor_type;
+
+	///	world dimension
+		static const int dim = domain_type::dim;
+
+	///	grid type
+		typedef typename domain_type::grid_type grid_type;
+
+	/// element type
+		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+    /// side type
+		typedef typename elem_type::side side_type;
+
+		typedef typename Grid::AttachmentAccessor<side_type,Attachment<number > > aNumber;
+
+	private:
+		
+		grid_type* m_grid;
+
+	//  turbulent viscosity attachment
+		aNumber m_aTurbulentViscosity;
+		
+		bool m_init;
+		
+		void initTVAttachment(TGridFunction u){
+
+			//	get domain of grid function
+			domain_type& domain = *u.domain().get();
+
+			//	get grid type of domain
+			typedef typename domain_type::grid_type grid_type;
+
+			//	get grid of domain
+			grid_type& grid = *domain.grid();
+
+			m_grid = grid;
+						
+			grid.template attach_to<side_type>(m_aTurbulentViscosity);
+			
+		};
+
+	public:
+	/// constructor
+		CRDynamicTurbViscData(){ m_init = false; }
+		
+		virtual ~CRDynamicTurbViscData() {};
+
+		void reset(){ m_init=false; }
+		
+		template <int refDim>
+		inline void evaluate(number vValue[],
+		                     const MathVector<dim> vGlobIP[],
+		                     number time, int si,
+		                     LocalVector& u,
+		                     GeometricObject* elem,
+		                     const MathVector<dim> vCornerCoords[],
+		                     const MathVector<refDim> vLocIP[],
+		                     const size_t nip,
+		                     const MathMatrix<refDim, dim>* vJT = NULL) const
+		{
+		//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+		//	get trial space
+			try{
+			const LocalShapeFunctionSet<refDim>& rTrialSpace =
+					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+		//	memory for shapes
+			std::vector<number> vShape;
+
+		//	loop ips
+			for(size_t ip = 0; ip < nip; ++ip)
+			{
+			//	evaluate at shapes at ip
+				rTrialSpace.shapes(vShape, vLocIP[ip]);
+
+			// 	compute solution at integration point
+				vValue[ip] = 0.0;
+				for(size_t sh = 0; sh < vShape.size(); ++sh)
+				{
+					const number valSH = m_aTurbulentViscosity[sides[sh]];
+					 vValue[ip] += valSH * vShape[sh];
+				}
+			}
+
+			}catch(UGError_LocalShapeFunctionSetNotRegistered& ex){
+				UG_THROW("TurbulentViscosityData: "<< ex.get_msg()<<", Reference Object: "
+				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
+			}
+		}
+		
+		bool update(const TGridFunction& u);
 };
 
 
-};
+
+} // namespace NavierStokes
+} // end namespace ug
+
+// include implementation
+#include "turbulent_viscosity_data_impl.h"
 
 #endif /* __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA__ */

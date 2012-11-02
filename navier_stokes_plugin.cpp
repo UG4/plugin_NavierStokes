@@ -111,15 +111,28 @@ static void DomainAlgebra(Registry& reg, string grp)
 	
 	typedef ug::GridFunction<TDomain, SurfaceDoFDistribution, TAlgebra> TFct;
 	
-	//	TurbulentViscosityData
+	// Turbulent viscosity data
+	// Smagorinsky model
 	{
-		string name = string("TurbulentViscosityData").append(suffix);
-		typedef SmagorinskiViscosityData<TFct> T;
+		string name = string("CRSmagorinskyTurbViscData").append(suffix);
+		typedef CRSmagorinskyTurbViscData<TFct> T;
+		typedef UserData<number, dim> TBase;
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)(number)>("Model parameter")
+			.add_method("set_model_parameter", &T::set_model_parameter)
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "CRSmagorinskyTurbViscData", tag);
+	}
+
+	// Dynamic model
+	{
+		string name = string("CRDynamicTurbViscData").append(suffix);
+		typedef CRSmagorinskyTurbViscData<TFct> T;
 		typedef UserData<number, dim> TBase;
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)()>(" ")
 			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "TurbulentViscosityData", tag);
+		reg.add_class_to_group(name, "CRDynamicTurbViscData", tag);
 	}
 
 	
