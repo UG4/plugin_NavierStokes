@@ -14,6 +14,7 @@
 #include "navier_stokes_bnd.h"
 #include "navier_stokes_cr_bnd.h"
 #include "no_normal_stress_outflow.h"
+#include "turbulent_viscosity_data.h"
 
 using namespace std;
 using namespace ug::bridge;
@@ -112,7 +113,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 	//	TurbulentViscosityData
 	{
 		string name = string("TurbulentViscosityData").append(suffix);
-		typedef TurbulentViscosityData<TFct> T;
+		typedef SmagorinskiViscosityData<TFct> T;
 		typedef UserData<number, dim> TBase;
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)()>(" ")

@@ -13,16 +13,12 @@
 #include "lib_disc/common/subset_group.h"
 #include "lib_disc/common/function_group.h"
 #include "lib_disc/common/groups_util.h"
-#include "lib_disc/quadrature/quadrature.h"
 #include "lib_disc/local_finite_element/local_shape_function_set.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
-#include "lib_disc/reference_element/reference_element.h"
-#include "lib_disc/reference_element/reference_mapping_provider.h"
-#include "lib_grid/algorithms/attachment_util.h"
 
 namespace ug{
 
-template <typename TData, int dim, typename TImpl>
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
 class StdTurbulentViscosityData
 	: 	public UserData<TData,dim>
 {
@@ -129,6 +125,8 @@ class StdTurbulentViscosityData
 			UG_THROW("Not implemented.");
 		}
 
+		virtual bool update(const TGridFunction& u) = 0;
+
 	protected:
 	///	access to implementation
 		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
@@ -139,13 +137,13 @@ class StdTurbulentViscosityData
 
 
 template <typename TGridFunction>
-class TurbulentViscosityData
+class SmagorinskiViscosityData
 	: public StdTurbulentViscosityData<number, TGridFunction::dim,
-	  	  	  	  	  	  	  	  TurbulentViscosityData<TGridFunction> >
+	  	  	  SmagorinskiViscosityData<TGridFunction>,TGridFunction >
 {
 	///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
-		
+
 	///	algebra type
 		typedef typename TGridFunction::algebra_type algebra_type;
 
@@ -154,21 +152,21 @@ class TurbulentViscosityData
 
 	///	grid type
 		typedef typename domain_type::grid_type grid_type;
-		
+
 	/// element type
 		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
-		
+
     /// side type
 		typedef typename elem_type::side side_type;
 
 		typedef typename Grid::VertexAttachmentAccessor<Attachment<number > > aNumber;
-	
+
 	private:
 	// grid function
 		SmartPtr<TGridFunction> m_spGridFct;
 		
 	//  
-		aNumber aTurbulentViscosity;
+		aNumber m_aTurbulentViscosity;
 
 	//	component of function
 		size_t m_fct;
@@ -187,15 +185,19 @@ class TurbulentViscosityData
 
 			//	get grid of domain
 			grid_type& grid = *domain.grid();
+
+			// grid_type::template traits<side_type>::secure_container sides;
 						
-			grid.template attach_to<side_type>(aTurbulentViscosity);
+			grid.template attach_to<side_type>(m_aTurbulentViscosity);
 			
 		};
 
 	public:
 	/// constructor
-		TurbulentViscosityData(){ m_init = false; }
+		SmagorinskiViscosityData(){ m_init = false; }
 		
+		virtual ~SmagorinskiViscosityData() {};
+
 		void reset(){ m_init=false; }
 		
 		template <int refDim>
@@ -235,7 +237,7 @@ class TurbulentViscosityData
 				for(size_t sh = 0; sh < vShape.size(); ++sh)
 				{
 					const number valSH = DoFRef(*m_spGridFct, ind[sh]);
-					vValue[ip] += valSH * vShape[sh];
+					 vValue[ip] += valSH * vShape[sh];
 				}
 			}
 
@@ -245,11 +247,10 @@ class TurbulentViscosityData
 			}
 		}
 		
-		void update(TGridFunction u);
-		
+		virtual bool update(const TGridFunction& u){return true;};
 };
 
 
-} // end namespace ug
+};
 
 #endif /* __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA__ */
