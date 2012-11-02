@@ -7,6 +7,7 @@
  */
 
 #include "bridge/util.h"
+#include "bridge/util_domain_algebra_dependent.h"
 
 #include "navier_stokes.h"
 #include "upwind.h"
