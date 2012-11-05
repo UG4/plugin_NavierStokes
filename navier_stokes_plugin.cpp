@@ -127,7 +127,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 	// Dynamic model
 	{
 		string name = string("CRDynamicTurbViscData").append(suffix);
-		typedef CRSmagorinskyTurbViscData<TFct> T;
+		typedef CRDynamicTurbViscData<TFct> T;
 		typedef UserData<number, dim> TBase;
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)()>(" ")
