@@ -19,6 +19,9 @@
 namespace ug{
 namespace NavierStokes{
 
+/*
+concept derived from grid_function_user_data.h
+*/
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 class StdTurbulentViscosityData
 	: 	public UserData<TData,dim>
@@ -160,18 +163,40 @@ class CRSmagorinskyTurbViscData
 	/// element type
 		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
 
+	/// element iterator
+		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
     /// side type
 		typedef typename elem_type::side side_type;
 
-		typedef typename Grid::AttachmentAccessor<side_type,Attachment<number > > aNumber;
+	/// attachment accessor types
+		typedef MathMatrix<dim,dim> dimMat;
+		typedef Attachment<dimMat> ATensor;
+
+		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
+		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
+		typedef typename Grid::VertexAttachmentAccessor<ANumber> aVertexNumber;
 
 	private:
 		
 		grid_type* m_grid;
 
 	//  turbulent viscosity attachment
-		aNumber m_aTurbulentViscosity;
+		aSideNumber m_acTurbulentViscosity;
+		ANumber m_aTurbulentViscosity;
 		
+	//  volume attachment
+		aSideNumber m_acVolume;
+		ANumber m_aVolume;
+
+	//	deformation tensor attachment
+		aSideTensor m_acDeformation;
+		ATensor m_aDeformation;
+
+	//  vertex viscosity used for transfer to lower levels
+		aSideNumber m_acVertexViscosity;
+		ANumber m_aVertexViscosity;
+
 		bool m_init;
 		
 	//  Smagorinsky model parameter, typical values [0.01 0.1]
@@ -182,17 +207,25 @@ class CRSmagorinskyTurbViscData
 			//	get domain of grid function
 			domain_type& domain = *u.domain().get();
 
-			//	get grid type of domain
-			typedef typename domain_type::grid_type grid_type;
-
 			//	get grid of domain
-			grid_type& grid = *domain.grid();
-
-			m_grid = grid;
+			m_grid = *domain.grid();
 						
-			grid.template attach_to<side_type>(m_aTurbulentViscosity);
+			m_grid.template attach_to<side_type>(m_aTurbulentViscosity);
+			m_acTurbulentViscosity(m_grid,m_aTurbulentViscosity);
 			
+			m_grid.template attach_to<side_type>(m_aVolume);
+			m_acVolume(m_grid,m_aVolume);
+
+			m_grid.template attach_to<side_type>(m_aDeformation);
+			m_acDeformation(m_grid,m_aDeformation);
+
+			m_grid.template attach_to_vertices(m_aVertexViscosity);
+			m_acVertexViscosity(m_grid,m_aVertexViscosity);
+
+			m_init=true;
 		};
+
+		void calculate_deformation_vol(TGridFunction& u);
 
 	public:
 	/// constructor
@@ -246,7 +279,7 @@ class CRSmagorinskyTurbViscData
 				vValue[ip] = 0.0;
 				for(size_t sh = 0; sh < vShape.size(); ++sh)
 				{
-					const number valSH = m_aTurbulentViscosity[sides[sh]];
+					const number valSH = m_acTurbulentViscosity[sides[sh]];
 					 vValue[ip] += valSH * vShape[sh];
 				}
 			}
@@ -293,7 +326,7 @@ class CRDynamicTurbViscData
 		grid_type* m_grid;
 
 	//  turbulent viscosity attachment
-		aNumber m_aTurbulentViscosity;
+		aNumber m_acTurbulentViscosity;
 		
 		bool m_init;
 		
@@ -305,12 +338,10 @@ class CRDynamicTurbViscData
 			//	get grid type of domain
 			typedef typename domain_type::grid_type grid_type;
 
-			//	get grid of domain
-			grid_type& grid = *domain.grid();
-
-			m_grid = grid;
+			// get domain grid
+			m_grid = *domain.grid();
 						
-			grid.template attach_to<side_type>(m_aTurbulentViscosity);
+			m_grid.template attach_to<side_type>(m_acTurbulentViscosity);
 			
 		};
 
@@ -360,7 +391,7 @@ class CRDynamicTurbViscData
 				vValue[ip] = 0.0;
 				for(size_t sh = 0; sh < vShape.size(); ++sh)
 				{
-					const number valSH = m_aTurbulentViscosity[sides[sh]];
+					const number valSH = m_acTurbulentViscosity[sides[sh]];
 					 vValue[ip] += valSH * vShape[sh];
 				}
 			}
