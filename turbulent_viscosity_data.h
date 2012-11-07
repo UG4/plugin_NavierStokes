@@ -202,7 +202,10 @@ class CRSmagorinskyTurbViscData
 	//  Smagorinsky model parameter, typical values [0.01 0.1]
 		number m_c;
 
-		void initTVAttachment(TGridFunction u){
+		//	approximation space for level and surface grid
+		SmartPtr<ApproximationSpace<TDomain> > m_spApproxSpace;
+
+		void init(const TGridFunction& u){
 
 			//	get domain of grid function
 			domain_type& domain = *u.domain().get();
@@ -225,7 +228,7 @@ class CRSmagorinskyTurbViscData
 			m_init=true;
 		};
 
-		void calculate_deformation_vol(TGridFunction& u);
+		void calculate_deformation_vol(const TGridFunction& u);
 
 	public:
 	/// constructor

@@ -24,7 +24,7 @@ namespace ug{
 namespace NavierStokes{
 
 template<typename TGridFunction>
-void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(TGridFunction& u){
+void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(const TGridFunction& u){
 	//	get domain of grid function
 	domain_type& domain = *u.domain().get();
 
@@ -81,13 +81,15 @@ void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(TGridFu
 
 			for (size_t s=0;s < nofsides;s++)
 			{
-				for (size_t d=0;d<nofsides;d++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+				for (size_t d=0;d<dim;d++){
 				//	get indices of function fct on vertex
 					u.inner_multi_indices(sides[s], d, multInd);
 
 					//	read value of index from vector
 					uValue[s][d]=DoFRef(u,multInd[0]);
 				}
+				m_acVolume += scv.volume();
 			}
 
 			for (size_t ip=0;ip<nip;ip++){
@@ -110,7 +112,32 @@ void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(TGridFu
 				m_acDeformation[sides[scvf.to()]]-=ipDefTensorFlux;
 			}
 		}
-	};
+		// average and compute turbulent viscosity , loop over sides
+		iter = u.template begin<side_type>(si);
+		iterEnd = u.template end<side_type>(si);
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			number tensorNorm=0;
+			elem_type* elem = *iter;
+			dimMat defTensor = m_acDeformation[elem];
+			number delta = m_acVolume[elem];
+			// complete deformation tensor computation by averaging
+			defTensor/=delta;
+			// compute norm of tensor
+			for (size_t d1=0;d1<dim;d1++)
+				for (size_t d2=0;d2<dim;d2++){
+					tensorNorm += 2 * defTensor[d1][d2] * defTensor[d1][d2];
+				}
+			tensorNorm = sqrt(tensorNorm);
+			// for possible other choices of delta see Fršhlich p 160
+			delta = pow(delta,(number)1.0/(number)dim);
+			// calculate viscosity constant
+			m_acTurbulentViscosity[elem] = m_c * delta*delta * tensorNorm;
+		}
+		// transfer to lower levels
+
+	}
 }
 
 template<typename TGridFunction>
