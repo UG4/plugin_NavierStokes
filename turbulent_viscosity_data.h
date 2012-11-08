@@ -203,7 +203,7 @@ class CRSmagorinskyTurbViscData
 		number m_c;
 
 		//	approximation space for level and surface grid
-		SmartPtr<ApproximationSpace<TDomain> > m_spApproxSpace;
+		SmartPtr<ApproximationSpace<domain_type> > m_spApproxSpace;
 
 		void init(const TGridFunction& u){
 
