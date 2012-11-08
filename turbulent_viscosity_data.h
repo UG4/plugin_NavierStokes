@@ -129,7 +129,7 @@ class StdTurbulentViscosityData
 			UG_THROW("Not implemented.");
 		}
 
-		virtual bool update(const TGridFunction& u) = 0;
+		virtual void update() = 0;
 
 	protected:
 	///	access to implementation
@@ -163,11 +163,14 @@ class CRSmagorinskyTurbViscData
 	/// element type
 		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
 
+    /// side type
+		typedef typename elem_type::side side_type;
+
 	/// element iterator
 		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
-    /// side type
-		typedef typename elem_type::side side_type;
+	/// side iterator
+		typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
 
 	/// attachment accessor types
 		typedef MathMatrix<dim,dim> dimMat;
@@ -178,6 +181,8 @@ class CRSmagorinskyTurbViscData
 		typedef typename Grid::VertexAttachmentAccessor<ANumber> aVertexNumber;
 
 	private:
+	// grid function
+		SmartPtr<TGridFunction> m_u;
 		
 		grid_type* m_grid;
 
@@ -227,8 +232,6 @@ class CRSmagorinskyTurbViscData
 
 			m_init=true;
 		};
-
-		void calculate_deformation_vol(const TGridFunction& u);
 
 	public:
 	/// constructor
@@ -293,7 +296,7 @@ class CRSmagorinskyTurbViscData
 			}
 		}
 		
-		bool update(const TGridFunction& u);
+		void update();
 };
 
 template <typename TGridFunction>
@@ -405,7 +408,7 @@ class CRDynamicTurbViscData
 			}
 		}
 		
-		bool update(const TGridFunction& u);
+		void update();
 };
 
 

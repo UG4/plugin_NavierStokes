@@ -24,9 +24,9 @@ namespace ug{
 namespace NavierStokes{
 
 template<typename TGridFunction>
-void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(const TGridFunction& u){
+void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	//	get domain of grid function
-	domain_type& domain = *u.domain().get();
+	domain_type& domain = *m_u->domain().get();
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -45,8 +45,8 @@ void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(const T
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
 		//	get iterators
-		ElemIterator iter = u.template begin<elem_type>(si);
-		ElemIterator iterEnd = u.template end<elem_type>(si);
+		ElemIterator iter = m_u->template begin<elem_type>(si);
+		ElemIterator iterEnd = m_u->template end<elem_type>(si);
 
 		//	loop elements of dimension
 		for(  ;iter !=iterEnd; ++iter)
@@ -60,14 +60,14 @@ void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(const T
 				coCoord[i] = posAcc[vVrt[i]];
 			};
 
-			//	evaluate finite volume geometry
+					//	evaluate finite volume geometry
 			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
 
 			static const size_t MaxNumSidesOfElem = 10;
 
 			typedef MathVector<dim> MVD;
 			std::vector<MVD> uValue(MaxNumSidesOfElem);
-			std::vector<MVD> ipVelocity(MaxNumSidesOfElem);
+			MVD ipVelocity;
 
 			typename grid_type::template traits<side_type>::secure_container sides;
 
@@ -82,29 +82,29 @@ void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(const T
 			for (size_t s=0;s < nofsides;s++)
 			{
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
-				for (size_t d=0;d<dim;d++){
+				for (int d=0;d<dim;d++){
 				//	get indices of function fct on vertex
-					u.inner_multi_indices(sides[s], d, multInd);
+					m_u->multi_indices(sides[s], d, multInd);
 
 					//	read value of index from vector
-					uValue[s][d]=DoFRef(u,multInd[0]);
+					uValue[s][d]=DoFRef(*m_u,multInd[0]);
 				}
-				m_acVolume += scv.volume();
+				m_acVolume[sides[s]] += scv.volume();
 			}
 
 			for (size_t ip=0;ip<nip;ip++){
 				// 	get current SCVF
-				ipVelocity[ip] = 0;
+				ipVelocity = 0;
 				const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
 				for (size_t s=0;s < nofsides;s++){
-					for (size_t d=0;d<dim;d++){
-					    ipVelocity[ip][d] += scvf.shape(s)*uValue[s][d];
+					for (int d=0;d<dim;d++){
+					    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
 					};
 				};
 				dimMat ipDefTensorFlux;
 				ipDefTensorFlux = 0;
-				for (size_t d=0;d<dim;d++){
-					for (size_t j=0;j<d;j++){
+				for (int d=0;d<dim;d++){
+					for (int j=0;j<d;j++){
 						ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
 					}
 				}
@@ -113,20 +113,20 @@ void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(const T
 			}
 		}
 		// average and compute turbulent viscosity , loop over sides
-		iter = u.template begin<side_type>(si);
-		iterEnd = u.template end<side_type>(si);
-		for(  ;iter !=iterEnd; ++iter)
+		SideIterator sideIter = m_u->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_u->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
 			//	get Elem
 			number tensorNorm=0;
-			elem_type* elem = *iter;
+			side_type* elem = *sideIter;
 			dimMat defTensor = m_acDeformation[elem];
 			number delta = m_acVolume[elem];
 			// complete deformation tensor computation by averaging
 			defTensor/=delta;
 			// compute norm of tensor
-			for (size_t d1=0;d1<dim;d1++)
-				for (size_t d2=0;d2<dim;d2++){
+			for (int d1=0;d1<dim;d1++)
+				for (int d2=0;d2<dim;d2++){
 					tensorNorm += 2 * defTensor[d1][d2] * defTensor[d1][d2];
 				}
 			tensorNorm = sqrt(tensorNorm);
@@ -136,19 +136,31 @@ void CRSmagorinskyTurbViscData<TGridFunction>::calculate_deformation_vol(const T
 			m_acTurbulentViscosity[elem] = m_c * delta*delta * tensorNorm;
 		}
 		// transfer to lower levels
-
+		for (size_t lev=m_spApproxSpace->num_levels()-2;(int)lev>=0;lev--){
+			const LevelDoFDistribution& lDD = *m_spApproxSpace->level_dof_distribution(lev);
+			const MultiGrid& grid = lDD.multi_grid();
+			if (lev==0) break;
+			typedef typename LevelDoFDistribution::template traits<side_type>::const_iterator coarseLevelSideIter;
+			coarseLevelSideIter clsIter, clsIterEnd;
+			clsIter = lDD.template begin<side_type>(si);
+			clsIterEnd = lDD.template end<side_type>(si);
+			for (;clsIter != clsIterEnd;clsIter++){
+				side_type* elem = *clsIter;
+				size_t numChildren = grid.num_children<side_type>(elem);
+				number avgValue=0;
+				for (size_t i=0;i<numChildren;i++){
+					avgValue += m_acTurbulentViscosity[grid.get_child<side_type>(elem, i)];
+				}
+				avgValue/=numChildren;
+				m_acTurbulentViscosity[elem] = avgValue;
+			}
+		}
 	}
 }
 
 template<typename TGridFunction>
-bool CRSmagorinskyTurbViscData<TGridFunction>::update(const TGridFunction& u){
-	return true;
-}
-
-template<typename TGridFunction>
-bool CRDynamicTurbViscData<TGridFunction>::update(const TGridFunction& u){
+void CRDynamicTurbViscData<TGridFunction>::update(){
 	UG_LOG("Dynamic model not implemented yet.\n");
-	return true;
 }
 
 } // namespace NavierStokes
