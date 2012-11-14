@@ -18,7 +18,7 @@
 #include "lib_disc/local_finite_element/local_shape_function_set.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
 #include "lib_disc/reference_element/reference_mapping_provider.h"
-
+#include "lib_grid/algorithms/attachment_util.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -33,6 +33,11 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	DimCRFVGeometry<dim> geo;
+
+	// initialize attachment values with 0
+	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acVolume,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
@@ -58,9 +63,10 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 			for(size_t i = 0; i < numVertices; ++i){
 				vVrt[i] = elem->vertex(i);
 				coCoord[i] = posAcc[vVrt[i]];
+				// UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
 			};
 
-					//	evaluate finite volume geometry
+			//	evaluate finite volume geometry
 			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
 
 			static const size_t MaxNumSidesOfElem = 10;
@@ -73,7 +79,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 
 			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
 
-			m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
 			size_t nofsides = geo.num_scv();
 
@@ -89,6 +95,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 					//	read value of index from vector
 					uValue[s][d]=DoFRef(*m_u,multInd[0]);
 				}
+				// UG_LOG("scv.volume(" << s << ")=" << scv.volume() << "\n");
 				m_acVolume[sides[s]] += scv.volume();
 			}
 
@@ -106,10 +113,17 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 				for (int d=0;d<dim;d++){
 					for (int j=0;j<d;j++){
 						ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
+						//UG_LOG("ipTensorFlux(" << d << "," << j << ")=" << ipDefTensorFlux[d][j] << "\n");
 					}
 				}
+				//UG_LOG("Tensor(" << scvf.from() << ")=" << m_acDeformation[sides[scvf.from()]] << "\n");
+				//UG_LOG("Tensor(" << scvf.to() << ")=" << m_acDeformation[sides[scvf.to()]] << "\n");
 				m_acDeformation[sides[scvf.from()]]+=ipDefTensorFlux;
 				m_acDeformation[sides[scvf.to()]]-=ipDefTensorFlux;
+				//UG_LOG("&side_from = " << sides[scvf.from()] << "\n");
+				//UG_LOG("Tensor(" << scvf.from() << ")=" << m_acDeformation[sides[scvf.from()]] << "\n");
+				//UG_LOG("&side_to = " << sides[scvf.to()] << "\n");
+				//UG_LOG("Tensor(" << scvf.to() << ")=" << m_acDeformation[sides[scvf.to()]] << "\n");
 			}
 		}
 		// average and compute turbulent viscosity , loop over sides
@@ -122,24 +136,29 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 			side_type* elem = *sideIter;
 			dimMat defTensor = m_acDeformation[elem];
 			number delta = m_acVolume[elem];
+			// UG_LOG("delta=" << delta <<  "\n");
+			// UG_LOG("&side = " << elem << "\n");
 			// complete deformation tensor computation by averaging
 			defTensor/=delta;
 			// compute norm of tensor
 			for (int d1=0;d1<dim;d1++)
 				for (int d2=0;d2<dim;d2++){
+					// UG_LOG("tensor(" << d1 << "," << d2 << ")=" << defTensor[d1][d2] << "\n");
 					tensorNorm += 2 * defTensor[d1][d2] * defTensor[d1][d2];
 				}
 			tensorNorm = sqrt(tensorNorm);
 			// for possible other choices of delta see Fršhlich p 160
 			delta = pow(delta,(number)1.0/(number)dim);
 			// calculate viscosity constant
+			// UG_LOG("c=" << m_c << " delta=" << delta << " tensor=" << tensorNorm << "\n");
 			m_acTurbulentViscosity[elem] = m_c * delta*delta * tensorNorm;
+			// UG_LOG(m_acTurbulentViscosity[elem] << "\n");
 		}
-		// transfer to lower levels
+		// transfer to lower levels, averaging over child edges (2d) / child faces (3d)
 		for (size_t lev=m_spApproxSpace->num_levels()-2;(int)lev>=0;lev--){
+			// UG_LOG("level=" << lev << "\n");
 			const LevelDoFDistribution& lDD = *m_spApproxSpace->level_dof_distribution(lev);
 			const MultiGrid& grid = lDD.multi_grid();
-			if (lev==0) break;
 			typedef typename LevelDoFDistribution::template traits<side_type>::const_iterator coarseLevelSideIter;
 			coarseLevelSideIter clsIter, clsIterEnd;
 			clsIter = lDD.template begin<side_type>(si);
@@ -153,7 +172,9 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 				}
 				avgValue/=numChildren;
 				m_acTurbulentViscosity[elem] = avgValue;
+				// UG_LOG(" " << m_acTurbulentViscosity[elem] << "\n");
 			}
+			if (lev==0) break;
 		}
 	}
 }

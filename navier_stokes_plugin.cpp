@@ -16,6 +16,7 @@
 #include "navier_stokes_cr_bnd.h"
 #include "no_normal_stress_outflow.h"
 #include "turbulent_viscosity_data.h"
+#include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
 
 using namespace std;
 using namespace ug::bridge;
@@ -117,9 +118,15 @@ static void DomainAlgebra(Registry& reg, string grp)
 		string name = string("CRSmagorinskyTurbViscData").append(suffix);
 		typedef CRSmagorinskyTurbViscData<TFct> T;
 		typedef UserData<number, dim> TBase;
-		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(number)>("Model parameter")
+		typedef INewtonUpdate TBase2;
+		reg.add_class_<T, TBase,TBase2>(name, grp)
+			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>,number)>("Approximation space, grid function, model parameter")
 			.add_method("set_model_parameter", &T::set_model_parameter)
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+		#ifdef UG_FOR_LUA
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+		#endif
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRSmagorinskyTurbViscData", tag);
 	}

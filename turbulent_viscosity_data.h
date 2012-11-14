@@ -15,11 +15,12 @@
 #include "lib_disc/common/groups_util.h"
 #include "lib_disc/local_finite_element/local_shape_function_set.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
+#include "lib_disc/lib_disc.h"
 
 namespace ug{
 namespace NavierStokes{
 
-/*
+/**
 concept derived from grid_function_user_data.h
 */
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
@@ -126,10 +127,13 @@ class StdTurbulentViscosityData
 
 		virtual void compute(LocalVector* u, GeometricObject* elem, bool bDeriv = false)
 		{
-			UG_THROW("Not implemented.");
+			const number t = this->time();
+			const int si = this->subset();
+			for(size_t s = 0; s < this->num_series(); ++s)
+				getImpl().template evaluate<dim>(this->values(s), this->ips(s), t, si,
+			                  *u, elem, NULL, this->template local_ips<dim>(s),
+			                  this->num_ip(s));
 		}
-
-		virtual void update() = 0;
 
 	protected:
 	///	access to implementation
@@ -143,7 +147,7 @@ class StdTurbulentViscosityData
 template <typename TGridFunction>
 class CRSmagorinskyTurbViscData
 	: public StdTurbulentViscosityData<number, TGridFunction::dim,
-	  	  	  CRSmagorinskyTurbViscData<TGridFunction>,TGridFunction >
+	  	  	  CRSmagorinskyTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
 {
 	///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
@@ -178,7 +182,30 @@ class CRSmagorinskyTurbViscData
 
 		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
 		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
-		typedef typename Grid::VertexAttachmentAccessor<ANumber> aVertexNumber;
+
+	public:
+		/**
+		 * This method sets the kinematic viscosity value. Kinematic viscosity is added to turbulent viscosity in evaluation routine.
+		 *
+		 * \param[in]	data		kinematic Viscosity
+		 */
+		///	\{
+		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user){
+			m_imKinViscosity = user;
+		}
+		void set_kinematic_viscosity(number val){
+			set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
+		}
+	#ifdef UG_FOR_LUA
+		void set_kinematic_viscosity(const char* fctName){
+			set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
+		}
+	#endif
+		///	\}
+
+	private:
+		///	Data import for kinematic viscosity
+		SmartPtr<UserData<number,dim> > m_imKinViscosity;
 
 	private:
 	// grid function
@@ -197,12 +224,6 @@ class CRSmagorinskyTurbViscData
 	//	deformation tensor attachment
 		aSideTensor m_acDeformation;
 		ATensor m_aDeformation;
-
-	//  vertex viscosity used for transfer to lower levels
-		aSideNumber m_acVertexViscosity;
-		ANumber m_aVertexViscosity;
-
-		bool m_init;
 		
 	//  Smagorinsky model parameter, typical values [0.01 0.1]
 		number m_c;
@@ -210,42 +231,36 @@ class CRSmagorinskyTurbViscData
 		//	approximation space for level and surface grid
 		SmartPtr<ApproximationSpace<domain_type> > m_spApproxSpace;
 
-		void init(const TGridFunction& u){
-
-			//	get domain of grid function
-			domain_type& domain = *u.domain().get();
-
-			//	get grid of domain
-			m_grid = *domain.grid();
-						
-			m_grid.template attach_to<side_type>(m_aTurbulentViscosity);
-			m_acTurbulentViscosity(m_grid,m_aTurbulentViscosity);
-			
-			m_grid.template attach_to<side_type>(m_aVolume);
-			m_acVolume(m_grid,m_aVolume);
-
-			m_grid.template attach_to<side_type>(m_aDeformation);
-			m_acDeformation(m_grid,m_aDeformation);
-
-			m_grid.template attach_to_vertices(m_aVertexViscosity);
-			m_acVertexViscosity(m_grid,m_aVertexViscosity);
-
-			m_init=true;
-		};
-
 	public:
 	/// constructor
-		CRSmagorinskyTurbViscData(number c = 0.05) : m_init(false) {
+		CRSmagorinskyTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,number c = 0.05){
 			m_c = c;
+			m_u = spGridFct;
+			m_spApproxSpace = approxSpace;
+			domain_type& domain = *m_u->domain().get();
+			grid_type& grid = *domain.grid();
+			m_grid = &grid;
+			// attachments
+			grid.template attach_to<side_type>(m_aTurbulentViscosity);
+			grid.template attach_to<side_type>(m_aVolume);
+			grid.template attach_to<side_type>(m_aDeformation);
+			// accessors
+			m_acTurbulentViscosity.access(grid,m_aTurbulentViscosity);
+			m_acVolume.access(grid,m_aVolume);
+			m_acDeformation.access(grid,m_aDeformation);
 		}
 		
-		virtual ~CRSmagorinskyTurbViscData() {};
+		virtual ~CRSmagorinskyTurbViscData() {
+			domain_type& domain = *m_u->domain().get();
+			grid_type& grid = *domain.grid();
+			grid.template detach_from<side_type>(m_aTurbulentViscosity);
+			grid.template detach_from<side_type>(m_aVolume);
+			grid.template detach_from<side_type>(m_aDeformation);
+		};
 
 		void set_model_parameter(number c){
 			m_c = c;
 		}
-
-		void reset(){ m_init=false; }
 		
 		template <int refDim>
 		inline void evaluate(number vValue[],
@@ -263,7 +278,7 @@ class CRSmagorinskyTurbViscData
 
 			typename grid_type::template traits<side_type>::secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
 
 			m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
@@ -294,15 +309,33 @@ class CRSmagorinskyTurbViscData
 				UG_THROW("TurbulentViscosityData: "<< ex.get_msg()<<", Reference Object: "
 				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
 			}
+
+			number kinViscValues[max_number_of_ips];
+			(*m_imKinViscosity)(kinViscValues,
+                    vGlobIP,
+                    time, si,
+                    u,
+                    elem,
+                    vCornerCoords,
+                    vLocIP,
+                    nip,
+                    vJT);
+			for (size_t ip=0;ip < nip;ip++){
+				// UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
+				vValue[ip] += kinViscValues[ip];
+			}
 		}
 		
+		static const size_t max_number_of_ips = 20;
+
 		void update();
+
 };
 
 template <typename TGridFunction>
 class CRDynamicTurbViscData
 	: public StdTurbulentViscosityData<number, TGridFunction::dim,
-	  	  	  CRDynamicTurbViscData<TGridFunction>,TGridFunction >
+	  	  	  CRDynamicTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
 {
 	///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
