@@ -195,7 +195,7 @@ extract_scheduled_data()
 		const ISubsetHandler& rSH = *this->function_pattern().subset_handler();
 
 	// 	loop subsets
-		for(size_t si = 0; si < subsetGroup.num_subsets(); ++si)
+		for(size_t si = 0; si < subsetGroup.size(); ++si)
 		{
 		//	get subset index
 			const int subsetIndex = subsetGroup[si];
