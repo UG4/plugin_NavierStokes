@@ -16,6 +16,7 @@
 #include "navier_stokes_cr_bnd.h"
 #include "no_normal_stress_outflow.h"
 #include "turbulent_viscosity_data.h"
+#include "cr_order_cuthill_mckee.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
 
 using namespace std;
@@ -46,6 +47,9 @@ static void DomainAlgebra(Registry& reg, string grp)
 	static const int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
+
+	typedef ApproximationSpace<TDomain> approximation_space_type;
+	typedef GridFunction<TDomain, SurfaceDoFDistribution, TAlgebra> function_type;
 
 //	NavierStokesInflow
 	{
@@ -136,13 +140,22 @@ static void DomainAlgebra(Registry& reg, string grp)
 		string name = string("CRDynamicTurbViscData").append(suffix);
 		typedef CRDynamicTurbViscData<TFct> T;
 		typedef UserData<number, dim> TBase;
-		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)()>(" ")
+		typedef INewtonUpdate TBase2;
+		reg.add_class_<T, TBase,TBase2>(name, grp)
+			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+		#ifdef UG_FOR_LUA
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+		#endif
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRDynamicTurbViscData", tag);
 	}
-
 	
+	//	Order CR-Cuthill-McKee
+	{
+		reg.add_function("OrderCRCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool)>(&OrderCRCuthillMcKee), grp);
+	}
 }
 
 /**
