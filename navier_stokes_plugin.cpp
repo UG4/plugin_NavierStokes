@@ -135,7 +135,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "CRSmagorinskyTurbViscData", tag);
 	}
 
-	// Dynamic model
+/*	// Dynamic model
 	{
 		string name = string("CRDynamicTurbViscData").append(suffix);
 		typedef CRDynamicTurbViscData<TFct> T;
@@ -150,7 +150,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		#endif
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRDynamicTurbViscData", tag);
-	}
+	}*/
 	
 	//	Order CR-Cuthill-McKee
 	{
