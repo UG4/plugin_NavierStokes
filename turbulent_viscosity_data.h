@@ -358,39 +358,117 @@ class CRDynamicTurbViscData
     /// side type
 		typedef typename elem_type::side side_type;
 
-		typedef typename Grid::AttachmentAccessor<side_type,Attachment<number > > aNumber;
+	/// element iterator
+		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
+	/// side iterator
+		typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+
+	/// attachment accessor types
+		typedef MathMatrix<dim,dim> dimMat;
+		typedef Attachment<dimMat> ATensor;
+
+		typedef MathVector<dim> vecDim;
+		typedef Attachment<vecDim> AMathVectorDim;
+
+		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
+		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
+		typedef typename Grid::AttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
+
+	public:
+		/**
+		 * This method sets the kinematic viscosity value. Kinematic viscosity is added to turbulent viscosity in evaluation routine.
+		 *
+		 * \param[in]	data		kinematic Viscosity
+		 */
+		///	\{
+		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user){
+			m_imKinViscosity = user;
+		}
+		void set_kinematic_viscosity(number val){
+			set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
+		}
+	#ifdef UG_FOR_LUA
+		void set_kinematic_viscosity(const char* fctName){
+			set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
+		}
+	#endif
+		///	\}
 
 	private:
+		///	Data import for kinematic viscosity
+		SmartPtr<UserData<number,dim> > m_imKinViscosity;
+
+	private:
+	// grid function
+		SmartPtr<TGridFunction> m_u;
 		
 		grid_type* m_grid;
 
 	//  turbulent viscosity attachment
-		aNumber m_acTurbulentViscosity;
+		aSideNumber m_acTurbulentViscosity;
+		ANumber m_aTurbulentViscosity;
 		
-		bool m_init;
+	//  turbulent model parameter attachment
+		aSideNumber m_acTurbulentC;
+		ANumber m_aTurbulentC;
+
+	//  volume attachment
+		aSideNumber m_acVolume;
+		ANumber m_aVolume;
+
+	//  coarser grid volume attachment
+		aSideNumber m_acVolumeHat;
+		ANumber m_aVolumeHat;
+
+	//  filtered u attachment
+		aSideDimVector m_acUHat;
+		AMathVectorDim m_aUHat;
+
+	//	deformation tensor attachment
+		aSideTensor m_acDeformation;
+		ATensor m_aDeformation;
 		
-		void initTVAttachment(TGridFunction u){
+	//	coarser grid deformation tensor attachment
+		aSideTensor m_acDeformationHat;
+		ATensor m_aDeformationHat;
 
-			//	get domain of grid function
-			domain_type& domain = *u.domain().get();
+	//	Leonard tensor attachment
+		aSideTensor m_acLij;
+		ATensor m_aLij;
 
-			//	get grid type of domain
-			typedef typename domain_type::grid_type grid_type;
+	//	Mij tensor attachment
+		aSideTensor m_acMij;
+		ATensor m_aMij;
 
-			// get domain grid
-			m_grid = *domain.grid();
-						
-			m_grid.template attach_to<side_type>(m_acTurbulentViscosity);
-			
-		};
+	//	approximation space for level and surface grid
+		SmartPtr<ApproximationSpace<domain_type> > m_spApproxSpace;
 
 	public:
 	/// constructor
-		CRDynamicTurbViscData(){ m_init = false; }
+		CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct){
+			m_u = spGridFct;
+			m_spApproxSpace = approxSpace;
+			domain_type& domain = *m_u->domain().get();
+			grid_type& grid = *domain.grid();
+			m_grid = &grid;
+			// attachments
+			grid.template attach_to<side_type>(m_aTurbulentViscosity);
+			grid.template attach_to<side_type>(m_aVolume);
+			grid.template attach_to<side_type>(m_aDeformation);
+			// accessors
+			m_acTurbulentViscosity.access(grid,m_aTurbulentViscosity);
+			m_acVolume.access(grid,m_aVolume);
+			m_acDeformation.access(grid,m_aDeformation);
+		}
 		
-		virtual ~CRDynamicTurbViscData() {};
-
-		void reset(){ m_init=false; }
+		virtual ~CRDynamicTurbViscData() {
+			domain_type& domain = *m_u->domain().get();
+			grid_type& grid = *domain.grid();
+			grid.template detach_from<side_type>(m_aTurbulentViscosity);
+			grid.template detach_from<side_type>(m_aVolume);
+			grid.template detach_from<side_type>(m_aDeformation);
+		};
 		
 		template <int refDim>
 		inline void evaluate(number vValue[],
@@ -408,7 +486,7 @@ class CRDynamicTurbViscData
 
 			typename grid_type::template traits<side_type>::secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
 
 			m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
@@ -439,11 +517,27 @@ class CRDynamicTurbViscData
 				UG_THROW("TurbulentViscosityData: "<< ex.get_msg()<<", Reference Object: "
 				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
 			}
+
+			number kinViscValues[max_number_of_ips];
+			(*m_imKinViscosity)(kinViscValues,
+                    vGlobIP,
+                    time, si,
+                    u,
+                    elem,
+                    vCornerCoords,
+                    vLocIP,
+                    nip,
+                    vJT);
+			for (size_t ip=0;ip < nip;ip++){
+				// UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
+				vValue[ip] += kinViscValues[ip];
+			}
 		}
 		
+		static const size_t max_number_of_ips = 20;
+
 		void update();
 };
-
 
 
 } // namespace NavierStokes
