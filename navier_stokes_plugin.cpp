@@ -17,7 +17,9 @@
 #include "no_normal_stress_outflow.h"
 #include "turbulent_viscosity_data.h"
 #include "cr_order_cuthill_mckee.h"
+#include "cr_ilut.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
+
 
 using namespace std;
 using namespace ug::bridge;
@@ -155,6 +157,21 @@ static void DomainAlgebra(Registry& reg, string grp)
 	//	Order CR-Cuthill-McKee
 	{
 		reg.add_function("OrderCRCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool)>(&OrderCRCuthillMcKee), grp);
+	}
+	
+	//	CR ILU Threshold
+	{
+		typedef CRILUTPreconditioner<TAlgebra> T;
+		typedef IPreconditioner<TAlgebra> TBase;
+		string name = string("CRILUT").append(suffix);
+		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
+		.add_constructor()
+		.add_method("set_threshold", &T::set_threshold,
+					"", "threshold", "sets threshold of incomplete LU factorisation")
+		.add_method("set_info", &T::set_info,
+					"", "info", "sets storage information output")
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "CRILUT", tag);
 	}
 }
 
