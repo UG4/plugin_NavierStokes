@@ -255,6 +255,18 @@ static void Domain(Registry& reg, string grp)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRNavierStokesNoNormalStressOutflow", tag);
 	}
+	
+//	CRNavierStokesSymBC
+	{
+		typedef CRNavierStokesSymBC<TDomain> T;
+		typedef IDomainElemDisc<TDomain> TBase;
+		string name = string("CRNavierStokesSymBC").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterDisc")
+			.add_method("add", &T::add, "", "Subset(s)")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "CRNavierStokesSymBC", tag);
+	}
 }
 
 /**
