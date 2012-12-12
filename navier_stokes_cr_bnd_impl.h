@@ -610,15 +610,15 @@ CRNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 	m_vBndSubSetIndex.clear ();
 
 //	register imports
-	register_import(m_imKinViscosity);
-	register_import(m_imDensity);
+	this->register_import(m_imKinViscosity);
+	this->register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
 	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity_data ());
 	m_imDensity.set_data(spMaster->get_density ());
 
 //	register assemble functions
-	register_all_cr_funcs(false);
+	this->register_all_cr_funcs(false);
 }
 
 
@@ -652,14 +652,14 @@ register_cr_func()
 	typedef this_type T;
 
 	this->enable_fast_ass_elem(true);
-	set_prep_elem_loop_fct(id, &T::template prepare_element_loop<TElem, TFVGeom>);
-	set_prep_elem_fct(	 id, &T::template prepare_element<TElem, TFVGeom>);
-	set_fsh_elem_loop_fct( id, &T::template finish_element_loop<TElem, TFVGeom>);
-	set_ass_JA_elem_fct(		 id, &T::template ass_JA_elem<TElem, TFVGeom>);
-	set_ass_JM_elem_fct(		 id, &T::template ass_JM_elem<TElem, TFVGeom>);
-	set_ass_dA_elem_fct(		 id, &T::template ass_dA_elem<TElem, TFVGeom>);
-	set_ass_dM_elem_fct(		 id, &T::template ass_dM_elem<TElem, TFVGeom>);
-	set_ass_rhs_elem_fct(	 id, &T::template ass_rhs_elem<TElem, TFVGeom>);
+	this->set_prep_elem_loop_fct(id, &T::template prepare_element_loop<TElem, TFVGeom>);
+	this->set_prep_elem_fct(	 id, &T::template prepare_element<TElem, TFVGeom>);
+	this->set_fsh_elem_loop_fct( id, &T::template finish_element_loop<TElem, TFVGeom>);
+	this->set_ass_JA_elem_fct(		 id, &T::template ass_JA_elem<TElem, TFVGeom>);
+	this->set_ass_JM_elem_fct(		 id, &T::template ass_JM_elem<TElem, TFVGeom>);
+	this->set_ass_dA_elem_fct(		 id, &T::template ass_dA_elem<TElem, TFVGeom>);
+	this->set_ass_dM_elem_fct(		 id, &T::template ass_dM_elem<TElem, TFVGeom>);
+	this->set_ass_rhs_elem_fct(	 id, &T::template ass_rhs_elem<TElem, TFVGeom>);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1057,15 +1057,15 @@ CRNavierStokesSymBC(SmartPtr< NavierStokes<TDomain> > spMaster)
 	m_vBndSubSetIndex.clear ();
 
 //	register imports
-	register_import(m_imKinViscosity);
-	register_import(m_imDensity);
+	this->register_import(m_imKinViscosity);
+	this->register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
 	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity_data ());
 	m_imDensity.set_data(spMaster->get_density ());
 
 //	register assemble functions
-	register_all_cr_funcs(false);
+	this->register_all_cr_funcs(false);
 }
 
 
