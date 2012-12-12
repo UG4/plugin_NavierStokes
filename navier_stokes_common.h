@@ -43,10 +43,10 @@ NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
 	set_exact_jacobian(false);
 
 //	register imports
-	register_import(m_imSource);
-	register_import(m_imKinViscosity);
-	register_import(m_imDensitySCVF);
-	register_import(m_imDensitySCV);
+	this->register_import(m_imSource);
+	this->register_import(m_imKinViscosity);
+	this->register_import(m_imDensitySCVF);
+	this->register_import(m_imDensitySCV);
 
 	m_imSource.set_rhs_part(true);
 	m_imDensitySCV.set_mass_part(true);
