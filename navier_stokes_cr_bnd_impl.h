@@ -856,35 +856,34 @@ ass_normal_flux_Jac
 	const LocalVector& u // local solution
 )
 {
-	MathMatrix<dim,dim> diffFlux, normal_diffFlux;
+	MathMatrix<dim,dim> diffFlux, normalDiffFlux;
 	MathVector<dim> normalStress;
-	
+
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh) // loop shape functions
 	{
 	//	1. Compute the total flux
 	//	- add \nabla u
 		MatSet (diffFlux, 0);
+		MatSet (normalDiffFlux, 0);
 		MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
-	
+
 	//	- add (\nabla u)^T
 		if(!m_spMaster->get_laplace())
 			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
-	
-	//	compute normal flux
-		TransposedMatVecMult(normalStress, diffFlux, bf.normal ());
-		for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				normal_diffFlux(d1,d2) = bf.normal()[d1] * normalStress[d2];
-	
-	//	3. Scale by viscosity
-		normal_diffFlux *= m_imKinViscosity[ip];
-	
-	//	4. Add flux to local Jacobian
+
 		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 			for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-				J(d1, bf.node_id(), d2, sh) += normal_diffFlux (d1, d2);
+				for (size_t d3=0;d3<(size_t)dim;++d3)
+					normalDiffFlux(d1,d2)+=diffFlux(d2,d3)*bf.normal()[d3]*bf.normal()[d1];
+
+		normalDiffFlux*=m_imKinViscosity[ip];
+
+		//	4. Add flux to local Jacobian
+		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+				J(d1, bf.node_id(), d2, sh) += normalDiffFlux (d1, d2);
 	}
 }
 
@@ -902,8 +901,7 @@ ass_normal_flux_defect
 {
 	MathMatrix<dim, dim> gradVel;
 	MathVector<dim> normalFlux;
-	MathVector<dim> diffFlux;
-	
+
 // 	1. Get the gradient of the velocity at ip
 	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 		for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
@@ -915,10 +913,16 @@ ass_normal_flux_defect
 		}
 
 //	2. Compute the total flux
-	MatVecMult(diffFlux, gradVel, bf.normal());
 
-//	3. Compute the normal part:
-	normalFlux = VecDot(diffFlux,bf.normal());
+//	- add (\nabla u) \cdot \vec{n}
+	MatVecMult(normalFlux, gradVel, bf.normal());
+
+//	- add (\nabla u)^T \cdot \vec{n}
+	if(!m_spMaster->get_laplace())
+		TransposedMatVecMultAdd(normalFlux, gradVel, bf.normal());
+
+	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+		normalFlux*=bf.normal()[d1];
 
 //	A4. Scale by viscosity
 	normalFlux *= m_imKinViscosity[ip];
@@ -955,24 +959,47 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 
 		for (size_t i=0;i < vBF.size();i++)
 		{
-			BF bf = vBF[i];
-		//	A. The momentum equation:
-			ass_normal_flux_Jac<BF> (ip, bf, J, u);
+			BF bf=vBF[i];
+			// 	loop shape functions
+			for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+			{
+				////////////////////////////////////////////////////
+				// Add normal flux
+				////////////////////////////////////////////////////
 
-		 // Pressure Term
-         //	Add flux derivative for local matrix
+			// 	Compute flux derivative at IP
+				const number flux_sh =  -1.0 * m_imKinViscosity[ip] // * m_imDensitySCVF[ip]
+										* VecDot(bf.global_grad(sh), bf.normal());
+
+			// 	Add flux derivative  to local matrix
+				for(int d1 = 0; d1 < dim; ++d1)
+				{
+					J(d1, bf.node_id(), d1, sh) += flux_sh*bf.normal()[d1];
+				}
+				if(!m_spMaster->get_laplace())
+				{
+					for(int d1 = 0; d1 < dim; ++d1)
+						for(int d2 = 0; d2 < dim; ++d2)
+						{
+							const number flux2_sh = -1.0 * m_imKinViscosity[ip] // * m_imDensitySCVF[ip]
+													* bf.global_grad(sh)[d1] * bf.normal()[d2];
+							J(d1, bf.node_id(), d2, sh) += flux2_sh*bf.normal()[d1];
+						}
+				}
+
+			}// end of loop shape functions
+
+			/// pressure term
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				// pressure is constant over element
 				J(d1, bf.node_id(), _P_, 0) += bf.normal()[d1];
 			}
-
-		//  B. The continuity equation
-			// un = 0 in bip which is identical to bf.node_id() node
+			// un = 0 in bip
 			for(int d1 = 0; d1 < dim; ++d1)
-				J(_P_, 0 , d1 , bf.node_id()) = 0;
-			// Next IP:
-			ip++;
+			{
+				J(_P_, 0 , d1, bf.node_id()) -= bf.normal()[d1];
+			}
 		}
 	}
 }
@@ -1002,17 +1029,48 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 		if(geo.num_bf(bndSubset) == 0) continue;
 		const std::vector<BF>& vBF = geo.bf(bndSubset);
 
-
 		for (size_t i=0;i < vBF.size();i++)
 		{
 			BF bf = vBF[i];
-		// A. Momentum equation:
-			ass_normal_flux_defect<BF> (ip, bf, d, u);
-		// pressure term
+		// 	1. Interpolate Functional Matrix of velocity at ip
+			MathMatrix<dim, dim> gradVel;
 			for(int d1 = 0; d1 < dim; ++d1)
+				for(int d2 = 0; d2 <dim; ++d2)
+				{
+				//	sum up contributions of each shape
+					gradVel(d1, d2) = 0.0;
+					for(size_t sh = 0; sh < bf.num_sh(); ++sh)
+						gradVel(d1, d2) += bf.global_grad(sh)[d2]
+			                 * u(d1, sh);
+				}
+
+		//	2. Compute flux
+			MathVector<dim> diffFlux;
+
+		//	Add (\nabla u) \cdot \vec{n}
+			MatVecMult(diffFlux, gradVel, bf.normal());
+
+		//	Add (\nabla u)^T \cdot \vec{n}
+			if(!m_spMaster->get_laplace())
+				TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
+
+		//	scale by viscosity
+			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip]);// * m_imDensitySCVF[ip]);
+
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				d(d1, bf.node_id()) += diffFlux[d1]*bf.normal()[d1];
+			}
+			// pressure term
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
 				d(d1, bf.node_id()) += u(_P_, 0) * bf.normal()[d1];
-		// Next IP:
-			ip++;
+			}
+			// un = 0 in bip
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				d(_P_, 0 ) -= bf.normal()[d1] * u(d1,bf.node_id());
+			}
 		}
 	}
 }
