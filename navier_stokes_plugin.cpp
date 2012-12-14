@@ -18,6 +18,7 @@
 #include "turbulent_viscosity_data.h"
 #include "cr_order_cuthill_mckee.h"
 #include "cr_ilut.h"
+#include "navier_stokes_tools.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
 
 
@@ -172,6 +173,10 @@ static void DomainAlgebra(Registry& reg, string grp)
 					"", "info", "sets storage information output")
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRILUT", tag);
+	}
+	
+	{
+		reg.add_function("vorticity", static_cast<void (*)(function_type&,function_type&)>(&vorticity), grp);
 	}
 }
 
