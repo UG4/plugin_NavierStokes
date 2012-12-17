@@ -178,6 +178,10 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		reg.add_function("vorticity", static_cast<void (*)(function_type&,function_type&)>(&vorticity), grp);
 	}
+
+	{
+		reg.add_function("dcevaluation", static_cast<void (*)(function_type&,size_t)>(&drivenCavityEvaluation), grp);
+	}
 }
 
 /**
