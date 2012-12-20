@@ -48,8 +48,8 @@ NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
 
-	m_imSource.set_rhs_part(true);
-	m_imDensitySCV.set_mass_part(true);
+	m_imSource.set_rhs_part();
+	m_imDensitySCV.set_mass_part();
 
 //	default value for density
 	set_density(1.0);
