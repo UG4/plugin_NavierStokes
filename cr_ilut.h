@@ -20,9 +20,26 @@
 
 namespace ug{
 	
-	number min(number a,number b){
-		if (a<b) return a; else return b;
-	}
+/*	
+	template<typename Matrix_type>
+	bool print_matrix_for_octave(const Matrix_type &A,char* fmatname,char* matname){
+		FILE* datafile;
+		datafile = fopen(fmatname,"w");
+		if (datafile==NULL){
+			UG_LOG("cannot open datafile\n");
+			return false;
+		}
+		fprintf(datafile,"# name: %s\n",matname);
+		fprintf(datafile,"# type: sparse matrix\n");
+		fprintf(datafile,"# nnz: %d\n",(int)A.total_num_connections());
+		fprintf(datafile,"# rows: %d\n",(int)A.num_rows());
+		fprintf(datafile,"# columns: %d\n",(int)A.num_rows());
+		for(size_t i=0; i < A.num_rows(); i++)
+			for(typename Matrix_type::const_row_iterator it = A.begin_row(i); it != A.end_row(i); ++it)
+					fprintf(datafile,"%d %d %.16lf\n",(int)it.index()+1,(int)i+1,it.value());
+		fclose(datafile);
+		return true;
+	};*/
 	
 	
 /// CRILUTPreconditioner class
@@ -31,7 +48,7 @@ namespace ug{
 *	The matrix entries can be devided into four sectors: 
 *	velocity-velocity, velocity-pressure, pressure-velocity, pressure-pressure
 *	Threshold tolerance depends on sector of new entry
-*	(given by parameters m_eps_uu, m_eps_up, m_eps_pu, m_eps_pp)		
+*	(given by parameters m_eps_vv, m_eps_vp, m_eps_pv, m_eps_pp)		
 *	Type of entry a_ij is determined by diagonal entry of rows i and j
 *   if a_ii=0 i is a pressure index, else a velocity index
 *
@@ -61,8 +78,10 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 	public:
 	//	Constructor
 		CRILUTPreconditioner(double eps=1e-6) :
-			m_eps(eps)
-		{};
+			m_eps(eps), m_eps_vv(eps), m_eps_vp(eps), m_eps_pv(eps), m_eps_pp(eps)
+		{
+			m_info = false;
+		};
 
 	// 	Clone
 	
@@ -88,7 +107,16 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 		m_eps_vp = threshvp;
 		m_eps_pv = threshpv;
 		m_eps_pp = threshpp;
-		m_eps = min(min(m_eps_vv,m_eps_vp),min(m_eps_pv,m_eps_pp));
+		m_eps = std::min(std::min(m_eps_vv,m_eps_vp),std::min(m_eps_pv,m_eps_pp));
+	}
+	
+	void set_threshold(number thresh)
+	{
+		m_eps_vv = thresh;
+		m_eps_vp = thresh;
+		m_eps_pv = thresh;
+		m_eps_pp = thresh;
+		m_eps = thresh;
 	}
 	
 	///	sets storage information output to true or false
@@ -139,13 +167,26 @@ protected:
 			
 			// get the row A(i, .) into con
 			double dmax=0;
-			for(typename matrix_type::row_iterator i_it = A->begin_row(i); i_it != A->end_row(i); ++i_it)
-			{
+			m_remove_zeros = false;
+			if (m_remove_zeros==false){
+				for(typename matrix_type::row_iterator i_it = A->begin_row(i); i_it != A->end_row(i); ++i_it)
+				{
+					con.push_back(connection(i_it.index(), i_it.value()));
+					if(dmax < BlockNorm(i_it.value()))
+						dmax = BlockNorm(i_it.value());
+				}
+			} else {
+				typename matrix_type::row_iterator i_it = A->begin_row(i);
 				con.push_back(connection(i_it.index(), i_it.value()));
-				if(dmax < BlockNorm(i_it.value()))
-					dmax = BlockNorm(i_it.value());
+				++i_it;
+				for(; i_it != A->end_row(i); ++i_it)
+				{
+					if (i_it.value()==0) continue;
+					con.push_back(connection(i_it.index(), i_it.value()));
+					if(dmax < BlockNorm(i_it.value()))
+						dmax = BlockNorm(i_it.value());
+				}
 			}
-			
 			// eliminate all entries A(i, k) with k<i with rows U(k, .) and k<i
 			for(size_t i_it = 0; i_it < con.size(); ++i_it)
 			{
@@ -292,6 +333,10 @@ protected:
 			UG_LOG("	Increase factor: " << (float)(m_L.total_num_connections() + m_U.total_num_connections() )/A->total_num_connections() << "\n");
 		}
 		
+/*		print_matrix_for_octave(m_U,"_U_","U");
+		print_matrix_for_octave(m_L,"_L_","L");
+		print_matrix_for_octave(mat,"_A_","A");*/
+		
 		return true;
 	}
 	
@@ -363,12 +408,13 @@ protected:
 protected:
 	matrix_type m_L;
 	matrix_type m_U;
-	double m_eps;
+	number m_eps;
 	number m_eps_vv;
 	number m_eps_vp;
 	number m_eps_pv;
 	number m_eps_pp;
 	bool m_info;
+	bool m_remove_zeros;
 	static const number m_small_lower=1e-9;
 	static const number m_small_upper=1e-6;
 };

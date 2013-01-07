@@ -33,7 +33,22 @@ private:
 ///	storage field of connections of each index
 	const std::vector<size_t>& m_degree;
 };
-
+	
+	
+void computeDegree(std::vector<size_t>& degree,const std::vector<std::vector<size_t> >& vvConnections,size_t minpind){
+	size_t n=vvConnections.size();
+	degree.resize(n);
+	for (size_t i=0;i<minpind;i++){
+		degree[i]=vvConnections[i].size();
+	}
+	for (size_t i=minpind;i<n;i++){
+		degree[i]=0;
+		for (size_t j=0;j<vvConnections[i].size();j++){
+			degree[i]+=degree[j];
+		}
+	}
+}
+	
 // Cuthill-McKee order on Crouzeix-Raviart elements
 void ComputeCRCuthillMcKeeOrder(std::vector<size_t>& vNewIndex,
                               std::vector<std::vector<size_t> >& vvConnections,
@@ -187,8 +202,16 @@ void cr_get_connections(std::vector<std::vector<size_t> >& vvConnection,size_t& 
 				}
 			}
 		}
+		std::vector<size_t> degree;
+		computeDegree(degree,vvConnection,minpind);
+		//	Sort neighbours by degreee
+		CompareDeg myCompDegree(degree);	
+		for (size_t i=0;i<vvConnection.size();i++){
+			std::sort(vvConnection[i].begin(),vvConnection[i].end(),myCompDegree);
+		};
 	}
-/*debug	for (size_t i=0;i<vvConnection.size();i++){
+/*debug	
+	for (size_t i=0;i<vvConnection.size();i++){
 		UG_LOG(i << " : ");
 		for (size_t j=0;j<vvConnection[i].size();j++){
 			UG_LOG(vvConnection[i][j] << ",");

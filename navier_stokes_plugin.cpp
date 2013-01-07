@@ -17,8 +17,8 @@
 #include "no_normal_stress_outflow.h"
 #include "turbulent_viscosity_data.h"
 #include "cr_order_cuthill_mckee.h"
+#include "cr_reorder.h"
 #include "cr_ilut.h"
-#include "navier_stokes_tools.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
 
 
@@ -160,6 +160,26 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_function("OrderCRCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool)>(&OrderCRCuthillMcKee), grp);
 	}
 	
+	//	Order CR-Cuthill-McKee
+	{
+		reg.add_function("CROrderCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool,bool)>(&CROrderCuthillMcKee), grp);
+	}
+	
+	//	Order CR-Sloan
+	{
+		reg.add_function("CROrderSloan", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderSloan), grp);
+	}
+	
+	//	Order CR-King
+	{
+		reg.add_function("CROrderKing", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool,bool)>(&CROrderKing), grp);
+	}
+	
+	//	Order CR-Minimum Degree
+	{
+		reg.add_function("CROrderMinimumDegree", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderMinimumDegree), grp);
+	}
+	
 	//	CR ILU Threshold
 	{
 		typedef CRILUTPreconditioner<TAlgebra> T;
@@ -167,20 +187,14 @@ static void DomainAlgebra(Registry& reg, string grp)
 		string name = string("CRILUT").append(suffix);
 		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
 		.add_constructor()
-		.add_method("set_threshold", &T::set_threshold,
+		.add_method("set_threshold",static_cast<void (T::*)(number,number,number,number)>(&T::set_threshold),
+					"", "threshold", "sets threshold of incomplete LU factorisation")
+		.add_method("set_threshold",static_cast<void (T::*)(number)>(&T::set_threshold),
 					"", "threshold", "sets threshold of incomplete LU factorisation")
 		.add_method("set_info", &T::set_info,
 					"", "info", "sets storage information output")
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRILUT", tag);
-	}
-	
-	{
-		reg.add_function("vorticity", static_cast<void (*)(function_type&,function_type&)>(&vorticity), grp);
-	}
-
-	{
-		reg.add_function("dcevaluation", static_cast<void (*)(function_type&,size_t)>(&drivenCavityEvaluation), grp);
 	}
 }
 
