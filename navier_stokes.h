@@ -141,7 +141,10 @@ class NavierStokes
 
 	public:
 	///	Constructor (setting default values)
+	/// \{
 		NavierStokes(const char* functions, const char* subsets);
+		NavierStokes(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
+	/// \}
 
 	///	sets the kinematic viscosity
 	/**
@@ -270,7 +273,8 @@ class NavierStokes
 
 	///	current shape function set
 		LFEID m_lfeID;
-		
+
+		void init();
 		void set_ass_funcs();
 
 	public:

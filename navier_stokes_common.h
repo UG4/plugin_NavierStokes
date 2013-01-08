@@ -32,6 +32,25 @@ NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
   m_spConvStab(NULL),
   m_spConvUpwind(NULL)
 {
+	init();
+}
+
+template<typename TDomain>
+NavierStokes<TDomain>::NavierStokes(const std::vector<std::string>& vFct,
+                                    const std::vector<std::string>& vSubset)
+: IDomainElemDisc<TDomain>(vFct, vSubset),
+  m_bStokes(false),
+  m_bLaplace(false),
+  m_spStab(NULL),
+  m_spConvStab(NULL),
+  m_spConvUpwind(NULL)
+{
+	init();
+}
+
+template<typename TDomain>
+void NavierStokes<TDomain>::init()
+{
 //	check number of functions
 	if(this->num_fct() != dim+1)
 		UG_THROW("Wrong number of functions: The ElemDisc 'NavierStokes'"
@@ -58,6 +77,7 @@ NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
 //	register assemble functions
 	set_ass_funcs();
 }
+
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
