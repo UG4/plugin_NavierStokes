@@ -179,6 +179,22 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		reg.add_function("CROrderMinimumDegree", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderMinimumDegree), grp);
 	}
+}
+
+/**
+ * Function called for the registration of Algebra dependent parts.
+ * All Functions and Classes depending on Algebra
+ * are to be placed here when registering. The method is called for all
+ * available Algebra types, based on the current build options.
+ *
+ * @param reg				registry
+ * @param parentGroup		group for sorting of functionality
+ */
+template <typename TAlgebra>
+static void Algebra(Registry& reg, string grp)
+{
+	string suffix = GetAlgebraSuffix<TAlgebra>();
+	string tag = GetAlgebraTag<TAlgebra>();
 	
 	//	CR ILU Threshold
 	{
@@ -486,6 +502,7 @@ InitUGPlugin_NavierStokes(Registry* reg, string grp)
 	try{
 		RegisterDimensionDependent<Functionality>(*reg,grp);
 		RegisterDomainDependent<Functionality>(*reg,grp);
+		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		RegisterDomainAlgebraDependent<Functionality>(*reg,grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
