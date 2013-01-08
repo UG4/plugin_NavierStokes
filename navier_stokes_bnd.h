@@ -44,11 +44,9 @@ class NavierStokesInflow
 	///	sets the velocity to a given value
 	///	\{
 		void add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND);
-		void add(number vel_x, const char* subsetsBND);
-		void add(number vel_x, number vel_y, const char* subsetsBND);
-		void add(number vel_x, number vel_y, number vel_z, const char* subsetsBND);
+		void add(const std::vector<number>& vVel, const char* subsetsBND);
 #ifdef UG_FOR_LUA
-		void add(const char* fctName, const char* subsetsBND);
+		void add(const char* luaFctName, const char* subsetsBND);
 #endif
 	///	\}
 

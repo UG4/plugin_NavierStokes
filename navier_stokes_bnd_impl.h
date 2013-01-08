@@ -68,44 +68,13 @@ add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND)
 
 template <typename TDomain, typename TAlgebra>
 void NavierStokesInflow<TDomain,TAlgebra>::
-add(number vel_x, const char* subsetsBND)
+add(const std::vector<number>& vVel, const char* subsetsBND)
 {
-	if(dim != 1)
-		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension 1"
-						" to a Discretization for world dim " << dim);
+	if(vVel.size() != dim)
+		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension "<<
+		         vVel.size()<<" to a Discretization for world dim " << dim);
 
-	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
-	f->set_entry(0, vel_x);
-	this->add(f, subsetsBND);
-}
-
-template <typename TDomain, typename TAlgebra>
-void NavierStokesInflow<TDomain,TAlgebra>::
-add(number vel_x, number vel_y, const char* subsetsBND)
-{
-	if(dim != 2)
-		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension 2"
-						" to a Discretization for world dim " << dim);
-
-	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
-	f->set_entry(0, vel_x);
-	f->set_entry(1, vel_y);
-	add(f, subsetsBND);
-}
-
-template <typename TDomain, typename TAlgebra>
-void NavierStokesInflow<TDomain,TAlgebra>::
-add(number vel_x, number vel_y, number vel_z, const char* subsetsBND)
-{
-	if(dim != 3)
-		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension 3"
-						" to a Discretization for world dim " << dim);
-
-	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
-	f->set_entry(0, vel_x);
-	f->set_entry(1, vel_y);
-	f->set_entry(2, vel_z);
-	add(f, subsetsBND);
+	add(SmartPtr<ConstUserVector<dim> >(new ConstUserVector<dim>(vVel)), subsetsBND);
 }
 
 
