@@ -63,9 +63,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
 
 			.add_method("add", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
-			.add_method("add", static_cast<void (T::*)(number, const char*)>(&T::add), "", "Vel_x, Subset")
-			.add_method("add", static_cast<void (T::*)(number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Subset")
-			.add_method("add", static_cast<void (T::*)(number,number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Vel_z, Subset")
+			.add_method("add", static_cast<void (T::*)(const std::vector<number>&, const char*)>(&T::add), "", "Velocity, Subset")
 #ifdef UG_FOR_LUA
 			.add_method("add", static_cast<void (T::*)(const char*, const char*)>(&T::add), "", "Velocity")
 #endif

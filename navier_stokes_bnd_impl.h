@@ -70,7 +70,7 @@ template <typename TDomain, typename TAlgebra>
 void NavierStokesInflow<TDomain,TAlgebra>::
 add(const std::vector<number>& vVel, const char* subsetsBND)
 {
-	if(vVel.size() != dim)
+	if((int)vVel.size() != dim)
 		UG_THROW("NavierStokesInflow: Setting velocity vector of dimension "<<
 		         vVel.size()<<" to a Discretization for world dim " << dim);
 
