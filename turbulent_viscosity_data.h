@@ -433,6 +433,10 @@ class CRDynamicTurbViscData
 		aSideTensor m_acDeformation;
 		ATensor m_aDeformation;
 		
+	//  deformation tensor norm attachment
+		aSideNumber m_acDeformationNorm;
+		ANumber m_aDeformationNorm;
+
 	//	coarser grid deformation tensor attachment
 		aSideTensor m_acDeformationHat;
 		ATensor m_aDeformationHat;
