@@ -12,11 +12,12 @@
 #include "navier_stokes.h"
 #include "upwind.h"
 #include "stabilization.h"
+
 #include "bnd/inflow.h"
 #include "bnd/wall.h"
-#include "bnd/no_normal_stress_outflow_cr.h"
 #include "bnd/no_normal_stress_outflow.h"
 #include "bnd/symmetric_boundary.h"
+
 #include "turbulent_viscosity_data.h"
 #include "cr_order_cuthill_mckee.h"
 #include "cr_reorder.h"
@@ -252,18 +253,6 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflow", tag);
 	}
 
-//	CRNavierStokesNoNormalStressOutflow
-	{
-		typedef CRNavierStokesNoNormalStressOutflow<TDomain> T;
-		typedef IDomainElemDisc<TDomain> TBase;
-		string name = string("CRNavierStokesNoNormalStressOutflow").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterDisc")
-			.add_method("add", &T::add, "", "Subset(s)")
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "CRNavierStokesNoNormalStressOutflow", tag);
-	}
-	
 //	CRNavierStokesSymBC
 	{
 		typedef CRNavierStokesSymBC<TDomain> T;

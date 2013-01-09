@@ -8,10 +8,16 @@
 #ifndef __H__UG__NAVIER_STOKES__BND__SYMMETRIC__
 #define __H__UG__NAVIER_STOKES__BND__SYMMETRIC__
 
-#include "lib_disc/spatial_disc/disc_item.h"
+// other ug4 modules
+#include "common/common.h"
+#include "lib_grid/lg_base.h"
 
-#include "lib_disc/spatial_disc/elem_disc/neumann_boundary/neumann_boundary.h"
-#include "lib_disc/spatial_disc/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
+// library intern headers
+#include "lib_disc/spatial_disc/elem_disc/elem_disc_interface.h"
+#include "lib_disc/spatial_disc/user_data/data_export.h"
+#include "lib_disc/spatial_disc/user_data/data_import.h"
+
+#include "../navier_stokes.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -66,34 +72,10 @@ class CRNavierStokesSymBC
 
 	public:
 	///	type of trial space for each function used
-		virtual bool request_finite_element_id(const std::vector<LFEID>& vLfeID)
-		{
-		//	check number
-			if(vLfeID.size() != dim+1) return false;
-
-		//	check that Lagrange 1st order
-		//	for(size_t i = 0; i < vLfeID.size(); ++i)
-		//		if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
-			return true;
-		}
+		virtual bool request_finite_element_id(const std::vector<LFEID>& vLfeID);
 
 	///	switches between non-regular and regular grids
-	/**
-	 * \param[in]	bNonRegular		flag if non-regular grid needed.
-	 */
-		virtual bool request_non_regular_grid(bool bNonRegular)
-		{
-		//	switch, which assemble functions to use.
-			if(bNonRegular)
-			{
-				UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
-						" Non-regular grid not implemented.\n");
-				return false;
-			}
-
-		//	this disc supports regular grids
-			return true;
-		}
+		virtual bool request_non_regular_grid(bool bNonRegular);
 
 	public:
 	///	returns if local time series is needed
@@ -205,7 +187,5 @@ class CRNavierStokesSymBC
 
 } // namespace NavierStokes
 } // end namespace ug
-
-#include "symmetric_boundary_cr.h"
 
 #endif /* __H__UG__NAVIER_STOKES__BND__SYMMETRIC__ */

@@ -1,12 +1,12 @@
 /*
- * symmetric_boundary_cr.h
+ * symmetric_boundary.cpp
  *
  *  Created on: 23.07.2012
  *      Author: Christian Wehner
  */
 
-#ifndef __H__UG__NAVIER_STOKES__BND__SYMMETRIC_CR__
-#define __H__UG__NAVIER_STOKES__BND__SYMMETRIC_CR__
+#include "common/util/provider.h"
+#include "lib_disc/spatial_disc/disc_util/cr_finite_volume_geometry.h"
 
 #include "symmetric_boundary.h"
 #ifdef UG_FOR_LUA
@@ -15,6 +15,35 @@
 
 namespace ug{
 namespace NavierStokes{
+
+template<typename TDomain>
+bool CRNavierStokesSymBC<TDomain>::
+request_finite_element_id(const std::vector<LFEID>& vLfeID)
+{
+//	check number
+	if(vLfeID.size() != dim+1) return false;
+
+//	check that Lagrange 1st order
+//	for(size_t i = 0; i < vLfeID.size(); ++i)
+//		if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
+	return true;
+}
+
+template<typename TDomain>
+bool CRNavierStokesSymBC<TDomain>::
+request_non_regular_grid(bool bNonRegular)
+{
+//	switch, which assemble functions to use.
+	if(bNonRegular)
+	{
+		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
+				" Non-regular grid not implemented.\n");
+		return false;
+	}
+
+//	this disc supports regular grids
+	return true;
+}
 
 /**
  * converts the subset names where the BC is imposed to the corresponding subset
@@ -492,5 +521,3 @@ template class CRNavierStokesSymBC<Domain3d>;
 
 } // namespace NavierStokes
 } // end namespace ug
-
-#endif /* __H__UG__NAVIER_STOKES__BND__SYMMETRIC_CR__ */

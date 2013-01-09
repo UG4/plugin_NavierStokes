@@ -8,6 +8,7 @@
 #include "no_normal_stress_outflow.h"
 #include "no_normal_stress_outflow_common.h"
 #include "no_normal_stress_outflow_fv1.h"
+#include "no_normal_stress_outflow_cr.h"
 
 namespace ug{
 namespace NavierStokes{

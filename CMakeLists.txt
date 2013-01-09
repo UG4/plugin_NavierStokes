@@ -15,7 +15,8 @@ include("../../../ug_plugin_cmake_includes.txt")
 # sources
 set(SOURCES	navier_stokes.cpp
 			navier_stokes_plugin.cpp
-			bnd/no_normal_stress_outflow.cpp)
+			bnd/no_normal_stress_outflow.cpp
+			bnd/symmetric_boundary.cpp)
 
 
 

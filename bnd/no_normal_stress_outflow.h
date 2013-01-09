@@ -118,6 +118,28 @@ class NavierStokesNoNormalStressOutflow
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void add_dA_elem_fv1(LocalVector& d, const LocalVector& u);
 
+	public:
+	///	prepares the element loop
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void prep_elem_loop_cr();
+
+	///	prepares the element for evaluation
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void prep_elem_cr(TElem* elem, const LocalVector& u);
+
+	///	finishes the element loop
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void fsh_elem_loop_cr();
+
+	///	adds the stiffness part to the local jacobian
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void add_JA_elem_cr(LocalMatrix& J, const LocalVector& u);
+
+	///	adds the stiffness part to the local defect
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void add_dA_elem_cr(LocalVector& d, const LocalVector& u);
+
+	public:
 	///	dummy implementations
 	///	\{
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
@@ -166,6 +188,45 @@ class NavierStokesNoNormalStressOutflow
 			const LocalVector& u
 		);
 	
+	private:
+	/// adds the diffusive part of the local Jacobian of the momentum equation
+		template <typename BF>
+		inline void diffusive_flux_Jac_cr
+		(
+			const size_t ip,
+			const BF& bf,
+			LocalMatrix& J,
+			const LocalVector& u
+		);
+	/// adds the diffusive part of the local defect of the momentum equation
+		template <typename BF>
+		inline void diffusive_flux_defect_cr
+		(
+			const size_t ip,
+			const BF& bf,
+			LocalVector& d,
+			const LocalVector& u
+		);
+	/// adds the convective part of the local Jacobian of the momentum equation
+		template <typename BF>
+		inline void convective_flux_Jac_cr
+		(
+			const size_t ip,
+			const BF& bf,
+			LocalMatrix& J,
+			const LocalVector& u
+		);
+	/// adds the convective part of the local defect of the momentum equation
+		template <typename BF>
+		inline void convective_flux_defect_cr
+		(
+			const size_t ip,
+			const BF& bf,
+			LocalVector& d,
+			const LocalVector& u
+		);
+
+	private:
 	/// The master discretization:
 		SmartPtr< NavierStokes<TDomain> > m_spMaster;
 	
@@ -200,6 +261,19 @@ class NavierStokesNoNormalStressOutflow
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void register_fv1_func();
+
+		void register_all_cr_funcs(bool bHang);
+
+		template <template <class Elem, int WorldDim> class TFVGeom>
+		struct RegisterCR {
+				RegisterCR(this_type* pThis) : m_pThis(pThis){}
+				this_type* m_pThis;
+				template< typename TElem > void operator()(TElem&)
+				{m_pThis->register_cr_func<TElem, TFVGeom>();}
+		};
+
+		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		void register_cr_func();
 };
 
 /// @}
