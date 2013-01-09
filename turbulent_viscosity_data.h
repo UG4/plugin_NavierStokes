@@ -15,7 +15,11 @@
 #include "lib_disc/common/groups_util.h"
 #include "lib_disc/local_finite_element/local_shape_function_set.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
-#include "lib_disc/lib_disc.h"
+#include "lib_disc/spatial_disc/user_data/const_user_data.h"
+#include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
+#ifdef UG_FOR_LUA
+#include "bindings/lua/lua_user_data.h"
+#endif
 
 namespace ug{
 namespace NavierStokes{
