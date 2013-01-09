@@ -17,10 +17,10 @@
 #include "lib_disc/spatial_disc/user_data/data_export.h"
 #include "lib_disc/spatial_disc/user_data/data_import.h"
 
-#include "upwind.h"
-#include "stabilization.h"
+#include "../upwind.h"
+#include "../stabilization.h"
 
-#include "navier_stokes.h"
+#include "../navier_stokes.h"
 
 namespace ug{
 namespace NavierStokes{
