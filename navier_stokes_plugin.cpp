@@ -240,16 +240,16 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokes", tag);
 	}
 
-//	FVNavierStokesNoNormalStressOutflow
+//	NavierStokesNoNormalStressOutflow
 	{
-		typedef FVNavierStokesNoNormalStressOutflow<TDomain> T;
+		typedef NavierStokesNoNormalStressOutflow<TDomain> T;
 		typedef IDomainElemDisc<TDomain> TBase;
-		string name = string("FVNavierStokesNoNormalStressOutflow").append(suffix);
+		string name = string("NavierStokesNoNormalStressOutflow").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterDisc")
 			.add_method("add", &T::add, "", "Subset(s)")
 			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "FVNavierStokesNoNormalStressOutflow", tag);
+		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflow", tag);
 	}
 
 //	CRNavierStokesNoNormalStressOutflow

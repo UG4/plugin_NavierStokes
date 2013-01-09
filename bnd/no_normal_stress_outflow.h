@@ -45,7 +45,7 @@ namespace NavierStokes{
  * \f$ \sigma = \mu (\nabla \vec{u} + (\nabla \vec{u})^T) \f$ the stress tensor.
  */
 template<	typename TDomain>
-class FVNavierStokesNoNormalStressOutflow
+class NavierStokesNoNormalStressOutflow
 	: public IDomainElemDisc<TDomain>
 {
 	private:
@@ -53,7 +53,7 @@ class FVNavierStokesNoNormalStressOutflow
 		typedef IDomainElemDisc<TDomain> base_type;
 
 	///	own type
-		typedef FVNavierStokesNoNormalStressOutflow<TDomain> this_type;
+		typedef NavierStokesNoNormalStressOutflow<TDomain> this_type;
 
 	public:
 	///	Domain type
@@ -64,7 +64,7 @@ class FVNavierStokesNoNormalStressOutflow
 
 	public:
 	///	Constructor (setting default values)
-		FVNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster);
+		NavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster);
 	
 	///	adds a boundary segment
 		void add(const char* subsets);

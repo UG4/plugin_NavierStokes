@@ -14,7 +14,7 @@ namespace ug{
 namespace NavierStokes{
 
 template<typename TDomain>
-bool FVNavierStokesNoNormalStressOutflow<TDomain>::
+bool NavierStokesNoNormalStressOutflow<TDomain>::
 request_finite_element_id(const std::vector<LFEID>& vLfeID)
 {
 //	check number
@@ -27,7 +27,7 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 }
 
 template<typename TDomain>
-bool FVNavierStokesNoNormalStressOutflow<TDomain>::
+bool NavierStokesNoNormalStressOutflow<TDomain>::
 request_non_regular_grid(bool bNonRegular)
 {
 //	switch, which assemble functions to use.
@@ -48,7 +48,7 @@ request_non_regular_grid(bool bNonRegular)
  */
 template<typename TDomain>
 void
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+NavierStokesNoNormalStressOutflow<TDomain>::
 extract_scheduled_data()
 {
 //	clear all extracted data
@@ -63,7 +63,7 @@ extract_scheduled_data()
 	//	convert strings
 		try{
 			subsetGroup = this->approx_space()->subset_grp_by_name(m_vScheduledBndSubSets[i].c_str());
-		}UG_CATCH_THROW("'FVNavierStokesNoNormalStressOutflow:extract_scheduled_data':"
+		}UG_CATCH_THROW("'NavierStokesNoNormalStressOutflow:extract_scheduled_data':"
 						" Subsets '" <<m_vScheduledBndSubSets[i].c_str() <<"' not"
 						" all contained in ApproximationSpace.");
 	
@@ -79,7 +79,7 @@ extract_scheduled_data()
 		//	check that subsetIndex is valid
 			if(subsetIndex < 0 || subsetIndex >= rSH.num_subsets())
 			{
-				UG_LOG("ERROR in 'FVNavierStokesNoNormalStressOutflow:extract_scheduled_data':"
+				UG_LOG("ERROR in 'NavierStokesNoNormalStressOutflow:extract_scheduled_data':"
 						" Invalid subset Index " << subsetIndex <<
 						". (Valid is 0, .. , " << rSH.num_subsets() <<").\n");
 				return;
@@ -96,7 +96,7 @@ extract_scheduled_data()
  */
 template<typename TDomain>
 void
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+NavierStokesNoNormalStressOutflow<TDomain>::
 add
 (
 	const char* subsets // string with the ','-separated names of the subsets
@@ -113,7 +113,7 @@ add
  */
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 prep_elem_loop_fv1()
 {
 //	register subsetIndex at Geometry
@@ -126,12 +126,12 @@ prep_elem_loop_fv1()
 
 //	check if kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW("FVNavierStokesNoNormalStressOutflow::prep_elem_loop_fv1:"
+		UG_THROW("NavierStokesNoNormalStressOutflow::prep_elem_loop_fv1:"
 						" Kinematic Viscosity has not been set, but is required.\n");
 
 //	check if Density has been set
 	if(!m_imDensity.data_given())
-		UG_THROW("FVNavierStokesNoNormalStressOutflow::prep_elem_loop_fv1:"
+		UG_THROW("NavierStokesNoNormalStressOutflow::prep_elem_loop_fv1:"
 						" Density has not been set, but is required.\n");
 
 //	request the subset indices as boundary subset. This will force the
@@ -147,7 +147,7 @@ prep_elem_loop_fv1()
  */
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 fsh_elem_loop_fv1()
 {
 	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
@@ -165,7 +165,7 @@ fsh_elem_loop_fv1()
  */
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 prep_elem_fv1(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
@@ -173,7 +173,7 @@ prep_elem_fv1(TElem* elem, const LocalVector& u)
 	if(!geo.update(elem,
 	               this->template element_corners<TElem>(elem),
 	               &(this->subset_handler())))
-		UG_THROW("FVNavierStokesNoNormalStressOutflow::prep_elem_fv1:"
+		UG_THROW("NavierStokesNoNormalStressOutflow::prep_elem_fv1:"
 						" Cannot update Finite Volume Geometry.\n");
 
 //	find and set the local and the global positions of the IPs for imports
@@ -208,7 +208,7 @@ prep_elem_fv1(TElem* elem, const LocalVector& u)
 /// Assembling of the diffusive flux (due to the viscosity) in the Jacobian of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 diffusive_flux_Jac_fv1
 (
 	const size_t ip, // index of the integration point (for the viscosity)
@@ -253,7 +253,7 @@ diffusive_flux_Jac_fv1
 /// Assembling of the diffusive flux (due to the viscosity) in the defect of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 diffusive_flux_defect_fv1
 (
 	const size_t ip, // index of the integration point (for the viscosity)
@@ -298,7 +298,7 @@ diffusive_flux_defect_fv1
 /// Assembling of the convective flux (due to the quadratic inertial term) in the Jacobian of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 convective_flux_Jac_fv1
 (
 	const size_t ip, // index of the integration point (for the density)
@@ -332,7 +332,7 @@ convective_flux_Jac_fv1
 /// Assembling of the convective flux (due to the quadratic inertial term) in the defect of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 convective_flux_defect_fv1
 (
 	const size_t ip, // index of the integration point (for the density)
@@ -361,7 +361,7 @@ convective_flux_defect_fv1
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 add_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
@@ -407,7 +407,7 @@ add_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void FVNavierStokesNoNormalStressOutflow<TDomain>::
+void NavierStokesNoNormalStressOutflow<TDomain>::
 add_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
@@ -461,8 +461,8 @@ add_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename TDomain>
-FVNavierStokesNoNormalStressOutflow<TDomain>::
-FVNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
+NavierStokesNoNormalStressOutflow<TDomain>::
+NavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 : IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
 {
 //	check number of functions
@@ -493,7 +493,7 @@ FVNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 // register for 1D
 template<typename TDomain>
 void
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+NavierStokesNoNormalStressOutflow<TDomain>::
 register_all_fv1_funcs(bool bHang)
 {
 //	get all grid element types in this dimension and below
@@ -509,7 +509,7 @@ register_all_fv1_funcs(bool bHang)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void
-FVNavierStokesNoNormalStressOutflow<TDomain>::
+NavierStokesNoNormalStressOutflow<TDomain>::
 register_fv1_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
@@ -531,9 +531,9 @@ register_fv1_func()
 //	explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
-template class FVNavierStokesNoNormalStressOutflow<Domain1d>;
-template class FVNavierStokesNoNormalStressOutflow<Domain2d>;
-template class FVNavierStokesNoNormalStressOutflow<Domain3d>;
+template class NavierStokesNoNormalStressOutflow<Domain1d>;
+template class NavierStokesNoNormalStressOutflow<Domain2d>;
+template class NavierStokesNoNormalStressOutflow<Domain3d>;
 
 
 } // namespace NavierStokes
