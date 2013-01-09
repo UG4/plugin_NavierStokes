@@ -5,8 +5,8 @@
  *      Author: andreasvogel
  */
 
-#ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND_WALL__
-#define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND_WALL__
+#ifndef __H__UG__NAVIER_STOKES__BND__WALL__
+#define __H__UG__NAVIER_STOKES__BND__WALL__
 
 #include "lib_disc/spatial_disc/disc_item.h"
 
@@ -56,4 +56,4 @@ class NavierStokesWall
 
 #include "wall_impl.h"
 
-#endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND_WALL__ */
+#endif /* __H__UG__NAVIER_STOKES__BND__WALL__ */

@@ -5,8 +5,8 @@
  *      Author: andreasvogel
  */
 
-#ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND__INFLOW__
-#define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND__INFLOW__
+#ifndef __H__UG__NAVIER_STOKES__BND__INFLOW__
+#define __H__UG__NAVIER_STOKES__BND__INFLOW__
 
 #include "lib_disc/spatial_disc/disc_item.h"
 
@@ -71,4 +71,4 @@ class NavierStokesInflow
 
 #include "inflow_impl.h"
 
-#endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND__INFLOW__ */
+#endif /* __H__UG__NAVIER_STOKES__BND__INFLOW__ */
