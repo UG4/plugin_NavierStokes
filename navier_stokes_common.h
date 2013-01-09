@@ -212,58 +212,11 @@ set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
-set_source(number f_x)
+set_source(const std::vector<number>& vSource)
 {
-	UG_THROW("NavierStokes: Setting source vector of dimension 1"
-					" to a Discretization for world dim " << dim);
-}
-
-template<>
-void NavierStokes<Domain1d>::
-set_source(number f_x)
-{
-	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
-	f->set_entry(0, f_x);
+	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>(vSource));
 	set_source(f);
 }
-
-template<typename TDomain>
-void NavierStokes<TDomain>::
-set_source(number f_x, number f_y)
-{
-	UG_THROW("NavierStokes: Setting source vector of dimension 2"
-					" to a Discretization for world dim " << dim);
-}
-
-template<>
-void NavierStokes<Domain2d>::
-set_source(number f_x, number f_y)
-{
-	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
-	f->set_entry(0, f_x);
-	f->set_entry(1, f_y);
-	set_source(f);
-}
-
-template<typename TDomain>
-void NavierStokes<TDomain>::
-set_source(number f_x, number f_y, number f_z)
-{
-	UG_THROW("NavierStokes: Setting source vector of dimension 3"
-					" to a Discretization for world dim " << dim);
-}
-
-template<>
-void NavierStokes<Domain3d>::
-set_source(number f_x, number f_y, number f_z)
-{
-	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
-	f->set_entry(0, f_x);
-	f->set_entry(1, f_y);
-	f->set_entry(2, f_z);
-	set_source(f);
-}
-
 
 #ifdef UG_FOR_LUA
 template<typename TDomain>

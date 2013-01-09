@@ -187,9 +187,7 @@ class NavierStokes
 	 */
 	///	\{
 		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);
-		void set_source(number f_x);
-		void set_source(number f_x, number f_y);
-		void set_source(number f_x, number f_y, number f_z);
+		void set_source(const std::vector<number>& vSource);
 #ifdef UG_FOR_LUA
 		void set_source(const char* fctName);
 #endif
@@ -238,6 +236,9 @@ class NavierStokes
 
     ///	sets if the exact jacobian is computed (fixpoint approximation else)
         void set_exact_jacobian(bool bExactJacobian) {m_bExactJacobian = bExactJacobian;}
+
+    ///	returns the disc type
+        const std::string& disc_scheme() const {return m_discScheme;}
 
 	public:
 	///	type of trial space for each function used

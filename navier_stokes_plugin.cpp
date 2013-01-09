@@ -252,11 +252,9 @@ static void Domain(Registry& reg, string grp)
 #endif
 
 			.add_method("set_source", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
-			.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
-			.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
-			.add_method("set_source", static_cast<void (T::*)(number,number,number)>(&T::set_source), "", "F_x, F_y, F_z")
+			.add_method("set_source", static_cast<void (T::*)(const std::vector<number>&)>(&T::set_source), "", "Source")
 #ifdef UG_FOR_LUA
-			.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Velocity Field")
+			.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Source")
 #endif
 
 			.add_method("set_stabilization", &T::set_stabilization)
