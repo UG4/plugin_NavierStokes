@@ -12,7 +12,7 @@
 #include "navier_stokes.h"
 #include "upwind.h"
 #include "stabilization.h"
-#include "bnd/navier_stokes_bnd.h"
+#include "bnd/inflow.h"
 #include "bnd/navier_stokes_cr_bnd.h"
 #include "bnd/no_normal_stress_outflow.h"
 #include "turbulent_viscosity_data.h"

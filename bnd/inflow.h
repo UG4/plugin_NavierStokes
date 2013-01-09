@@ -108,6 +108,6 @@ class NavierStokesWall
 } // namespace NavierStokes
 } // end namespace ug
 
-#include "navier_stokes_bnd_impl.h"
+#include "inflow_impl.h"
 
 #endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND__ */

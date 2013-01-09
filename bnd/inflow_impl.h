@@ -8,7 +8,7 @@
 #ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND_IMPL__
 #define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__NAVIER_STOKES_BND_IMPL__
 
-#include "navier_stokes_bnd.h"
+#include "inflow.h"
 #ifdef UG_FOR_LUA
 #include "bindings/lua/lua_user_data.h"
 #endif
