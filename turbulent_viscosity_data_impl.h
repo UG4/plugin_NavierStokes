@@ -20,6 +20,7 @@
 #include "lib_disc/reference_element/reference_mapping_provider.h"
 #include "lib_grid/algorithms/attachment_util.h"
 
+
 namespace ug{
 namespace NavierStokes{
 
@@ -49,6 +50,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
+		if (si>0) continue;
 		//	get iterators
 		ElemIterator iter = m_u->template begin<elem_type>(si);
 		ElemIterator iterEnd = m_u->template end<elem_type>(si);
@@ -181,7 +183,332 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 
 template<typename TGridFunction>
 void CRDynamicTurbViscData<TGridFunction>::update(){
-	UG_LOG("Dynamic model not implemented yet.\n");
+	//	get domain of grid function
+	domain_type& domain = *m_u->domain().get();
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	DimCRFVGeometry<dim> geo;
+
+	// initialize attachment values with 0
+	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acVolume,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+
+	//	create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	// assemble deformation tensor fluxes
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		if (si>0) continue;
+		//	get iterators
+		ElemIterator iter = m_u->template begin<elem_type>(si);
+		ElemIterator iterEnd = m_u->template end<elem_type>(si);
+
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			MathVector<dim> bary,localBary;
+			bary = 0;
+
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				bary += coCoord[i];
+			};
+			bary /= numVertices;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			//	get trial space
+			const LocalShapeFunctionSet<dim>& rTrialSpace =
+				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+			//	get Reference Mapping
+			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
+
+			map.global_to_local(localBary,bary);
+
+			//	memory for shapes
+			std::vector<number> vShape;
+
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+			static const size_t MaxNumSidesOfElem = 10;
+
+			typedef MathVector<dim> MVD;
+			std::vector<MVD> uValue(MaxNumSidesOfElem);
+			MVD ipVelocity;
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+			size_t nofsides = geo.num_scv();
+
+			size_t nip = geo.num_scvf();
+
+			number elementVolume = 0;
+			MathVector<dim> baryValue;
+			baryValue = 0;
+
+			rTrialSpace.shapes(vShape, localBary);
+
+			for (size_t s=0;s < nofsides;s++)
+			{
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+				for (int d=0;d<dim;d++){
+					//	get indices of function fct on vertex
+					m_u->multi_indices(sides[s], d, multInd);
+					//	read value of index from vector
+					uValue[s][d]=DoFRef(*m_u,multInd[0]);
+					baryValue[d] += vShape[s] * uValue[s][d];
+				}
+				// UG_LOG("scv.volume(" << s << ")=" << scv.volume() << "\n");
+				m_acVolume[sides[s]] += scv.volume();
+				elementVolume += scv.volume();
+			}
+			dimMat Lij;
+			// first part of Lij term: \hat{u_i u_j}
+			for (int d1=0;d1 < dim;d1++)
+				for (int d2=0;d2 < dim;d2++)
+					Lij = baryValue[d1] * baryValue[d2];
+			baryValue*=elementVolume;
+			Lij*=elementVolume;
+			// second filter volume, second filter function uHat and first term of Lij tensor
+			for (size_t s=0;s < nofsides;s++)
+			{
+				m_acVolumeHat[sides[s]] += elementVolume;
+				m_acUHat[sides[s]] += baryValue;
+				m_acLij[sides[s]] += Lij;
+			}
+
+			for (size_t ip=0;ip<nip;ip++){
+				// 	get current SCVF
+				ipVelocity = 0;
+				const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
+				for (size_t s=0;s < nofsides;s++){
+					for (int d=0;d<dim;d++){
+					    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
+					};
+				};
+				dimMat ipDefTensorFlux;
+				ipDefTensorFlux = 0;
+				for (int d=0;d<dim;d++){
+					for (int j=0;j<d;j++){
+						ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
+					}
+				}
+				m_acDeformation[sides[scvf.from()]]+=ipDefTensorFlux;
+				m_acDeformation[sides[scvf.to()]]-=ipDefTensorFlux;
+			}
+		}
+		// average uHat and Lij first term part, multiply deformation tensor with its norm
+		SideIterator sideIter = m_u->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_u->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			//	get Elem
+			number tensorNorm=0;
+			side_type* elem = *sideIter;
+			dimMat defTensor = m_acDeformation[elem];
+			number delta = m_acVolume[elem];
+			// complete deformation tensor computation by averaging
+			defTensor/=delta;
+			// compute norm of tensor
+			for (int d1=0;d1<dim;d1++)
+				for (int d2=0;d2<dim;d2++){
+					// UG_LOG("tensor(" << d1 << "," << d2 << ")=" << defTensor[d1][d2] << "\n");
+					tensorNorm += 2 * defTensor[d1][d2] * defTensor[d1][d2];
+				}
+			tensorNorm = sqrt(tensorNorm);
+			defTensor *= tensorNorm;
+			m_acDeformationNorm[elem] = tensorNorm;
+			m_acDeformation[elem] = defTensor;
+			number deltaHat = m_acVolumeHat[elem];
+			m_acUHat[elem]/=deltaHat;
+			m_acLij[elem]/=deltaHat;
+		}
+		// iterate over elements again and complete computation of Lij tensor, assemble hat deformation tensor
+		iter = m_u->template begin<elem_type>(si);
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			MathVector<dim> bary,localBary;
+			bary = 0;
+
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				bary += coCoord[i];
+			};
+			bary /= numVertices;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			//	get trial space
+			const LocalShapeFunctionSet<dim>& rTrialSpace =
+				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+			//	get Reference Mapping
+			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
+
+			map.global_to_local(localBary,bary);
+
+			//	memory for shapes
+			std::vector<number> vShape;
+
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+			static const size_t MaxNumSidesOfElem = 10;
+
+			typedef MathVector<dim> MVD;
+			std::vector<MVD> uValue(MaxNumSidesOfElem);
+			MVD ipVelocity;
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+			size_t nofsides = geo.num_scv();
+
+			size_t nip = geo.num_scvf();
+
+			number elementVolume = 0;
+			dimMat baryTensorValue;
+			baryTensorValue = 0;
+
+			rTrialSpace.shapes(vShape, localBary);
+
+			for (size_t s=0;s < nofsides;s++)
+			{
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+				for (int d1=0;d1<dim;d1++){
+					for (int d2=0;d2<dim;d2++)
+						baryTensorValue[d1][d2] += vShape[s] * m_acDeformation[sides[s]][d1][d2];
+				}
+				// UG_LOG("scv.volume(" << s << ")=" << scv.volume() << "\n");
+				elementVolume += scv.volume();
+			}
+
+			baryTensorValue*=elementVolume;
+
+			// complete Lij computation
+			for (size_t s=0;s < nofsides;s++)
+			{
+				dimMat Lij;
+				for (int d1=0;d1 < dim;d1++)
+					for (int d2=0;d2 < dim;d2++)
+						Lij[d1][d2] = m_acUHat[sides[s]][d1]*m_acUHat[sides[s]][d2];
+				m_acLij[sides[s]] -= Lij;
+				m_acMij[sides[s]] += baryTensorValue;
+			}
+			// compute second filter deformation tensor from \hat{u} values
+			for (size_t ip=0;ip<nip;ip++){
+				// 	get current SCVF
+				ipVelocity = 0;
+				const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
+				for (size_t s=0;s < nofsides;s++){
+					for (int d=0;d<dim;d++){
+					    ipVelocity[d] += scvf.shape(s)*m_acUHat[sides[s]][d];
+					};
+				};
+				dimMat ipDefTensorFlux;
+				ipDefTensorFlux = 0;
+				for (int d=0;d<dim;d++){
+					for (int j=0;j<d;j++){
+						ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
+					}
+				}
+				m_acDeformationHat[sides[scvf.from()]]+=ipDefTensorFlux;
+				m_acDeformationHat[sides[scvf.to()]]-=ipDefTensorFlux;
+			}
+		}
+		sideIter = m_u->template begin<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			//	get Elem
+			number tensorNorm=0;
+			side_type* elem = *sideIter;
+			dimMat defTensor = m_acDeformationHat[elem];
+			number deltaHat = m_acVolumeHat[elem];
+			// compute second Mij term by averaging
+			m_acMij[elem] /= 2*deltaHat;
+			// complete deformation tensor computation by averaging
+			defTensor/=deltaHat;
+			// compute norm of tensor
+			for (int d1=0;d1<dim;d1++)
+				for (int d2=0;d2<dim;d2++){
+					// UG_LOG("tensor(" << d1 << "," << d2 << ")=" << defTensor[d1][d2] << "\n");
+					tensorNorm += 2 * defTensor[d1][d2] * defTensor[d1][d2];
+				}
+			tensorNorm = sqrt(tensorNorm);
+			// scale tensor with norm
+			defTensor *= 2*tensorNorm;
+			m_acDeformationHat[elem] = defTensor;
+			// add first Mij term
+			m_acMij[elem] -= m_acDeformationHat[elem];
+			// compute local c
+			number c = 0;
+			for (int d1=0;d1<dim;d1++)
+				for (int d2=0;d2<dim;d2++)
+					c += m_acLij[elem][d1][d2]*m_acMij[elem][d1][d2];
+			number denom=0;
+			for (int d1=0;d1<dim;d1++)
+				for (int d2=0;d2<dim;d2++)
+					denom += m_acMij[elem][d1][d2]*m_acMij[elem][d1][d2];
+			c/=(number)denom;
+			number delta = m_acVolume[elem];
+			// for possible other choices of delta see Fršhlich p 160
+			delta = pow(delta,(number)1.0/(number)dim);
+			m_acTurbulentViscosity[elem] = c * delta*delta * m_acDeformationNorm[elem];
+		}
+		// transfer to lower levels, averaging over child edges (2d) / child faces (3d)
+		for (size_t lev=m_spApproxSpace->num_levels()-2;(int)lev>=0;lev--){
+			// UG_LOG("level=" << lev << "\n");
+			const LevelDoFDistribution& lDD = *m_spApproxSpace->level_dof_distribution(lev);
+			const MultiGrid& grid = lDD.multi_grid();
+			typedef typename LevelDoFDistribution::template traits<side_type>::const_iterator coarseLevelSideIter;
+			coarseLevelSideIter clsIter, clsIterEnd;
+			clsIter = lDD.template begin<side_type>(si);
+			clsIterEnd = lDD.template end<side_type>(si);
+			for (;clsIter != clsIterEnd;clsIter++){
+				side_type* elem = *clsIter;
+				size_t numChildren = grid.num_children<side_type>(elem);
+				number avgValue=0;
+				for (size_t i=0;i<numChildren;i++){
+					avgValue += m_acTurbulentViscosity[grid.get_child<side_type>(elem, i)];
+				}
+				avgValue/=numChildren;
+				m_acTurbulentViscosity[elem] = avgValue;
+				// UG_LOG(" " << m_acTurbulentViscosity[elem] << "\n");
+			}
+			if (lev==0) break;
+		}
+	}
 }
 
 } // namespace NavierStokes
