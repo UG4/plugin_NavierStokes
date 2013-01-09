@@ -236,6 +236,8 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
+			.template add_constructor<void (*)(const char*,const char*, const char*)>("Functions#Subset(s)#DiscScheme")
+			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&, const char*)>("Functions#Subset(s)#DiscScheme")
 
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -265,7 +267,6 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
 			.add_method("set_laplace", &T::set_laplace)
 			.add_method("set_stokes", &T::set_stokes)
-			.add_method("set_disc_scheme", &T::set_disc_scheme)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokes", tag);
 	}

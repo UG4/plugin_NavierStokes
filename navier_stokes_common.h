@@ -24,7 +24,9 @@ namespace NavierStokes{
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename TDomain>
-NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
+NavierStokes<TDomain>::NavierStokes(const char* functions,
+                                    const char* subsets,
+                                    const char* discType)
 : IDomainElemDisc<TDomain>(functions, subsets),
   m_bStokes(false),
   m_bLaplace(false),
@@ -33,11 +35,15 @@ NavierStokes<TDomain>::NavierStokes(const char* functions, const char* subsets)
   m_spConvUpwind(NULL)
 {
 	init();
+
+	if(discType != NULL) set_disc_scheme(discType);
+	else set_disc_scheme("stab");
 }
 
 template<typename TDomain>
 NavierStokes<TDomain>::NavierStokes(const std::vector<std::string>& vFct,
-                                    const std::vector<std::string>& vSubset)
+                                    const std::vector<std::string>& vSubset,
+                                    const char* discType)
 : IDomainElemDisc<TDomain>(vFct, vSubset),
   m_bStokes(false),
   m_bLaplace(false),
@@ -46,6 +52,9 @@ NavierStokes<TDomain>::NavierStokes(const std::vector<std::string>& vFct,
   m_spConvUpwind(NULL)
 {
 	init();
+
+	if(discType != NULL) set_disc_scheme(discType);
+	else set_disc_scheme("stab");
 }
 
 template<typename TDomain>
@@ -72,12 +81,22 @@ void NavierStokes<TDomain>::init()
 
 //	default value for density
 	set_density(1.0);
-
-	m_discScheme = "stab";
-//	register assemble functions
-	set_ass_funcs();
 }
 
+template<typename TDomain>
+bool NavierStokes<TDomain>::request_non_regular_grid(bool bNonRegular)
+{
+//	switch, which assemble functions to use.
+	if(bNonRegular)
+	{
+		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
+				" Non-regular grid not implemented.\n");
+		return false;
+	}
+
+//	this disc supports regular grids
+	return true;
+}
 
 template<typename TDomain>
 void NavierStokes<TDomain>::
@@ -87,11 +106,10 @@ set_disc_scheme(const char* c_scheme)
 	std::string scheme = c_scheme;
 
 	//	check
-	if(scheme != std::string("stab") &&
-	scheme != std::string("staggered"))
+	if(	scheme != std::string("stab") &&
+		scheme != std::string("staggered"))
 	{
-		UG_LOG("ERROR in 'ConvectionDiffusion::set_disc_scheme':"
-			" Only 'stab' and 'staggered' supported.\n");
+		UG_THROW("NavierStokes: Only 'stab' and 'staggered' supported.");
 	}
 
 	//	remember

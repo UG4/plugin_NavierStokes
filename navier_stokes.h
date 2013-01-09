@@ -142,8 +142,8 @@ class NavierStokes
 	public:
 	///	Constructor (setting default values)
 	/// \{
-		NavierStokes(const char* functions, const char* subsets);
-		NavierStokes(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
+		NavierStokes(const char* functions, const char* subsets, const char* discType = NULL);
+		NavierStokes(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset, const char* discType = NULL);
 	/// \}
 
 	///	sets the kinematic viscosity
@@ -244,27 +244,12 @@ class NavierStokes
 		bool request_finite_element_id(const std::vector<LFEID>& vLfeID);
 
 	///	switches between non-regular and regular grids
-	/**
-	 * \param[in]	bNonRegular		flag if non-regular grid needed.
-	 */
-		virtual bool request_non_regular_grid(bool bNonRegular)
-		{
-		//	switch, which assemble functions to use.
-			if(bNonRegular)
-			{
-				UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
-						" Non-regular grid not implemented.\n");
-				return false;
-			}
-
-		//	this disc supports regular grids
-			return true;
-		}
-		
-		///	sets the disc scheme
-		void set_disc_scheme(const char* c_scheme);
+		virtual bool request_non_regular_grid(bool bNonRegular);
 		
 	protected:
+	///	sets the disc scheme
+		void set_disc_scheme(const char* c_scheme);
+		
 	///	current type of disc scheme
 		std::string m_discScheme;
 
