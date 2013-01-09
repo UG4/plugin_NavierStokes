@@ -1,12 +1,12 @@
 /*
- * inflow.h
+ * wall.h
  *
  *  Created on: 01.09.2011
  *      Author: andreasvogel
  */
 
-#ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND__INFLOW__
-#define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND__INFLOW__
+#ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND_WALL__
+#define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND_WALL__
 
 #include "lib_disc/spatial_disc/disc_item.h"
 
@@ -17,21 +17,15 @@ namespace ug{
 namespace NavierStokes{
 
 template <	typename TDomain, typename TAlgebra>
-class NavierStokesInflow
-	: public IDiscretizationItem<TDomain, TAlgebra>
+class NavierStokesWall
+	: public IDiscretizationItem<TDomain,TAlgebra>
 {
-	private:
-		const static int dim = TDomain::dim;
-
 	public:
 	///	returns the number of element discs
-		virtual size_t num_elem_disc() const {
-			if (m_spMaster->disc_scheme() != "staggered") return 1;
-			else return 0;
-		}
+		virtual size_t num_elem_disc() const {return 0;}
 
 	///	returns the element disc
-		virtual SmartPtr<IDomainElemDisc<TDomain> > elem_disc(size_t i) {return m_spNeumannDisc;}
+		virtual SmartPtr<IDomainElemDisc<TDomain> > elem_disc(size_t i) {return NULL;}
 
 	///	returns the number of constraints
 		virtual size_t num_constraint() const {return 1;}
@@ -41,21 +35,12 @@ class NavierStokesInflow
 
 	public:
 	///	Constructor
-		NavierStokesInflow(SmartPtr< NavierStokes<TDomain> > spMaster);
+		NavierStokesWall(SmartPtr< NavierStokes<TDomain> > spMaster);
 
 	///	sets the velocity to a given value
-	///	\{
-		void add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND);
-		void add(const std::vector<number>& vVel, const char* subsetsBND);
-#ifdef UG_FOR_LUA
-		void add(const char* luaFctName, const char* subsetsBND);
-#endif
-	///	\}
+		void add(const char* subsetsBND);
 
 	protected:
-	///	neumann disc for pressure equation
-		SmartPtr<NeumannBoundary<TDomain> > m_spNeumannDisc;
-
 	///	dirichlet disc for velocity components
 		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
@@ -69,6 +54,6 @@ class NavierStokesInflow
 } // namespace NavierStokes
 } // end namespace ug
 
-#include "inflow_impl.h"
+#include "wall_impl.h"
 
-#endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND__INFLOW__ */
+#endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__BND_WALL__ */
