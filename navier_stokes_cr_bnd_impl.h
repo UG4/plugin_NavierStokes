@@ -17,13 +17,6 @@ namespace ug{
 namespace NavierStokes{
 
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-//  Provide a generic implementation for all elements
-//  (since this discretization can be implemented in a generic way)
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
 /**
  * converts the subset names where the BC is imposed to the corresponding subset
  * indices (i.e. m_vScheduledBndSubSets -> m_vBndSubSetIndex):
@@ -96,7 +89,7 @@ add
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-prepare_element_loop()
+prep_elem_loop_cr()
 {
 //	register subsetIndex at Geometry
 	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
@@ -108,12 +101,12 @@ prepare_element_loop()
 
 //	check if kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW("CRNavierStokesNoNormalStressOutflow::prepare_element_loop:"
+		UG_THROW("CRNavierStokesNoNormalStressOutflow::prep_elem_loop_cr:"
 						" Kinematic Viscosity has not been set, but is required.\n");
 
 //	check if Density has been set
 	if(!m_imDensity.data_given())
-		UG_THROW("CRNavierStokesNoNormalStressOutflow::prepare_element_loop:"
+		UG_THROW("CRNavierStokesNoNormalStressOutflow::prep_elem_loop_cr:"
 						" Density has not been set, but is required.\n");
 
 //	request the subset indices as boundary subset. This will force the
@@ -130,7 +123,7 @@ prepare_element_loop()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-finish_element_loop()
+fsh_elem_loop_cr()
 {
 	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 
@@ -148,15 +141,14 @@ finish_element_loop()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-prepare_element(TElem* elem, const LocalVector& u)
+prep_elem_cr(TElem* elem, const LocalVector& u)
 {
-//	get corners
-	m_vCornerCoords = this->template element_corners<TElem>(elem);
-
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
-	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW("CRNavierStokesNoNormalStressOutflow::prepare_element:"
+	if(!geo.update(elem,
+	               this->template element_corners<TElem>(elem),
+	               &(this->subset_handler())))
+		UG_THROW("CRNavierStokesNoNormalStressOutflow::prep_elem_cr:"
 						" Cannot update Finite Volume Geometry.\n");
 
 //	find and set the local and the global positions of the IPs for imports
@@ -192,7 +184,7 @@ prepare_element(TElem* elem, const LocalVector& u)
 template<typename TDomain>
 template<typename BF>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_diffusive_flux_Jac
+diffusive_flux_Jac_cr
 (
 	const size_t ip, // index of the integration point (for the viscosity)
 	const BF& bf, // boundary face to assemble
@@ -237,7 +229,7 @@ ass_diffusive_flux_Jac
 template<typename TDomain>
 template<typename BF>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_diffusive_flux_defect
+diffusive_flux_defect_cr
 (
 	const size_t ip, // index of the integration point (for the viscosity)
 	const BF& bf, // boundary face to assemble
@@ -282,7 +274,7 @@ ass_diffusive_flux_defect
 template<typename TDomain>
 template<typename BF>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_convective_flux_Jac
+convective_flux_Jac_cr
 (
 	const size_t ip, // index of the integration point (for the density)
 	const BF& bf, // boundary face to assemble
@@ -316,7 +308,7 @@ ass_convective_flux_Jac
 template<typename TDomain>
 template<typename BF>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_convective_flux_defect
+convective_flux_defect_cr
 (
 	const size_t ip, // index of the integration point (for the density)
 	const BF& bf, // boundary face to assemble
@@ -345,7 +337,7 @@ ass_convective_flux_defect
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_JA_elem(LocalMatrix& J, const LocalVector& u)
+add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -372,9 +364,9 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
 		{
 		//	A. The momentum equation:
-			ass_diffusive_flux_Jac<BF> (ip, *bf, J, u);
+			diffusive_flux_Jac_cr<BF> (ip, *bf, J, u);
 			if (!m_spMaster->get_stokes ())
-				ass_convective_flux_Jac<BF> (ip, *bf, J, u);
+				convective_flux_Jac_cr<BF> (ip, *bf, J, u);
 
 		//	B. The continuity equation
 		//	for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
@@ -391,7 +383,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_dA_elem(LocalVector& d, const LocalVector& u)
+add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -418,37 +410,15 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
 		{
 		// A. Momentum equation:
-			ass_diffusive_flux_defect<BF> (ip, *bf, d, u);
+			diffusive_flux_defect_cr<BF> (ip, *bf, d, u);
 			if (!m_spMaster->get_stokes ())
-				ass_convective_flux_defect<BF> (ip, *bf, d, u);
+				convective_flux_defect_cr<BF> (ip, *bf, d, u);
 
 		// Next IP:
 			ip++;
 		}
 	}
 }
-
-
-template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_JM_elem(LocalMatrix& J, const LocalVector& u)
-{}
-
-
-template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_dM_elem(LocalVector& d, const LocalVector& u)
-{}
-
-
-template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void CRNavierStokesNoNormalStressOutflow<TDomain>::
-ass_rhs_elem(LocalVector& d)
-{}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //	Constructor
@@ -510,14 +480,14 @@ register_cr_func()
 	typedef this_type T;
 
 	this->enable_fast_ass_elem(true);
-	this->set_prep_elem_loop_fct(id, &T::template prepare_element_loop<TElem, TFVGeom>);
-	this->set_prep_elem_fct(	 id, &T::template prepare_element<TElem, TFVGeom>);
-	this->set_fsh_elem_loop_fct( id, &T::template finish_element_loop<TElem, TFVGeom>);
-	this->set_ass_JA_elem_fct(		 id, &T::template ass_JA_elem<TElem, TFVGeom>);
-	this->set_ass_JM_elem_fct(		 id, &T::template ass_JM_elem<TElem, TFVGeom>);
-	this->set_ass_dA_elem_fct(		 id, &T::template ass_dA_elem<TElem, TFVGeom>);
-	this->set_ass_dM_elem_fct(		 id, &T::template ass_dM_elem<TElem, TFVGeom>);
-	this->set_ass_rhs_elem_fct(	 id, &T::template ass_rhs_elem<TElem, TFVGeom>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_cr<TElem, TFVGeom>);
+	this->set_prep_elem_fct(	 	id, &T::template prep_elem_cr<TElem, TFVGeom>);
+	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_cr<TElem, TFVGeom>);
+	this->set_ass_JA_elem_fct(		id, &T::template add_JA_elem_cr<TElem, TFVGeom>);
+	this->set_ass_JM_elem_fct(		id, &T::template add_JM_elem<TElem, TFVGeom>);
+	this->set_ass_dA_elem_fct(		id, &T::template add_dA_elem_cr<TElem, TFVGeom>);
+	this->set_ass_dM_elem_fct(		id, &T::template add_dM_elem<TElem, TFVGeom>);
+	this->set_ass_rhs_elem_fct(		id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -610,7 +580,7 @@ add
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-prepare_element_loop()
+prep_elem_loop_cr()
 {
 //	register subsetIndex at Geometry
 	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
@@ -622,12 +592,12 @@ prepare_element_loop()
 
 //	check if kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW("CRNavierStokesSymBC::prepare_element_loop:"
+		UG_THROW("CRNavierStokesSymBC::prep_elem_loop_cr:"
 						" Kinematic Viscosity has not been set, but is required.\n");
 
 //	check if Density has been set
 	if(!m_imDensity.data_given())
-		UG_THROW("CRNavierStokesSymBC::prepare_element_loop:"
+		UG_THROW("CRNavierStokesSymBC::prep_elem_loop_cr:"
 						" Density has not been set, but is required.\n");
 
 //	request the subset indices as boundary subset. This will force the
@@ -644,7 +614,7 @@ prepare_element_loop()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-finish_element_loop()
+fsh_elem_loop_cr()
 {
 	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 
@@ -662,7 +632,7 @@ finish_element_loop()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-prepare_element(TElem* elem, const LocalVector& u)
+prep_elem_cr(TElem* elem, const LocalVector& u)
 {
 //	get corners
 	m_vCornerCoords = this->template element_corners<TElem>(elem);
@@ -670,7 +640,7 @@ prepare_element(TElem* elem, const LocalVector& u)
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW("CRNavierStokesSymBC::prepare_element:"
+		UG_THROW("CRNavierStokesSymBC::prep_elem_cr:"
 						" Cannot update Finite Volume Geometry.\n");
 
 //	find and set the local and the global positions of the IPs for imports
@@ -706,7 +676,7 @@ prepare_element(TElem* elem, const LocalVector& u)
 template<typename TDomain>
 template<typename BF>
 void CRNavierStokesSymBC<TDomain>::
-ass_normal_flux_Jac
+normal_flux_Jac_cr
 (
 	const size_t ip, // index of the integration point (for the viscosity)
 	const BF& bf, // boundary face to assemble
@@ -749,7 +719,7 @@ ass_normal_flux_Jac
 template<typename TDomain>
 template<typename BF>
 void CRNavierStokesSymBC<TDomain>::
-ass_normal_flux_defect
+normal_flux_defect_cr
 (
 	const size_t ip, // index of the integration point (for the viscosity)
 	const BF& bf, // boundary face to assemble
@@ -793,7 +763,7 @@ ass_normal_flux_defect
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-ass_JA_elem(LocalMatrix& J, const LocalVector& u)
+add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -865,7 +835,7 @@ ass_JA_elem(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-ass_dA_elem(LocalVector& d, const LocalVector& u)
+add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -934,27 +904,6 @@ ass_dA_elem(LocalVector& d, const LocalVector& u)
 }
 
 
-template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void CRNavierStokesSymBC<TDomain>::
-ass_JM_elem(LocalMatrix& J, const LocalVector& u)
-{}
-
-
-template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void CRNavierStokesSymBC<TDomain>::
-ass_dM_elem(LocalVector& d, const LocalVector& u)
-{}
-
-
-template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void CRNavierStokesSymBC<TDomain>::
-ass_rhs_elem(LocalVector& d)
-{}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //	Constructor
 ////////////////////////////////////////////////////////////////////////////////
@@ -1015,14 +964,14 @@ register_cr_func()
 	typedef this_type T;
 
 	this->enable_fast_ass_elem(true);
-	set_prep_elem_loop_fct(id, &T::template prepare_element_loop<TElem, TFVGeom>);
-	set_prep_elem_fct(	 id, &T::template prepare_element<TElem, TFVGeom>);
-	set_fsh_elem_loop_fct( id, &T::template finish_element_loop<TElem, TFVGeom>);
-	set_ass_JA_elem_fct(		 id, &T::template ass_JA_elem<TElem, TFVGeom>);
-	set_ass_JM_elem_fct(		 id, &T::template ass_JM_elem<TElem, TFVGeom>);
-	set_ass_dA_elem_fct(		 id, &T::template ass_dA_elem<TElem, TFVGeom>);
-	set_ass_dM_elem_fct(		 id, &T::template ass_dM_elem<TElem, TFVGeom>);
-	set_ass_rhs_elem_fct(	 id, &T::template ass_rhs_elem<TElem, TFVGeom>);
+	set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_cr<TElem, TFVGeom>);
+	set_prep_elem_fct(	   	id, &T::template prep_elem_cr<TElem, TFVGeom>);
+	set_fsh_elem_loop_fct(	id, &T::template fsh_elem_loop_cr<TElem, TFVGeom>);
+	set_ass_JA_elem_fct(	id, &T::template add_JA_elem_cr<TElem, TFVGeom>);
+	set_ass_JM_elem_fct(	id, &T::template add_JM_elem<TElem, TFVGeom>);
+	set_ass_dA_elem_fct(	id, &T::template add_dA_elem_cr<TElem, TFVGeom>);
+	set_ass_dM_elem_fct(	id, &T::template add_dM_elem<TElem, TFVGeom>);
+	set_ass_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -51,9 +51,6 @@ namespace NavierStokes{
 		///	World dimension
 			static const int dim = base_type::dim;
 
-		///	Position type
-			typedef typename base_type::position_type position_type;
-
 		public:
 		///	Constructor (setting default values)
 			CRNavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster);
@@ -116,40 +113,35 @@ namespace NavierStokes{
 
 		///	prepares the element loop
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void prepare_element_loop();
+			void prep_elem_loop_cr();
 
 		///	prepares the element for evaluation
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void prepare_element(TElem* elem, const LocalVector& u);
+			void prep_elem_cr(TElem* elem, const LocalVector& u);
 
 		///	finishes the element loop
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void finish_element_loop();
+			void fsh_elem_loop_cr();
 
 		///	adds the stiffness part to the local jacobian
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_JA_elem(LocalMatrix& J, const LocalVector& u);
+			void add_JA_elem_cr(LocalMatrix& J, const LocalVector& u);
 
 		///	adds the stiffness part to the local defect
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_dA_elem(LocalVector& d, const LocalVector& u);
+			void add_dA_elem_cr(LocalVector& d, const LocalVector& u);
 
-		///	adds the mass part to the local jacobian
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_JM_elem(LocalMatrix& J, const LocalVector& u);
-
-		///	adds the mass part to the local defect
+			void add_JM_elem(LocalMatrix& J, const LocalVector& u) {}
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_dM_elem(LocalVector& d, const LocalVector& u);
-
-		///	adds the source part to the local defect
+			void add_dM_elem(LocalVector& d, const LocalVector& u) {}
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_rhs_elem(LocalVector& d);
+			void add_rhs_elem(LocalVector& d) {}
 
 		private:
 		/// adds the diffusive part of the local Jacobian of the momentum equation
 			template <typename BF>
-			inline void ass_diffusive_flux_Jac
+			inline void diffusive_flux_Jac_cr
 			(
 				const size_t ip,
 				const BF& bf,
@@ -158,7 +150,7 @@ namespace NavierStokes{
 			);
 		/// adds the diffusive part of the local defect of the momentum equation
 			template <typename BF>
-			inline void ass_diffusive_flux_defect
+			inline void diffusive_flux_defect_cr
 			(
 				const size_t ip,
 				const BF& bf,
@@ -167,7 +159,7 @@ namespace NavierStokes{
 			);
 		/// adds the convective part of the local Jacobian of the momentum equation
 			template <typename BF>
-			inline void ass_convective_flux_Jac
+			inline void convective_flux_Jac_cr
 			(
 				const size_t ip,
 				const BF& bf,
@@ -176,7 +168,7 @@ namespace NavierStokes{
 			);
 		/// adds the convective part of the local defect of the momentum equation
 			template <typename BF>
-			inline void ass_convective_flux_defect
+			inline void convective_flux_defect_cr
 			(
 				const size_t ip,
 				const BF& bf,
@@ -201,9 +193,6 @@ namespace NavierStokes{
 		/// Boundary integration points of the viscosity and the density
 			std::vector<MathVector<dim> > m_vLocIP;
 			std::vector<MathVector<dim> > m_vGloIP;
-
-		/// position access
-			const position_type* m_vCornerCoords;
 
 		/// abbreviation for pressure
 			static const size_t _P_ = dim;
@@ -308,40 +297,35 @@ namespace NavierStokes{
 
 		///	prepares the element loop
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void prepare_element_loop();
+			void prep_elem_loop_cr();
 
 		///	prepares the element for evaluation
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void prepare_element(TElem* elem, const LocalVector& u);
+			void prep_elem_cr(TElem* elem, const LocalVector& u);
 
 		///	finishes the element loop
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void finish_element_loop();
+			void fsh_elem_loop_cr();
 
 		///	adds the stiffness part to the local jacobian
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_JA_elem(LocalMatrix& J, const LocalVector& u);
+			void add_JA_elem_cr(LocalMatrix& J, const LocalVector& u);
 
 		///	adds the stiffness part to the local defect
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_dA_elem(LocalVector& d, const LocalVector& u);
+			void add_dA_elem_cr(LocalVector& d, const LocalVector& u);
 
-		///	adds the mass part to the local jacobian
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_JM_elem(LocalMatrix& J, const LocalVector& u);
-
-		///	adds the mass part to the local defect
+			void add_JM_elem(LocalMatrix& J, const LocalVector& u) {}
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_dM_elem(LocalVector& d, const LocalVector& u);
-
-		///	adds the source part to the local defect
+			void add_dM_elem(LocalVector& d, const LocalVector& u) {}
 			template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-			void ass_rhs_elem(LocalVector& d);
+			void add_rhs_elem(LocalVector& d) {}
 
 		private:
 		/// adds the diffusive part of the local Jacobian of the momentum equation
 			template <typename BF>
-			inline void ass_normal_flux_Jac
+			inline void normal_flux_Jac_cr
 			(
 				const size_t ip,
 				const BF& bf,
@@ -350,7 +334,7 @@ namespace NavierStokes{
 			);
 		/// adds the diffusive part of the local defect of the momentum equation
 			template <typename BF>
-			inline void ass_normal_flux_defect
+			inline void normal_flux_defect_cr
 			(
 				const size_t ip,
 				const BF& bf,
@@ -359,7 +343,7 @@ namespace NavierStokes{
 			);
 		/// adds the convective part of the local Jacobian of the momentum equation
 			template <typename BF>
-			inline void ass_convective_flux_Jac
+			inline void convective_flux_Jac_cr
 			(
 				const size_t ip,
 				const BF& bf,
@@ -368,7 +352,7 @@ namespace NavierStokes{
 			);
 		/// adds the convective part of the local defect of the momentum equation
 			template <typename BF>
-			inline void ass_convective_flux_defect
+			inline void convective_flux_defect_cr
 			(
 				const size_t ip,
 				const BF& bf,
