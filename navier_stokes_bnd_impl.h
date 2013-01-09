@@ -22,48 +22,37 @@ namespace NavierStokes{
 
 template <typename TDomain, typename TAlgebra>
 NavierStokesInflow<TDomain,TAlgebra>::
-NavierStokesInflow(const char* functions, const char* subsets)
-	: m_spNeumannDisc(new NeumannBoundary<TDomain>(subsets)),
-	  m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>)
+NavierStokesInflow(SmartPtr< NavierStokes<TDomain> > spMaster)
+	: m_spNeumannDisc(new NeumannBoundary<TDomain>(spMaster->symb_subsets())),
+	  m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>),
+	  m_spMaster(spMaster)
 {
-	set_functions(functions);
-}
+	m_vFctName = spMaster->symb_fcts();
 
-
-template <typename TDomain, typename TAlgebra>
-void NavierStokesInflow<TDomain,TAlgebra>::
-set_functions(const char* functions)
-{
-	std::string strFunctions(functions);
-	std::vector<std::string> tokens;
-
-	TokenizeString(strFunctions, tokens, ',');
-
-	if(tokens.size() != TDomain::dim + 1)
+	if(m_vFctName.size() != TDomain::dim + 1)
 		UG_THROW("NavierStokesInflow::set_functions: This Boundary "
 				"Condition works on exactly dim+1 (velocity+pressure) "
-				"components, but "<<tokens.size()<<"components given.");
-
-	m_velNames.clear();
-	for(int i=0;i<TDomain::dim; ++i)
-	{
-		if(i>0) m_velNames.append(",");
-		m_velNames.append(tokens[i]);
-	}
-
-	m_pressureName = tokens[TDomain::dim];
+				"components, but "<<m_vFctName.size()<<"components given.");
 }
 
 template <typename TDomain, typename TAlgebra>
 void NavierStokesInflow<TDomain,TAlgebra>::
 add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND)
 {
-	if(m_velNames.empty() || m_pressureName.empty())
+	if(m_vFctName.empty())
 		UG_THROW("NavierStokesInflow::add: Symbolic names for"
 				" velocity and pressure not set. Please set them first.");
 
-	m_spNeumannDisc->add(user, m_pressureName.c_str(), subsetsBND);
-	m_spDirichletConstraint->add(user, m_velNames.c_str(), subsetsBND);
+	if(m_spMaster->disc_scheme() != "staggered")
+		m_spNeumannDisc->add(user, m_vFctName[dim].c_str(), subsetsBND);
+
+	std::string velNames;
+	for(int i=0;i<TDomain::dim; ++i)
+	{
+		if(i>0) velNames.append(",");
+		velNames.append(m_vFctName[i]);
+	}
+	m_spDirichletConstraint->add(user, velNames.c_str(), subsetsBND);
 }
 
 template <typename TDomain, typename TAlgebra>
@@ -94,39 +83,29 @@ add(const char* fctName, const char* subsetsBND)
 
 template <typename TDomain, typename TAlgebra>
 NavierStokesWall<TDomain,TAlgebra>::
-NavierStokesWall(const char* functions)
+NavierStokesWall(SmartPtr< NavierStokes<TDomain> > spMaster)
 	: m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>)
 {
-	set_functions(functions);
+	m_vFctName = spMaster->symb_fcts();
+
+	if(m_vFctName.size() != TDomain::dim + 1)
+		UG_THROW("NavierStokesWall::set_functions: This Boundary "
+				"Condition works on exactly dim+1 (velocity+pressure) "
+				"components, but "<<m_vFctName.size()<<"components given.");
 }
 
 template <typename TDomain, typename TAlgebra>
 void NavierStokesWall<TDomain,TAlgebra>::
 add(const char* subsetsBND)
 {
-	if(m_velNames.empty())
+	if(m_vFctName.empty())
 		UG_THROW("NavierStokesWall::add: Symbolic names for"
 				" velocity and pressure not set. Please set them first.");
 
 	for(int i = 0; i < TDomain::dim; ++i)
 	{
-		m_spDirichletConstraint->add(0.0, m_velNames[i].c_str(), subsetsBND);
+		m_spDirichletConstraint->add(0.0, m_vFctName[i].c_str(), subsetsBND);
 	}
-}
-
-template <typename TDomain, typename TAlgebra>
-void NavierStokesWall<TDomain,TAlgebra>::
-set_functions(const char* functions)
-{
-	std::string strFunctions(functions);
-
-	m_velNames.clear();
-	TokenizeString(strFunctions, m_velNames, ',');
-
-	if(m_velNames.size() != TDomain::dim + 1)
-		UG_THROW("NavierStokesWall::set_functions: This Boundary "
-				"Condition works on exactly dim+1 (velocity+pressure) "
-				"components, but "<<m_velNames.size()<<"components given.");
 }
 
 } // namespace NavierStokes

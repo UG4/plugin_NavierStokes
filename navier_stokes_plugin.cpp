@@ -60,7 +60,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
 		string name = string("NavierStokesInflow").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
+			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterElemDisc")
 
 			.add_method("add", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
 			.add_method("add", static_cast<void (T::*)(const std::vector<number>&, const char*)>(&T::add), "", "Velocity, Subset")
@@ -78,41 +78,10 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
 		string name = string("NavierStokesWall").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(const char*)>("Function(s)")
+			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterElemDisc")
 			.add_method("add", &T::add)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWall", tag);
-	}
-//	CRNavierStokesInflow
-	{
-		typedef CRNavierStokesInflow<TDomain, TAlgebra> T;
-		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
-		string name = string("CRNavierStokesInflow").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(const char*,const char*)>("Function(s)#Subset(s)")
-
-			.add_method("add", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
-			.add_method("add", static_cast<void (T::*)(number, const char*)>(&T::add), "", "Vel_x, Subset")
-			.add_method("add", static_cast<void (T::*)(number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Subset")
-			.add_method("add", static_cast<void (T::*)(number,number,number, const char*)>(&T::add), "", "Vel_x, Vel_y, Vel_z, Subset")
-#ifdef UG_FOR_LUA
-			.add_method("add", static_cast<void (T::*)(const char*, const char*)>(&T::add), "", "Velocity")
-#endif
-
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "CRNavierStokesInflow", tag);
-	}
-
-//	CRNavierStokesWall
-	{
-		typedef CRNavierStokesWall<TDomain, TAlgebra> T;
-		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
-		string name = string("CRNavierStokesWall").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(const char*)>("Function(s)")
-			.add_method("add", &T::add)
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "CRNavierStokesWall", tag);
 	}
 	
 	typedef ug::GridFunction<TDomain, SurfaceDoFDistribution, TAlgebra> TFct;

@@ -16,8 +16,7 @@
 namespace ug{
 namespace NavierStokes{
 
-template <	typename TDomain,
-			typename TAlgebra>
+template <	typename TDomain, typename TAlgebra>
 class NavierStokesInflow
 	: public IDiscretizationItem<TDomain, TAlgebra>
 {
@@ -26,7 +25,10 @@ class NavierStokesInflow
 
 	public:
 	///	returns the number of element discs
-		virtual size_t num_elem_disc() const {return 1;}
+		virtual size_t num_elem_disc() const {
+			if (m_spMaster->disc_scheme() != "staggered") return 1;
+			else return 0;
+		}
 
 	///	returns the element disc
 		virtual SmartPtr<IDomainElemDisc<TDomain> > elem_disc(size_t i) {return m_spNeumannDisc;}
@@ -39,7 +41,7 @@ class NavierStokesInflow
 
 	public:
 	///	Constructor
-		NavierStokesInflow(const char* functions, const char* subsets);
+		NavierStokesInflow(SmartPtr< NavierStokes<TDomain> > spMaster);
 
 	///	sets the velocity to a given value
 	///	\{
@@ -51,28 +53,24 @@ class NavierStokesInflow
 	///	\}
 
 	protected:
-	///	sets the symbolic names for velocity and pressure
-		void set_functions(const char* functions);
-
 	///	neumann disc for pressure equation
 		SmartPtr<NeumannBoundary<TDomain> > m_spNeumannDisc;
 
 	///	dirichlet disc for velocity components
 		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
-	///	name of velocity components
-		std::string m_velNames;
+	///	name of velocity+pressure components
+		std::vector<std::string> m_vFctName;
 
-	///	name of pressure components
-		std::string m_pressureName;
+	/// The master discretization:
+		SmartPtr< NavierStokes<TDomain> > m_spMaster;
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-template <	typename TDomain,
-			typename TAlgebra>
+template <	typename TDomain, typename TAlgebra>
 class NavierStokesWall
 	: public IDiscretizationItem<TDomain,TAlgebra>
 {
@@ -89,25 +87,22 @@ class NavierStokesWall
 	///	returns an element disc
 		virtual SmartPtr<IDomainConstraint<TDomain, TAlgebra> > constraint(size_t i) {return m_spDirichletConstraint;}
 
-	///	virtual destructor
-		~NavierStokesWall() {}
-
 	public:
 	///	Constructor
-		NavierStokesWall(const char* functions);
+		NavierStokesWall(SmartPtr< NavierStokes<TDomain> > spMaster);
 
 	///	sets the velocity to a given value
 		void add(const char* subsetsBND);
 
 	protected:
-	///	sets the symbolic names for velocity and pressure
-		void set_functions(const char* functions);
-
 	///	dirichlet disc for velocity components
 		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
-	///	name of velocity components
-		std::vector<std::string> m_velNames;
+	///	name of velocity+pressure components
+		std::vector<std::string> m_vFctName;
+
+	/// The master discretization:
+		SmartPtr< NavierStokes<TDomain> > m_spMaster;
 };
 
 } // namespace NavierStokes
