@@ -12,6 +12,7 @@
 #include "navier_stokes.h"
 #include "upwind.h"
 #include "stabilization.h"
+#include "navier_stokes_tools.h"
 
 #include "bnd/inflow.h"
 #include "bnd/wall.h"
@@ -148,6 +149,16 @@ static void DomainAlgebra(Registry& reg, string grp)
 	//	Order CR-Minimum Degree
 	{
 		reg.add_function("CROrderMinimumDegree", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderMinimumDegree), grp);
+	}
+
+	// vorticity computation
+	{
+		reg.add_function("vorticity", static_cast<void (*)(function_type&,function_type&)>(&vorticity), grp);
+	}
+
+	// driven cavity data evaluation
+	{
+		reg.add_function("dcevaluation", static_cast<void (*)(function_type&,size_t)>(&drivenCavityEvaluation), grp);
 	}
 }
 
@@ -361,7 +372,7 @@ static void Dimension(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesRegularUpwind", tag);
 	}
 	
-// CR staggered	
+// CR staggered	upwinds
 	
 	//	INavierStokesCRUpwind
 	{
@@ -404,6 +415,28 @@ static void Dimension(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesCRWeightedUpwind", tag);
 	}
 	
+	//	NavierStokesCRLinearProfileSkewedUpwind
+	{
+		typedef NavierStokesCRLinearProfileSkewedUpwind<dim> T;
+		typedef INavierStokesCRUpwind<dim> TBase;
+		string name = string("NavierStokesCRLinearProfileSkewedUpwind").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+		.add_constructor()
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesCRLinearProfileSkewedUpwind", tag);
+	}
+	
+	//	NavierStokesCRSkewedUpwind
+	{
+		typedef NavierStokesCRSkewedUpwind<dim> T;
+		typedef INavierStokesCRUpwind<dim> TBase;
+		string name = string("NavierStokesCRSkewedUpwind").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+		.add_constructor()
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesCRSkewedUpwind", tag);
+	}
+
 
 /////////////////////////////////////////////////////////////////////////////
 // Stabilization
