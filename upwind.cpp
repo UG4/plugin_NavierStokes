@@ -1,12 +1,9 @@
 /*
- * upwind_impl.cpp
+ * upwind.cpp
  *
  *  Created on: 10.03.2011
  *      Author: andreasvogel
  */
-
-#ifndef NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND_IMPL__
-#define NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND_IMPL__
 
 // for minimum
 #include <limits>
@@ -22,80 +19,6 @@
 
 namespace ug {
 namespace NavierStokes{
-
-/////////////////////////////////////////////////////////////////////////////
-// Interface for FV1 collocated grid upwinds
-/////////////////////////////////////////////////////////////////////////////
-
-//	register a update function for a Geometry
-template <int dim>
-template <typename TFVGeom, typename TAssFunc>
-void
-INavierStokesFV1Upwind<dim>::
-register_update_func(TAssFunc func)
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	make sure that there is enough space
-	if((size_t)id >= m_vComputeFunc.size())
-		m_vComputeFunc.resize(id+1, NULL);
-
-//	set pointer
-	m_vComputeFunc[id] = (ComputeFunc)func;
-}
-
-//	set the Geometry type to use for next updates
-template <int dim>
-template <typename TFVGeom>
-void
-INavierStokesFV1Upwind<dim>::
-set_geometry_type()
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	check that function exists
-	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
-		UG_THROW("No update function registered for Geometry "<<id);
-
-//	set current geometry
-	m_id = id;
-
-//	set sizes
-	TFVGeom& geo = Provider<TFVGeom>::get();
-	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_sh();
-	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
-	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
-}
-
-///	upwind velocity
-template <int dim>
-MathVector<dim>
-INavierStokesFV1Upwind<dim>::
-upwind_vel(const size_t scvf,
-           const LocalVector& CornerVel,
-           const MathVector<dim> vStdVel[]) const
-{
-//	reset result
-	MathVector<dim> vel; VecSet(vel, 0.0);
-
-//	add corner shapes
-	for(size_t sh = 0; sh < num_sh(); ++sh)
-		for(int d = 0; d < dim; ++d)
-			vel[d] += upwind_shape_sh(scvf, sh) * CornerVel(d, sh);
-
-//	done if only depending on shapes
-	if(!non_zero_shape_ip()) return vel;
-
-//	compute ip vel
-	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
-		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), vStdVel[scvf2]);
-
-//	return value
-	return vel;
-}
 
 /////////////////////////////////////////////////////////////////////////////
 // No Upwind
@@ -652,80 +575,6 @@ compute(const FV1Geometry<TElem, dim>* geo,
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// Interface for staggered CR type grid upwinds
-/////////////////////////////////////////////////////////////////////////////
-
-//	register a update function for a Geometry
-template <int dim>
-template <typename TFVGeom, typename TAssFunc>
-void
-INavierStokesCRUpwind<dim>::
-register_update_func(TAssFunc func)
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	make sure that there is enough space
-	if((size_t)id >= m_vComputeFunc.size())
-		m_vComputeFunc.resize(id+1, NULL);
-
-//	set pointer
-	m_vComputeFunc[id] = (ComputeFunc)func;
-}
-
-//	set the Geometry type to use for next updates
-template <int dim>
-template <typename TFVGeom>
-void
-INavierStokesCRUpwind<dim>::
-set_geometry_type()
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	check that function exists
-	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
-		UG_THROW("No update function registered for Geometry "<<id);
-
-//	set current geometry
-	m_id = id;
-
-//	set sizes
-	TFVGeom& geo = Provider<TFVGeom>::get();
-	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_sh();
-	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
-	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
-}
-
-///	upwind velocity
-template <int dim>
-MathVector<dim>
-INavierStokesCRUpwind<dim>::
-upwind_vel(const size_t scvf,
-           const LocalVector& CornerVel,
-           const MathVector<dim> vStdVel[]) const
-{
-//	reset result
-	MathVector<dim> vel; VecSet(vel, 0.0);
-
-//	add corner shapes
-	for(size_t sh = 0; sh < num_sh(); ++sh)
-		for(int d = 0; d < dim; ++d)
-			vel[d] += upwind_shape_sh(scvf, sh) * CornerVel(d, sh);
-
-//	done if only depending on shapes
-	if(!non_zero_shape_ip()) return vel;
-
-//	compute ip vel
-	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
-		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), vStdVel[scvf2]);
-
-//	return value
-	return vel;
-}
-
-/////////////////////////////////////////////////////////////////////////////
 // No Upwind
 /////////////////////////////////////////////////////////////////////////////
 
@@ -988,7 +837,39 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//	explicit instantiations
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef UG_DIM_2
+template class NavierStokesNoUpwind<2>;
+template class NavierStokesFullUpwind<2>;
+template class NavierStokesSkewedUpwind<2>;
+template class NavierStokesLinearProfileSkewedUpwind<2>;
+template class NavierStokesPositiveUpwind<2>;
+template class NavierStokesRegularUpwind<2>;
+
+template class NavierStokesCRFullUpwind<2>;
+template class NavierStokesCRNoUpwind<2>;
+template class NavierStokesCRWeightedUpwind<2>;
+template class NavierStokesCRLinearProfileSkewedUpwind<2>;
+template class NavierStokesCRSkewedUpwind<2>;
+#endif
+
+#ifdef UG_DIM_3
+template class NavierStokesNoUpwind<3>;
+template class NavierStokesFullUpwind<3>;
+template class NavierStokesSkewedUpwind<3>;
+template class NavierStokesLinearProfileSkewedUpwind<3>;
+template class NavierStokesPositiveUpwind<3>;
+template class NavierStokesRegularUpwind<3>;
+
+template class NavierStokesCRNoUpwind<3>;
+template class NavierStokesCRFullUpwind<3>;
+template class NavierStokesCRWeightedUpwind<3>;
+template class NavierStokesCRLinearProfileSkewedUpwind<3>;
+template class NavierStokesCRSkewedUpwind<3>;
+#endif
+
 } // namespace NavierStokes
 } // end namespace ug
-
-#endif /* NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND_IMPL__ */

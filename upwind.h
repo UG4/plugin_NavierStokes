@@ -5,8 +5,8 @@
  *      Author: andreasvogel
  */
 
-#ifndef NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
-#define NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__
+#ifndef __H__UG__NAVIER_STOKES__UPWIND__
+#define __H__UG__NAVIER_STOKES__UPWIND__
 
 //#define UG_NSUPWIND_ASSERT(cond, exp)
 // include define below to assert arrays used in stabilization
@@ -260,6 +260,152 @@ class INavierStokesFV1Upwind
 		int m_id;
 };
 
+//	register a update function for a Geometry
+template <int dim>
+template <typename TFVGeom, typename TAssFunc>
+void
+INavierStokesFV1Upwind<dim>::
+register_update_func(TAssFunc func)
+{
+//	get unique geometry id
+	size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+//	make sure that there is enough space
+	if((size_t)id >= m_vComputeFunc.size())
+		m_vComputeFunc.resize(id+1, NULL);
+
+//	set pointer
+	m_vComputeFunc[id] = (ComputeFunc)func;
+}
+
+
+//	set the Geometry type to use for next updates
+template <int dim>
+template <typename TFVGeom>
+void
+INavierStokesFV1Upwind<dim>::
+set_geometry_type()
+{
+//	get unique geometry id
+	size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+//	check that function exists
+	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
+		UG_THROW("No update function registered for Geometry "<<id);
+
+//	set current geometry
+	m_id = id;
+
+//	set sizes
+	TFVGeom& geo = Provider<TFVGeom>::get();
+	m_numScvf = geo.num_scvf();
+	m_numSh = geo.num_sh();
+	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
+	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
+}
+
+
+///	upwind velocity
+template <int dim>
+MathVector<dim>
+INavierStokesFV1Upwind<dim>::
+upwind_vel(const size_t scvf,
+           const LocalVector& CornerVel,
+           const MathVector<dim> vStdVel[]) const
+{
+//	reset result
+	MathVector<dim> vel; VecSet(vel, 0.0);
+
+//	add corner shapes
+	for(size_t sh = 0; sh < num_sh(); ++sh)
+		for(int d = 0; d < dim; ++d)
+			vel[d] += upwind_shape_sh(scvf, sh) * CornerVel(d, sh);
+
+//	done if only depending on shapes
+	if(!non_zero_shape_ip()) return vel;
+
+//	compute ip vel
+	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
+		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), vStdVel[scvf2]);
+
+//	return value
+	return vel;
+}
+
+template <int TDim, typename TImpl>
+class NavierStokesUpwindBase : public INavierStokesFV1Upwind<TDim>
+{
+	public:
+	///	Dimension
+		static const int dim = TDim;
+
+	///	Base class
+		typedef INavierStokesFV1Upwind<dim> base_type;
+
+	///	This class
+		typedef NavierStokesUpwindBase<TDim, TImpl> this_type;
+
+	protected:
+		static const size_t maxNumSCV = base_type::maxNumSCV;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
+	public:
+	///	constructor
+		NavierStokesUpwindBase() {register_func(Int2Type<dim>());}
+
+	///	update of values for FV1Geometry
+		template <typename TElem>
+		void compute(const FV1Geometry<TElem, dim>* geo,
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF])
+		{
+			getImpl().template compute<TElem>(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
+		}
+
+	private:
+		void register_func(Int2Type<1>)
+		{
+			register_func<Edge>();
+		}
+
+		void register_func(Int2Type<2>)
+		{
+			register_func<Triangle>();
+			register_func<Quadrilateral>();
+		}
+
+		void register_func(Int2Type<3>)
+		{
+			register_func<Tetrahedron>();
+			register_func<Pyramid>();
+			register_func<Prism>();
+			register_func<Hexahedron>();
+		}
+
+		template <typename TElem>
+		void register_func()
+		{
+			typedef FV1Geometry<TElem, dim> TGeom;
+			typedef void (this_type::*TFunc)(
+									const TGeom* obj,
+						             const MathVector<dim> vIPVel[maxNumSCVF],
+						             number vUpShapeSh[maxNumSCVF][maxNumSH],
+						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						             number vConvLength[maxNumSCVF]);
+
+			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
+		}
+
+	protected:
+	///	access to implementation
+		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
+
+	///	const access to implementation
+		const TImpl& getImpl() const {return static_cast<const TImpl&>(*this);}
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // No Upwind
@@ -267,14 +413,11 @@ class INavierStokesFV1Upwind
 
 template <int TDim>
 class NavierStokesNoUpwind
-	: public INavierStokesFV1Upwind<TDim>
+	: public NavierStokesUpwindBase<TDim, NavierStokesNoUpwind<TDim> >
 {
 	public:
 	///	Base class
 		typedef INavierStokesFV1Upwind<TDim> base_type;
-
-	///	This class
-		typedef NavierStokesNoUpwind<TDim> this_type;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -296,9 +439,6 @@ class NavierStokesNoUpwind
 		//	Note: during resize, values are initialized to zero, thus values
 		//		  for shapes depending on ip values are always correct (i.e. zero)
 			set_shape_ip_flag(false);
-
-		//	register evaluation function
-			register_func(Int2Type<dim>());
 		}
 
 	///	update of values for FV1Geometry
@@ -308,36 +448,6 @@ class NavierStokesNoUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
-
-	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
-
-		template <typename TElem>
-		void register_func()
-		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-						             const MathVector<dim> vIPVel[maxNumSCVF],
-						             number vUpShapeSh[maxNumSCVF][maxNumSH],
-						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-						             number vConvLength[maxNumSCVF]);
-
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-		}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -346,14 +456,11 @@ class NavierStokesNoUpwind
 
 template <int TDim>
 class NavierStokesFullUpwind
-	: public INavierStokesFV1Upwind<TDim>
+: public NavierStokesUpwindBase<TDim, NavierStokesFullUpwind<TDim> >
 {
 	public:
 	///	Base class
 		typedef INavierStokesFV1Upwind<TDim> base_type;
-
-	///	This class
-		typedef NavierStokesFullUpwind<TDim> this_type;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -375,9 +482,6 @@ class NavierStokesFullUpwind
 		//	Note: during resize, values are initialized to zero, thus values
 		//		  for shapes depending on ip values are always correct (i.e. zero)
 			set_shape_ip_flag(false);
-
-		//	register evaluation function
-			register_func(Int2Type<dim>());
 		}
 
 	///	update of values for FV1Geometry
@@ -387,36 +491,6 @@ class NavierStokesFullUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
-
-	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
-
-		template <typename TElem>
-		void register_func()
-		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-						             const MathVector<dim> vIPVel[maxNumSCVF],
-						             number vUpShapeSh[maxNumSCVF][maxNumSH],
-						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-						             number vConvLength[maxNumSCVF]);
-
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-		}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -425,14 +499,11 @@ class NavierStokesFullUpwind
 
 template <int TDim>
 class NavierStokesSkewedUpwind
-	: public INavierStokesFV1Upwind<TDim>
+: public NavierStokesUpwindBase<TDim, NavierStokesSkewedUpwind<TDim> >
 {
 	public:
 	///	Base class
 		typedef INavierStokesFV1Upwind<TDim> base_type;
-
-	///	This class
-		typedef NavierStokesSkewedUpwind<TDim> this_type;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -454,9 +525,6 @@ class NavierStokesSkewedUpwind
 		//	Note: during resize, values are initialized to zero, thus values
 		//		  for shapes depending on ip values are always correct (i.e. zero)
 			set_shape_ip_flag(false);
-
-		//	register evaluation function
-			register_func(Int2Type<dim>());
 		}
 
 	///	update of values for FV1Geometry
@@ -466,36 +534,6 @@ class NavierStokesSkewedUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
-
-	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
-
-		template <typename TElem>
-		void register_func()
-		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-						             const MathVector<dim> vIPVel[maxNumSCVF],
-						             number vUpShapeSh[maxNumSCVF][maxNumSH],
-						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-						             number vConvLength[maxNumSCVF]);
-
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-		}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -504,14 +542,11 @@ class NavierStokesSkewedUpwind
 
 template <int TDim>
 class NavierStokesLinearProfileSkewedUpwind
-	: public INavierStokesFV1Upwind<TDim>
+: public NavierStokesUpwindBase<TDim, NavierStokesLinearProfileSkewedUpwind<TDim> >
 {
 	public:
 	///	Base class
 		typedef INavierStokesFV1Upwind<TDim> base_type;
-
-	///	This class
-		typedef NavierStokesLinearProfileSkewedUpwind<TDim> this_type;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -533,9 +568,6 @@ class NavierStokesLinearProfileSkewedUpwind
 		//	Note: during resize, values are initialized to zero, thus values
 		//		  for shapes depending on ip values are always correct (i.e. zero)
 			set_shape_ip_flag(false);
-
-		//	register evaluation function
-			register_func(Int2Type<dim>());
 		}
 
 	///	update of values for FV1Geometry
@@ -545,36 +577,6 @@ class NavierStokesLinearProfileSkewedUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
-
-	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
-
-		template <typename TElem>
-		void register_func()
-		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-						             const MathVector<dim> vIPVel[maxNumSCVF],
-						             number vUpShapeSh[maxNumSCVF][maxNumSH],
-						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-						             number vConvLength[maxNumSCVF]);
-
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-		}
 };
 
 
@@ -584,14 +586,11 @@ class NavierStokesLinearProfileSkewedUpwind
 
 template <int TDim>
 class NavierStokesPositiveUpwind
-	: public INavierStokesFV1Upwind<TDim>
+: public NavierStokesUpwindBase<TDim, NavierStokesPositiveUpwind<TDim> >
 {
 	public:
 	///	Base class
 		typedef INavierStokesFV1Upwind<TDim> base_type;
-
-	///	This class
-		typedef NavierStokesPositiveUpwind<TDim> this_type;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -611,9 +610,6 @@ class NavierStokesPositiveUpwind
 		{
 		//	shapes for ip vels are non-zero (dependency between ip shapes)
 			set_shape_ip_flag(true);
-
-		//	register evaluation function
-			register_func(Int2Type<dim>());
 		}
 
 	///	update of values for FV1Geometry
@@ -623,36 +619,6 @@ class NavierStokesPositiveUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
-
-	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
-
-		template <typename TElem>
-		void register_func()
-		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-						             const MathVector<dim> vIPVel[maxNumSCVF],
-						             number vUpShapeSh[maxNumSCVF][maxNumSH],
-						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-						             number vConvLength[maxNumSCVF]);
-
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-		}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -661,14 +627,11 @@ class NavierStokesPositiveUpwind
 
 template <int TDim>
 class NavierStokesRegularUpwind
-	: public INavierStokesFV1Upwind<TDim>
+: public NavierStokesUpwindBase<TDim, NavierStokesRegularUpwind<TDim> >
 {
 	public:
 	///	Base class
 		typedef INavierStokesFV1Upwind<TDim> base_type;
-
-	///	This class
-		typedef NavierStokesRegularUpwind<TDim> this_type;
 
 	///	Dimension
 		static const int dim = TDim;
@@ -688,9 +651,6 @@ class NavierStokesRegularUpwind
 		{
 		//	shapes for ip vels are non-zero (dependency between ip shapes)
 			set_shape_ip_flag(true);
-
-		//	register evaluation function
-			register_func(Int2Type<dim>());
 		}
 
 	///	update of values for FV1Geometry
@@ -700,36 +660,6 @@ class NavierStokesRegularUpwind
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 					 number vConvLength[maxNumSCVF]);
-
-	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
-
-		template <typename TElem>
-		void register_func()
-		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-									 const MathVector<dim> vIPVel[maxNumSCVF],
-									 number vUpShapeSh[maxNumSCVF][maxNumSH],
-									 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-									 number vConvLength[maxNumSCVF]);
-
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-		}
 };
 
 
@@ -970,21 +900,162 @@ class INavierStokesCRUpwind
 			int m_id;
 };
 
+//	set the Geometry type to use for next updates
+template <int dim>
+template <typename TFVGeom>
+void
+INavierStokesCRUpwind<dim>::
+set_geometry_type()
+{
+//	get unique geometry id
+	size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+//	check that function exists
+	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
+		UG_THROW("No update function registered for Geometry "<<id);
+
+//	set current geometry
+	m_id = id;
+
+//	set sizes
+	TFVGeom& geo = Provider<TFVGeom>::get();
+	m_numScvf = geo.num_scvf();
+	m_numSh = geo.num_sh();
+	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
+	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
+}
+
+//	register a update function for a Geometry
+template <int dim>
+template <typename TFVGeom, typename TAssFunc>
+void
+INavierStokesCRUpwind<dim>::
+register_update_func(TAssFunc func)
+{
+//	get unique geometry id
+	size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+//	make sure that there is enough space
+	if((size_t)id >= m_vComputeFunc.size())
+		m_vComputeFunc.resize(id+1, NULL);
+
+//	set pointer
+	m_vComputeFunc[id] = (ComputeFunc)func;
+}
+
+///	upwind velocity
+template <int dim>
+MathVector<dim>
+INavierStokesCRUpwind<dim>::
+upwind_vel(const size_t scvf,
+           const LocalVector& CornerVel,
+           const MathVector<dim> vStdVel[]) const
+{
+//	reset result
+	MathVector<dim> vel; VecSet(vel, 0.0);
+
+//	add corner shapes
+	for(size_t sh = 0; sh < num_sh(); ++sh)
+		for(int d = 0; d < dim; ++d)
+			vel[d] += upwind_shape_sh(scvf, sh) * CornerVel(d, sh);
+
+//	done if only depending on shapes
+	if(!non_zero_shape_ip()) return vel;
+
+//	compute ip vel
+	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
+		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), vStdVel[scvf2]);
+
+//	return value
+	return vel;
+}
+
+template <int TDim, typename TImpl>
+class NavierStokesCRUpwindBase : public INavierStokesCRUpwind<TDim>
+{
+	public:
+	///	Dimension
+		static const int dim = TDim;
+
+	///	Base class
+		typedef INavierStokesCRUpwind<dim> base_type;
+
+	///	This class
+		typedef NavierStokesCRUpwindBase<TDim, TImpl> this_type;
+
+	protected:
+		static const size_t maxNumSCV = base_type::maxNumSCV;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
+	public:
+	///	constructor
+		NavierStokesCRUpwindBase() {register_func(Int2Type<dim>());}
+
+	///	update of values for FV1Geometry
+		template <typename TElem>
+		void compute(const CRFVGeometry<TElem, dim>* geo,
+		             const MathVector<dim> vIPVel[maxNumSCVF],
+		             number vUpShapeSh[maxNumSCVF][maxNumSH],
+		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		             number vConvLength[maxNumSCVF])
+		{
+			getImpl().template compute<TElem>(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
+		}
+
+	private:
+		void register_func(Int2Type<1>)
+		{
+			register_func<Edge>();
+		}
+
+		void register_func(Int2Type<2>)
+		{
+			register_func<Triangle>();
+			register_func<Quadrilateral>();
+		}
+
+		void register_func(Int2Type<3>)
+		{
+			register_func<Tetrahedron>();
+			register_func<Pyramid>();
+			register_func<Prism>();
+			register_func<Hexahedron>();
+		}
+
+		template <typename TElem>
+		void register_func()
+		{
+			typedef CRFVGeometry<TElem, dim> TGeom;
+			typedef void (this_type::*TFunc)(
+									const TGeom* obj,
+						             const MathVector<dim> vIPVel[maxNumSCVF],
+						             number vUpShapeSh[maxNumSCVF][maxNumSH],
+						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						             number vConvLength[maxNumSCVF]);
+
+			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
+		}
+
+	protected:
+	///	access to implementation
+		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
+
+	///	const access to implementation
+		const TImpl& getImpl() const {return static_cast<const TImpl&>(*this);}
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // No Upwind
 /////////////////////////////////////////////////////////////////////////////
 
 template <int TDim>
-	class NavierStokesCRNoUpwind
-	: public INavierStokesCRUpwind<TDim>
+class NavierStokesCRNoUpwind
+: public NavierStokesCRUpwindBase<TDim, NavierStokesCRNoUpwind<TDim> >
 {
 		public:
 		///	Base class
 			typedef INavierStokesCRUpwind<TDim> base_type;
-
-		///	This class
-			typedef NavierStokesCRNoUpwind<TDim> this_type;
 
 		///	Dimension
 			static const int dim = TDim;
@@ -1006,9 +1077,6 @@ template <int TDim>
 			//	Note: during resize, values are initialized to zero, thus values
 			//		  for shapes depending on ip values are always correct (i.e. zero)
 				set_shape_ip_flag(false);
-
-			//	register evaluation function
-				register_func(Int2Type<dim>());
 			}
 
 		///	update of values for CRFVGeometry
@@ -1018,36 +1086,6 @@ template <int TDim>
 			             number vUpShapeSh[maxNumSCVF][maxNumSH],
 			             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 			             number vConvLength[maxNumSCVF]);
-
-		private:
-			void register_func(Int2Type<1>)
-			{register_func<Edge>();}
-
-			void register_func(Int2Type<2>)
-			{	register_func(Int2Type<1>());
-				register_func<Triangle>();
-				register_func<Quadrilateral>();}
-
-			void register_func(Int2Type<3>)
-			{	register_func(Int2Type<2>());
-				register_func<Tetrahedron>();
-				register_func<Pyramid>();
-				register_func<Prism>();
-				register_func<Hexahedron>();}
-
-			template <typename TElem>
-			void register_func()
-			{
-				typedef CRFVGeometry<TElem, dim> TGeom;
-				typedef void (this_type::*TFunc)(
-										const TGeom* obj,
-							             const MathVector<dim> vIPVel[maxNumSCVF],
-							             number vUpShapeSh[maxNumSCVF][maxNumSH],
-							             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-							             number vConvLength[maxNumSCVF]);
-
-				this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-			}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1056,14 +1094,11 @@ template <int TDim>
 
 template <int TDim>
 class NavierStokesCRFullUpwind
-	: public INavierStokesCRUpwind<TDim>
+: public NavierStokesCRUpwindBase<TDim, NavierStokesCRFullUpwind<TDim> >
 {
 		public:
 		///	Base class
 			typedef INavierStokesCRUpwind<TDim> base_type;
-
-		///	This class
-			typedef NavierStokesCRFullUpwind<TDim> this_type;
 
 		///	Dimension
 			static const int dim = TDim;
@@ -1085,9 +1120,6 @@ class NavierStokesCRFullUpwind
 			//	Note: during resize, values are initialized to zero, thus values
 			//		  for shapes depending on ip values are always correct (i.e. zero)
 				set_shape_ip_flag(false);
-
-			//	register evaluation function
-				register_func(Int2Type<dim>());
 			}
 
 		///	update of values for CRFVGeometry
@@ -1097,36 +1129,6 @@ class NavierStokesCRFullUpwind
 			             number vUpShapeSh[maxNumSCVF][maxNumSH],
 			             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 			             number vConvLength[maxNumSCVF]);
-
-		private:
-			void register_func(Int2Type<1>)
-			{register_func<Edge>();}
-
-			void register_func(Int2Type<2>)
-			{	register_func(Int2Type<1>());
-				register_func<Triangle>();
-				register_func<Quadrilateral>();}
-
-			void register_func(Int2Type<3>)
-			{	register_func(Int2Type<2>());
-				register_func<Tetrahedron>();
-				register_func<Pyramid>();
-				register_func<Prism>();
-				register_func<Hexahedron>();}
-
-			template <typename TElem>
-			void register_func()
-			{
-				typedef CRFVGeometry<TElem, dim> TGeom;
-				typedef void (this_type::*TFunc)(
-										const TGeom* obj,
-							             const MathVector<dim> vIPVel[maxNumSCVF],
-							             number vUpShapeSh[maxNumSCVF][maxNumSH],
-							             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-							             number vConvLength[maxNumSCVF]);
-
-				this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-			}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -1137,14 +1139,11 @@ class NavierStokesCRFullUpwind
 
 template <int TDim>
 class NavierStokesCRWeightedUpwind
-	: public INavierStokesCRUpwind<TDim>
+: public NavierStokesCRUpwindBase<TDim, NavierStokesCRWeightedUpwind<TDim> >
 {
 		public:
 		///	Base class
 			typedef INavierStokesCRUpwind<TDim> base_type;
-
-		///	This class
-			typedef NavierStokesCRWeightedUpwind<TDim> this_type;
 
 		///	Dimension
 			static const int dim = TDim;
@@ -1168,9 +1167,6 @@ class NavierStokesCRWeightedUpwind
 			//	Note: during resize, values are initialized to zero, thus values
 			//		  for shapes depending on ip values are always correct (i.e. zero)
 				set_shape_ip_flag(false);
-
-			//	register evaluation function
-				register_func(Int2Type<dim>());
 				
 				m_weight = weight;
 			}
@@ -1182,48 +1178,15 @@ class NavierStokesCRWeightedUpwind
 			             number vUpShapeSh[maxNumSCVF][maxNumSH],
 			             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 			             number vConvLength[maxNumSCVF]);
-
-		private:
-			void register_func(Int2Type<1>)
-			{register_func<Edge>();}
-
-			void register_func(Int2Type<2>)
-			{	register_func(Int2Type<1>());
-				register_func<Triangle>();
-				register_func<Quadrilateral>();}
-
-			void register_func(Int2Type<3>)
-			{	register_func(Int2Type<2>());
-				register_func<Tetrahedron>();
-				register_func<Pyramid>();
-				register_func<Prism>();
-				register_func<Hexahedron>();}
-
-			template <typename TElem>
-			void register_func()
-			{
-				typedef CRFVGeometry<TElem, dim> TGeom;
-				typedef void (this_type::*TFunc)(
-										const TGeom* obj,
-							             const MathVector<dim> vIPVel[maxNumSCVF],
-							             number vUpShapeSh[maxNumSCVF][maxNumSH],
-							             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-							             number vConvLength[maxNumSCVF]);
-
-				this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-			}
 };
 
 template <int TDim>
 class NavierStokesCRLinearProfileSkewedUpwind
-		: public INavierStokesCRUpwind<TDim>
+: public NavierStokesCRUpwindBase<TDim, NavierStokesCRLinearProfileSkewedUpwind<TDim> >
 {
 		public:
 		///	Base class
 			typedef INavierStokesCRUpwind<TDim> base_type;
-
-		///	This class
-			typedef NavierStokesCRLinearProfileSkewedUpwind<TDim> this_type;
 
 		///	Dimension
 			static const int dim = TDim;
@@ -1245,9 +1208,6 @@ class NavierStokesCRLinearProfileSkewedUpwind
 			//	Note: during resize, values are initialized to zero, thus values
 			//		  for shapes depending on ip values are always correct (i.e. zero)
 				set_shape_ip_flag(false);
-
-			//	register evaluation function
-				register_func(Int2Type<dim>());
 			}
 
 		///	update of values for FV1Geometry
@@ -1257,118 +1217,49 @@ class NavierStokesCRLinearProfileSkewedUpwind
 			             number vUpShapeSh[maxNumSCVF][maxNumSH],
 			             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 			             number vConvLength[maxNumSCVF]);
-
-		private:
-			void register_func(Int2Type<1>)
-			{register_func<Edge>();}
-
-			void register_func(Int2Type<2>)
-			{	register_func(Int2Type<1>());
-				register_func<Triangle>();
-				register_func<Quadrilateral>();}
-
-			void register_func(Int2Type<3>)
-			{	register_func(Int2Type<2>());
-				register_func<Tetrahedron>();
-				register_func<Pyramid>();
-				register_func<Prism>();
-				register_func<Hexahedron>();}
-
-			template <typename TElem>
-			void register_func()
-			{
-				typedef CRFVGeometry<TElem, dim> TGeom;
-				typedef void (this_type::*TFunc)(
-										const TGeom* obj,
-							             const MathVector<dim> vIPVel[maxNumSCVF],
-							             number vUpShapeSh[maxNumSCVF][maxNumSH],
-							             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-							             number vConvLength[maxNumSCVF]);
-
-				this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-			}
 };
 
 template <int TDim>
 class NavierStokesCRSkewedUpwind
-		: public INavierStokesCRUpwind<TDim>
-		{
-				public:
-				///	Base class
-					typedef INavierStokesCRUpwind<TDim> base_type;
+: public NavierStokesCRUpwindBase<TDim, NavierStokesCRSkewedUpwind<TDim> >
+{
+		public:
+		///	Base class
+			typedef INavierStokesCRUpwind<TDim> base_type;
 
-				///	This class
-					typedef NavierStokesCRSkewedUpwind<TDim> this_type;
+		///	Dimension
+			static const int dim = TDim;
 
-				///	Dimension
-					static const int dim = TDim;
+		protected:
+		//	explicitly forward some function
+			using base_type::set_shape_ip_flag;
+			using base_type::register_update_func;
 
-				protected:
-				//	explicitly forward some function
-					using base_type::set_shape_ip_flag;
-					using base_type::register_update_func;
+			static const size_t maxNumSCV = base_type::maxNumSCV;
+			static const size_t maxNumSCVF = base_type::maxNumSCVF;
+			static const size_t maxNumSH = base_type::maxNumSH;
 
-					static const size_t maxNumSCV = base_type::maxNumSCV;
-					static const size_t maxNumSCVF = base_type::maxNumSCVF;
-					static const size_t maxNumSH = base_type::maxNumSH;
+		public:
+		///	constructor
+			NavierStokesCRSkewedUpwind()
+			{
+			//	shapes for ip vels are zero (no dependency between ip shapes, only to corners)
+			//	Note: during resize, values are initialized to zero, thus values
+			//		  for shapes depending on ip values are always correct (i.e. zero)
+				set_shape_ip_flag(false);
+			}
 
-				public:
-				///	constructor
-					NavierStokesCRSkewedUpwind()
-					{
-					//	shapes for ip vels are zero (no dependency between ip shapes, only to corners)
-					//	Note: during resize, values are initialized to zero, thus values
-					//		  for shapes depending on ip values are always correct (i.e. zero)
-						set_shape_ip_flag(false);
-
-					//	register evaluation function
-						register_func(Int2Type<dim>());
-					}
-
-				///	update of values for FV1Geometry
-					template <typename TElem>
-					void compute(const CRFVGeometry<TElem, dim>* geo,
-					             const MathVector<dim> vIPVel[maxNumSCVF],
-					             number vUpShapeSh[maxNumSCVF][maxNumSH],
-					             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					             number vConvLength[maxNumSCVF]);
-
-				private:
-					void register_func(Int2Type<1>)
-					{register_func<Edge>();}
-
-					void register_func(Int2Type<2>)
-					{	register_func(Int2Type<1>());
-						register_func<Triangle>();
-						register_func<Quadrilateral>();}
-
-					void register_func(Int2Type<3>)
-					{	register_func(Int2Type<2>());
-						register_func<Tetrahedron>();
-						register_func<Pyramid>();
-						register_func<Prism>();
-						register_func<Hexahedron>();}
-
-					template <typename TElem>
-					void register_func()
-					{
-						typedef CRFVGeometry<TElem, dim> TGeom;
-						typedef void (this_type::*TFunc)(
-												const TGeom* obj,
-									             const MathVector<dim> vIPVel[maxNumSCVF],
-									             number vUpShapeSh[maxNumSCVF][maxNumSH],
-									             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-									             number vConvLength[maxNumSCVF]);
-
-						this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-					}
-		};
+		///	update of values for FV1Geometry
+			template <typename TElem>
+			void compute(const CRFVGeometry<TElem, dim>* geo,
+						 const MathVector<dim> vIPVel[maxNumSCVF],
+						 number vUpShapeSh[maxNumSCVF][maxNumSH],
+						 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+						 number vConvLength[maxNumSCVF]);
+};
 
 
 } // namespace NavierStokes
 } // end namespace ug
 
-// include implementation
-#include "upwind_impl.h"
-
-#endif /* NEW_STABILIZATION_IMPL_H___H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__UPWIND__ */
+#endif /* __H__UG__NAVIER_STOKES__UPWIND__ */
