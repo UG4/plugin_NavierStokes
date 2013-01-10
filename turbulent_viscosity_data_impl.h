@@ -196,6 +196,13 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 	SetAttachmentValues(m_acVolume,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acTurbulentC,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acVolumeHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acUHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acDeformationNorm,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acDeformationHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acLij,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acMij,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
@@ -480,10 +487,13 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 			for (int d1=0;d1<dim;d1++)
 				for (int d2=0;d2<dim;d2++)
 					denom += m_acMij[elem][d1][d2]*m_acMij[elem][d1][d2];
-			c/=(number)denom;
+			if (denom>1e-15)
+				c/=(number)denom;
+			else c=0;
 			number delta = m_acVolume[elem];
 			// for possible other choices of delta see Fršhlich p 160
 			delta = pow(delta,(number)1.0/(number)dim);
+			// UG_LOG("c = " << c << " delta = " << delta << " deformNorm = " << m_acDeformationNorm[elem] << " denom = " << denom << "\n");
 			m_acTurbulentViscosity[elem] = c * delta*delta * m_acDeformationNorm[elem];
 		}
 		// transfer to lower levels, averaging over child edges (2d) / child faces (3d)

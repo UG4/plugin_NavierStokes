@@ -462,20 +462,41 @@ class CRDynamicTurbViscData
 			m_grid = &grid;
 			// attachments
 			grid.template attach_to<side_type>(m_aTurbulentViscosity);
+			grid.template attach_to<side_type>(m_aTurbulentC);
 			grid.template attach_to<side_type>(m_aVolume);
+			grid.template attach_to<side_type>(m_aVolumeHat);
+			grid.template attach_to<side_type>(m_aUHat);
 			grid.template attach_to<side_type>(m_aDeformation);
+			grid.template attach_to<side_type>(m_aDeformationNorm);
+			grid.template attach_to<side_type>(m_aDeformationHat);
+			grid.template attach_to<side_type>(m_aLij);
+			grid.template attach_to<side_type>(m_aMij);
 			// accessors
 			m_acTurbulentViscosity.access(grid,m_aTurbulentViscosity);
+			m_acTurbulentC.access(grid,m_aTurbulentC);
 			m_acVolume.access(grid,m_aVolume);
+			m_acVolumeHat.access(grid,m_aVolumeHat);
+			m_acUHat.access(grid,m_aUHat);
 			m_acDeformation.access(grid,m_aDeformation);
+			m_acDeformationNorm.access(grid,m_aDeformationNorm);
+			m_acDeformationHat.access(grid,m_aDeformationHat);
+			m_acLij.access(grid,m_aLij);
+			m_acMij.access(grid,m_aMij);
 		}
 		
 		virtual ~CRDynamicTurbViscData() {
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
 			grid.template detach_from<side_type>(m_aTurbulentViscosity);
+			grid.template detach_from<side_type>(m_aTurbulentC);
 			grid.template detach_from<side_type>(m_aVolume);
+			grid.template detach_from<side_type>(m_aVolumeHat);
+			grid.template detach_from<side_type>(m_aUHat);
 			grid.template detach_from<side_type>(m_aDeformation);
+			grid.template detach_from<side_type>(m_aDeformationHat);
+			grid.template detach_from<side_type>(m_aDeformationNorm);
+			grid.template detach_from<side_type>(m_aLij);
+			grid.template detach_from<side_type>(m_aMij);
 		};
 		
 		template <int refDim>
