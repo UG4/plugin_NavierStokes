@@ -10,6 +10,7 @@
 
 #include <vector>
 #include "lib_disc/function_spaces/approximation_space.h"
+#include "lib_grid/lg_base.h"
 #include "common/profiler/profiler.h"
 
 namespace ug{
@@ -52,7 +53,7 @@ void vorticity(TGridFunction& vort,TGridFunction& u)
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
-	const position_accessor_type& posAcc = u.domain()->position_accessor();
+	position_accessor_type& posAcc = u.domain()->position_accessor();
 
 	DimCRFVGeometry<dim> geo;
 
@@ -158,7 +159,7 @@ void vorticity(TGridFunction& vort,TGridFunction& u)
 	}
 	grid.template detach_from<side_type>(m_aVolume);
 }
-
+/*
 bool ContainsPoint(ug::Face*& f
 		, ug::MathVector<2ul, double>& p,
 		const ug::Grid::VertexAttachmentAccessor<ug::Attachment<ug::MathVector<2ul, double> > >& aaPos
@@ -180,7 +181,7 @@ bool ContainsPoint(ug::Face*& f
 	}
 	return false;
 }
-
+*/
 // array0 = array1
 void copyGhiaNumbers(number array0[17],number array1[17]){
 	for (size_t i=0;i<17;i++) array0[i]=array1[i];
@@ -208,7 +209,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
-	const position_accessor_type& posAcc = u.domain()->position_accessor();
+	position_accessor_type& posAcc = u.domain()->position_accessor();
 
 	bool foundRe = false;
 
