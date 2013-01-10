@@ -228,7 +228,7 @@ class NavierStokes
         	{m_spConvStab = spStab; m_spConvUpwind = NULL;}
 
 	///	sets an upwinding for the convective term of momentum equation
-		void set_conv_upwind(SmartPtr<INavierStokesFV1Upwind<dim> > spUpwind)
+		void set_conv_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
 			{m_spConvStab = NULL; m_spConvUpwind = spUpwind;}
 
     ///	sets if peclet blending is used in momentum equation
@@ -585,7 +585,7 @@ class NavierStokes
 		SmartPtr<INavierStokesFV1Stabilization<dim> > m_spConvStab;
 
 	///	Upwinding for velocity in convective term of momentum equation
-		SmartPtr<INavierStokesFV1Upwind<dim> > m_spConvUpwind;
+		SmartPtr<INavierStokesUpwind<dim> > m_spConvUpwind;
 
 	/// position access
 		const position_type* m_vCornerCoords;
@@ -644,15 +644,8 @@ class NavierStokes
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void ass_rhs_elem_cr(LocalVector& d);
 
-		///	sets an upwinding for the convective term of momentum equation
-		void set_conv_upwind(SmartPtr<INavierStokesCRUpwind<dim> > spUpwind)
-		{m_spConvCRUpwind = spUpwind;}
-
 	private:
 		void register_all_cr_funcs(bool bHang);
-
-		///	Upwinding for velocity in convective term of momentum equation
-		SmartPtr<INavierStokesCRUpwind<dim> > m_spConvCRUpwind;
 };
 
 /// @}

@@ -61,14 +61,14 @@ class INavierStokesFV1Stabilization
 		void set_diffusion_length(std::string diffLength);
 
 	///	sets the upwind method
-		void set_upwind(SmartPtr<INavierStokesFV1Upwind<dim> > spUpwind)
+		void set_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
 		{
 			m_spUpwind = spUpwind;
 			m_spConstUpwind = spUpwind;
 		}
 
 	///	returns the upwind
-		ConstSmartPtr<INavierStokesFV1Upwind<dim> > upwind() const {return m_spConstUpwind;}
+		ConstSmartPtr<INavierStokesUpwind<dim> > upwind() const {return m_spConstUpwind;}
 
 	///	diff length
 		number diff_length_sq_inv(size_t scvf) const
@@ -225,8 +225,8 @@ class INavierStokesFV1Stabilization
 
 	protected:
 	///	Upwind values
-		SmartPtr<INavierStokesFV1Upwind<dim> > m_spUpwind;
-		ConstSmartPtr<INavierStokesFV1Upwind<dim> > m_spConstUpwind;
+		SmartPtr<INavierStokesUpwind<dim> > m_spUpwind;
+		ConstSmartPtr<INavierStokesUpwind<dim> > m_spConstUpwind;
 
 	///	number of current scvf
 		size_t m_numScvf;

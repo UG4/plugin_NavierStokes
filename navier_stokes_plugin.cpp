@@ -242,8 +242,7 @@ static void Domain(Registry& reg, string grp)
 
 			.add_method("set_stabilization", &T::set_stabilization)
 			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesFV1Stabilization<dim> >)>(&T::set_conv_upwind))
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesFV1Upwind<dim> >)>(&T::set_conv_upwind))
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesCRUpwind<dim> >)>(&T::set_conv_upwind))
+			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_conv_upwind))
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
 			.add_method("set_laplace", &T::set_laplace)
@@ -298,18 +297,18 @@ static void Dimension(Registry& reg, string grp)
 	
 //  FV1 collocated
 
-//	INavierStokesFV1Upwind
+//	INavierStokesUpwind
 	{
-		typedef INavierStokesFV1Upwind<dim> T;
-		string name = string("INavierStokesFV1Upwind").append(suffix);
+		typedef INavierStokesUpwind<dim> T;
+		string name = string("INavierStokesUpwind").append(suffix);
 		reg.add_class_<T>(name, grp);
-		reg.add_class_to_group(name, "INavierStokesFV1Upwind", tag);
+		reg.add_class_to_group(name, "INavierStokesUpwind", tag);
 	}
 
 //	NavierStokesNoUpwind
 	{
 		typedef NavierStokesNoUpwind<dim> T;
-		typedef INavierStokesFV1Upwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesNoUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -320,7 +319,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesFullUpwind
 	{
 		typedef NavierStokesFullUpwind<dim> T;
-		typedef INavierStokesFV1Upwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesFullUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -331,7 +330,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesSkewedUpwind
 	{
 		typedef NavierStokesSkewedUpwind<dim> T;
-		typedef INavierStokesFV1Upwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -342,7 +341,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesLinearProfileSkewedUpwind
 	{
 		typedef NavierStokesLinearProfileSkewedUpwind<dim> T;
-		typedef INavierStokesFV1Upwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesLinearProfileSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -353,7 +352,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesPositiveUpwind
 	{
 		typedef NavierStokesPositiveUpwind<dim> T;
-		typedef INavierStokesFV1Upwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesPositiveUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -364,7 +363,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesRegularUpwind
 	{
 		typedef NavierStokesRegularUpwind<dim> T;
-		typedef INavierStokesFV1Upwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesRegularUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -374,18 +373,10 @@ static void Dimension(Registry& reg, string grp)
 	
 // CR staggered	upwinds
 	
-	//	INavierStokesCRUpwind
-	{
-		typedef INavierStokesCRUpwind<dim> T;
-		string name = string("INavierStokesCRUpwind").append(suffix);
-		reg.add_class_<T>(name, grp);
-		reg.add_class_to_group(name, "INavierStokesCRUpwind", tag);
-	}
-	
 	//	NavierStokesCRNoUpwind
 	{
 		typedef NavierStokesCRNoUpwind<dim> T;
-		typedef INavierStokesCRUpwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesCRNoUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.add_constructor()
@@ -396,7 +387,7 @@ static void Dimension(Registry& reg, string grp)
 	//	NavierStokesCRFullUpwind
 	{
 		typedef NavierStokesCRFullUpwind<dim> T;
-		typedef INavierStokesCRUpwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesCRFullUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.add_constructor()
@@ -407,7 +398,7 @@ static void Dimension(Registry& reg, string grp)
 	//	NavierStokesCRWeightedUpwind
 	{
 		typedef NavierStokesCRWeightedUpwind<dim> T;
-		typedef INavierStokesCRUpwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesCRWeightedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.template add_constructor<void (*)(number)>("Weight factor")
@@ -418,7 +409,7 @@ static void Dimension(Registry& reg, string grp)
 	//	NavierStokesCRLinearProfileSkewedUpwind
 	{
 		typedef NavierStokesCRLinearProfileSkewedUpwind<dim> T;
-		typedef INavierStokesCRUpwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesCRLinearProfileSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.add_constructor()
@@ -429,7 +420,7 @@ static void Dimension(Registry& reg, string grp)
 	//	NavierStokesCRSkewedUpwind
 	{
 		typedef NavierStokesCRSkewedUpwind<dim> T;
-		typedef INavierStokesCRUpwind<dim> TBase;
+		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesCRSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.add_constructor()

@@ -38,10 +38,10 @@ prepare_element_loop_cr()
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	check, that convective upwinding has been set
-		if(m_spConvCRUpwind.invalid()){
+		if(m_spConvUpwind.invalid()){
 			UG_THROW("Upwinding for convective Term in Momentum eq. not set.");
 		}else
-			m_spConvCRUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
+			m_spConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
 	}
 
 //	check, that kinematic Viscosity has been set
@@ -173,12 +173,12 @@ ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 					StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 		}
 
-		const INavierStokesCRUpwind<dim>& upwind = *m_spConvCRUpwind;
+		const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 		if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 		{
 		//	compute upwind shapes
-			m_spConvCRUpwind->update(&geo, StdVel);
+			m_spConvUpwind->update(&geo, StdVel);
 		}
 
 	// 	loop Sub Control Volume Faces (SCVF)
@@ -375,12 +375,12 @@ ass_dA_elem_cr(LocalVector& d, const LocalVector& u)
 					StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 		}
 
-		const INavierStokesCRUpwind<dim>& upwind = *m_spConvCRUpwind;
+		const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 		if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 		{
 			//	compute upwind shapes
-			m_spConvCRUpwind->update(&geo, StdVel);
+			m_spConvUpwind->update(&geo, StdVel);
 		}
 
 	// 	loop Sub Control Volume Faces (SCVF)

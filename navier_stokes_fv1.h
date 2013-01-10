@@ -201,7 +201,7 @@ ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 //	get a const (!!) reference to the stabilization
 	const INavierStokesFV1Stabilization<dim>& stab = *m_spStab;
 	const INavierStokesFV1Stabilization<dim>& convStab = *m_spConvStab;
-	const INavierStokesFV1Upwind<dim>& upwind = *m_spConvUpwind;
+	const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
@@ -546,7 +546,7 @@ ass_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 //	get a const (!!) reference to the stabilization
 	const INavierStokesFV1Stabilization<dim>& stab = *m_spStab;
 	const INavierStokesFV1Stabilization<dim>& convStab = *m_spConvStab;
-	const INavierStokesFV1Upwind<dim>& upwind = *m_spConvUpwind;
+	const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)

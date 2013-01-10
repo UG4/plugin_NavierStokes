@@ -28,7 +28,7 @@ namespace NavierStokes{
 
 
 template <int dim>
-class INavierStokesFV1Upwind
+class INavierStokesUpwind
 {
 	protected:
 	///	used traits
@@ -46,11 +46,11 @@ class INavierStokesFV1Upwind
 
 	public:
 	/// Abbreviation for own type
-		typedef INavierStokesFV1Upwind<dim> this_type;
+		typedef INavierStokesUpwind<dim> this_type;
 
 	public:
 	///	constructor
-		INavierStokesFV1Upwind()
+		INavierStokesUpwind()
 			: m_numScvf(0), m_numSh(0),
 			  m_bNonZeroShapeIp(true)
 		{
@@ -264,7 +264,7 @@ class INavierStokesFV1Upwind
 template <int dim>
 template <typename TFVGeom, typename TAssFunc>
 void
-INavierStokesFV1Upwind<dim>::
+INavierStokesUpwind<dim>::
 register_update_func(TAssFunc func)
 {
 //	get unique geometry id
@@ -283,7 +283,7 @@ register_update_func(TAssFunc func)
 template <int dim>
 template <typename TFVGeom>
 void
-INavierStokesFV1Upwind<dim>::
+INavierStokesUpwind<dim>::
 set_geometry_type()
 {
 //	get unique geometry id
@@ -308,7 +308,7 @@ set_geometry_type()
 ///	upwind velocity
 template <int dim>
 MathVector<dim>
-INavierStokesFV1Upwind<dim>::
+INavierStokesUpwind<dim>::
 upwind_vel(const size_t scvf,
            const LocalVector& CornerVel,
            const MathVector<dim> vStdVel[]) const
@@ -333,11 +333,11 @@ upwind_vel(const size_t scvf,
 }
 
 template <int dim, typename TImpl>
-class NavierStokesUpwindBase : public INavierStokesFV1Upwind<dim>
+class NavierStokesUpwindBase : public INavierStokesUpwind<dim>
 {
 	public:
 	///	Base class
-		typedef INavierStokesFV1Upwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 
 	///	This class
 		typedef NavierStokesUpwindBase<dim, TImpl> this_type;
@@ -413,7 +413,7 @@ class NavierStokesNoUpwind
 	: public NavierStokesUpwindBase<dim, NavierStokesNoUpwind<dim> >
 {
 	public:
-		typedef INavierStokesFV1Upwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -440,7 +440,7 @@ class NavierStokesFullUpwind
 : public NavierStokesUpwindBase<dim, NavierStokesFullUpwind<dim> >
 {
 	public:
-		typedef INavierStokesFV1Upwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -467,7 +467,7 @@ class NavierStokesSkewedUpwind
 : public NavierStokesUpwindBase<dim, NavierStokesSkewedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesFV1Upwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -494,7 +494,7 @@ class NavierStokesLinearProfileSkewedUpwind
 : public NavierStokesUpwindBase<dim, NavierStokesLinearProfileSkewedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesFV1Upwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -522,7 +522,7 @@ class NavierStokesPositiveUpwind
 : public NavierStokesUpwindBase<dim, NavierStokesPositiveUpwind<dim> >
 {
 	public:
-		typedef INavierStokesFV1Upwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -549,7 +549,7 @@ class NavierStokesRegularUpwind
 : public NavierStokesUpwindBase<dim, NavierStokesRegularUpwind<dim> >
 {
 	public:
-		typedef INavierStokesFV1Upwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -568,319 +568,12 @@ class NavierStokesRegularUpwind
 };
 
 
-//////////////////////////////////////////////////////////////////////////////////
-// Interface for Upwinds on staggered grid using Crouzeix-Raviart type elements
-//////////////////////////////////////////////////////////////////////////////////
-
-template <int dim>
-class INavierStokesCRUpwind
-{
-	protected:
-	///	used traits
-	typedef crfv_traits<dim, dim> traits;
-
-	public:
-	///	number of SubControlVolumes
-		static const size_t maxNumSCV = traits::maxNumSCV;
-
-	///	max number of SubControlVolumeFaces
-		static const size_t maxNumSCVF = traits::maxNumSCVF;
-
-	/// max number of shape functions
-		static const size_t maxNumSH = traits::maxNSH;
-
-	public:
-	/// Abbreviation for own type
-		typedef INavierStokesCRUpwind<dim> this_type;
-
-	public:
-	///	constructor
-		INavierStokesCRUpwind()
-			: m_numScvf(0), m_numSh(0),
-			  m_bNonZeroShapeIp(true)
-		{
-			m_vComputeFunc.clear();
-		}
-
-	///	returns number of shapes
-		size_t num_sh() const {return m_numSh;}
-
-	///	returns number of sub control volume faces
-		size_t num_scvf() const {return m_numScvf;}
-
-	///	Convection Length
-		number upwind_conv_length(size_t scvf) const
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			return m_vUpConvLength[scvf];
-		}
-
-	///	Convection Length
-		number downwind_conv_length(size_t scvf) const
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			return m_vDownConvLength[scvf];
-		}
-
-	/// returns the upwind velocity
-		MathVector<dim> upwind_vel(const size_t scvf,
-								   const LocalVector& CornerVel,
-								   const MathVector<dim> vStdVel[]) const;
-
-	///	upwind shape for corner vel
-		number upwind_shape_sh(size_t scvf, size_t sh) const
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
-			return m_vvUpShapeSh[scvf][sh];
-		}
-
-	///	upwind shape for corner vel
-		number downwind_shape_sh(size_t scvf, size_t sh) const
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
-			return m_vvDownShapeSh[scvf][sh];
-		}
-
-	///	returns if upwind shape w.r.t. ip vel is non-zero
-		bool non_zero_shape_ip() const {return m_bNonZeroShapeIp;}
-
-	///	upwind shapes for ip vel
-		number upwind_shape_ip(size_t scvf, size_t scvf2) const
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index: " << scvf);
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index2: " << scvf2);
-			return m_vvUpShapeIp[scvf][scvf2];
-		}
-
-	///	upwind shapes for ip vel
-		number downwind_shape_ip(size_t scvf, size_t scvf2) const
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
-			return m_vvDownShapeIp[scvf][scvf2];
-		}
-
-	///	compute values for new geometry and corner velocities
-		void update(const CRFVGeometryBase* geo,
-					const MathVector<dim> vStdVel[])
-		{
-			update_upwind(geo, vStdVel);
-		}
-
-	///	compute values for new geometry and corner velocities
-		void update_upwind(const CRFVGeometryBase* geo,
-						   const MathVector<dim> vStdVel[])
-		{
-			compute(geo, vStdVel, m_vvUpShapeSh, m_vvUpShapeIp, m_vUpConvLength);
-		}
-
-	///	compute values for new geometry and corner velocities
-		void update_downwind(const CRFVGeometryBase* geo,
-							 const MathVector<dim> vStdVel[])
-		{
-			MathVector<dim> vDownIPVel[maxNumSCVF];
-			for(size_t ip = 0; ip < m_numScvf; ++ip)
-				VecScale(vDownIPVel[ip], vStdVel[ip], -1.0);
-
-			compute(geo, vDownIPVel, m_vvDownShapeSh, m_vvDownShapeIp, m_vDownConvLength);
-		}
-
-	//////////////////////////
-	// internal handling
-	//////////////////////////
-
-	protected:
-	///	sets the shape ip flag
-		void set_shape_ip_flag(bool flag) {m_bNonZeroShapeIp = flag;}
-
-	///	non-const access to upwind shapes for corner vel
-		number& upwind_shape_sh(size_t scvf, size_t sh)
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
-			return m_vvUpShapeSh[scvf][sh];
-		}
-
-	///	non-const access to upwind shapes for corner vel
-		number& downwind_shape_sh(size_t scvf, size_t sh)
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
-			return m_vvDownShapeSh[scvf][sh];
-		}
-
-	///	non-const access to upwind shapes for ip vel
-		number& upwind_shape_ip(size_t scvf, size_t scvf2)
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
-			return m_vvUpShapeIp[scvf][scvf2];
-		}
-
-	///	non-const access to upwind shapes for ip vel
-		number& downwind_shape_ip(size_t scvf, size_t scvf2)
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
-			return m_vvDownShapeIp[scvf][scvf2];
-		}
-
-	///	non-const access to Convection Length
-		number& upwind_conv_length(size_t scvf)
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			return m_vUpConvLength[scvf];
-		}
-
-	///	non-const access to Convection Length
-		number& down_upwind_conv_length(size_t scvf)
-		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			return m_vDownConvLength[scvf];
-		}
-
-	///	number of current scvf
-		size_t m_numScvf;
-
-	///	number of current shape functions (usually in corners)
-		size_t m_numSh;
-
-	///	convection length
-		number m_vUpConvLength[maxNumSCVF];
-		number m_vDownConvLength[maxNumSCVF];
-
-	///	upwind shapes for corners shape functions
-		number m_vvUpShapeSh[maxNumSCVF][maxNumSH];
-		number m_vvDownShapeSh[maxNumSCVF][maxNumSH];
-
-	///	flag if ip shapes are non-zero
-		bool m_bNonZeroShapeIp;
-
-	///	upwind shapes for ip vels
-		number m_vvUpShapeIp[maxNumSCVF][maxNumSCVF];
-		number m_vvDownShapeIp[maxNumSCVF][maxNumSCVF];
-
-	///	compute values for new geometry and corner velocities
-		void compute(const CRFVGeometryBase* geo,
-					 const MathVector<dim> vIPVel[maxNumSCVF],
-					 number vUpShapeSh[maxNumSCVF][maxNumSH],
-					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					 number vConvLength[maxNumSCVF])
-		{
-			(this->*(m_vComputeFunc[m_id]))(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
-		}
-
-	//////////////////////////
-	// registering process
-	//////////////////////////
-	public:
-	///	register a update function for a Geometry
-		template <typename TFVGeom, typename TAssFunc>
-		void register_update_func(TAssFunc func);
-
-	///	register a update function for a Geometry
-		template <typename TFVGeom, typename TAssFunc>
-		void register_update_ip_vel_func(TAssFunc func);
-
-	///	set the Geometry type to use for next updates
-		template <typename TFVGeom>
-		void set_geometry_type();
-
-	protected:
-
-	///	type of update function
-		typedef void (this_type::*ComputeFunc)(
-								const CRFVGeometryBase* obj,
-								const MathVector<dim> vIPVel[maxNumSCVF],
-								number vUpShapeSh[maxNumSCVF][maxNumSH],
-								number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-								number vConvLength[maxNumSCVF]);
-
-	///	Vector holding all update functions
-		std::vector<ComputeFunc> m_vComputeFunc;
-
-	///	id of current geometry type
-		int m_id;
-};
-
-//	set the Geometry type to use for next updates
-template <int dim>
-template <typename TFVGeom>
-void
-INavierStokesCRUpwind<dim>::
-set_geometry_type()
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	check that function exists
-	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
-		UG_THROW("No update function registered for Geometry "<<id);
-
-//	set current geometry
-	m_id = id;
-
-//	set sizes
-	TFVGeom& geo = Provider<TFVGeom>::get();
-	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_sh();
-	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
-	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
-}
-
-//	register a update function for a Geometry
-template <int dim>
-template <typename TFVGeom, typename TAssFunc>
-void
-INavierStokesCRUpwind<dim>::
-register_update_func(TAssFunc func)
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	make sure that there is enough space
-	if((size_t)id >= m_vComputeFunc.size())
-		m_vComputeFunc.resize(id+1, NULL);
-
-//	set pointer
-	m_vComputeFunc[id] = (ComputeFunc)func;
-}
-
-///	upwind velocity
-template <int dim>
-MathVector<dim>
-INavierStokesCRUpwind<dim>::
-upwind_vel(const size_t scvf,
-           const LocalVector& CornerVel,
-           const MathVector<dim> vStdVel[]) const
-{
-//	reset result
-	MathVector<dim> vel; VecSet(vel, 0.0);
-
-//	add corner shapes
-	for(size_t sh = 0; sh < num_sh(); ++sh)
-		for(int d = 0; d < dim; ++d)
-			vel[d] += upwind_shape_sh(scvf, sh) * CornerVel(d, sh);
-
-//	done if only depending on shapes
-	if(!non_zero_shape_ip()) return vel;
-
-//	compute ip vel
-	for(size_t scvf2 = 0; scvf2 < num_scvf(); ++scvf2)
-		VecScaleAppend(vel, upwind_shape_ip(scvf, scvf2), vStdVel[scvf2]);
-
-//	return value
-	return vel;
-}
-
 template <int dim, typename TImpl>
-class NavierStokesCRUpwindBase : public INavierStokesCRUpwind<dim>
+class NavierStokesCRUpwindBase : public INavierStokesUpwind<dim>
 {
 	public:
 	///	Base class
-		typedef INavierStokesCRUpwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 
 	///	This class
 		typedef NavierStokesCRUpwindBase<dim, TImpl> this_type;
@@ -956,7 +649,7 @@ class NavierStokesCRNoUpwind
 : public NavierStokesCRUpwindBase<dim, NavierStokesCRNoUpwind<dim> >
 {
 	public:
-		typedef INavierStokesCRUpwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -983,7 +676,7 @@ class NavierStokesCRFullUpwind
 : public NavierStokesCRUpwindBase<dim, NavierStokesCRFullUpwind<dim> >
 {
 	public:
-		typedef INavierStokesCRUpwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -1012,7 +705,7 @@ class NavierStokesCRWeightedUpwind
 : public NavierStokesCRUpwindBase<dim, NavierStokesCRWeightedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesCRUpwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -1042,7 +735,7 @@ class NavierStokesCRLinearProfileSkewedUpwind
 : public NavierStokesCRUpwindBase<dim, NavierStokesCRLinearProfileSkewedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesCRUpwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
@@ -1065,7 +758,7 @@ class NavierStokesCRSkewedUpwind
 : public NavierStokesCRUpwindBase<dim, NavierStokesCRSkewedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesCRUpwind<dim> base_type;
+		typedef INavierStokesUpwind<dim> base_type;
 		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
