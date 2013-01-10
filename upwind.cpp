@@ -24,10 +24,10 @@ namespace NavierStokes{
 // No Upwind
 /////////////////////////////////////////////////////////////////////////////
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesNoUpwind<TDim>::
+NavierStokesNoUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -58,10 +58,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
 // Full Upwind
 /////////////////////////////////////////////////////////////////////////////
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesFullUpwind<TDim>::
+NavierStokesFullUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -147,10 +147,10 @@ void GetNodeNextToCut(size_t& coOut,
 	}
 }
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesSkewedUpwind<TDim>::
+NavierStokesSkewedUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -187,10 +187,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	}
 }
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesLinearProfileSkewedUpwind<TDim>::
+NavierStokesLinearProfileSkewedUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -255,10 +255,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
 
 
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesPositiveUpwind<TDim>::
+NavierStokesPositiveUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -400,10 +400,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	}
 }
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesRegularUpwind<TDim>::
+NavierStokesRegularUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -578,10 +578,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
 // No Upwind
 /////////////////////////////////////////////////////////////////////////////
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesCRNoUpwind<TDim>::
+NavierStokesCRNoUpwind<dim>::
 compute(const CRFVGeometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -612,10 +612,10 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 // Full Upwind
 /////////////////////////////////////////////////////////////////////////////
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesCRFullUpwind<TDim>::
+NavierStokesCRFullUpwind<dim>::
 compute(const CRFVGeometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -659,10 +659,10 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 // shapes computed as (1-m_weight)*no_upwind_shape + m_weight*full_upwind_shape
 //////////////////////////////////////////////////////////////////////////////////
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesCRWeightedUpwind<TDim>::
+NavierStokesCRWeightedUpwind<dim>::
 compute(const CRFVGeometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -707,10 +707,10 @@ compute(const CRFVGeometry<TElem, dim>* geo,
     }
 }
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesCRLinearProfileSkewedUpwind<TDim>::
+NavierStokesCRLinearProfileSkewedUpwind<dim>::
 compute(const CRFVGeometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -768,10 +768,10 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 	}
 }
 
-template <int TDim>
+template <int dim>
 template <typename TElem>
 void
-NavierStokesCRSkewedUpwind<TDim>::
+NavierStokesCRSkewedUpwind<dim>::
 compute(const CRFVGeometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
