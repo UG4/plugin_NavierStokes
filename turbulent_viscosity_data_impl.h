@@ -25,8 +25,7 @@ namespace ug{
 namespace NavierStokes{
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
-template <typename aaDefTensorType>
-void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aaDefTensorType& aaDefTensor,SmartPtr<TGridFunction> u){
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u){
 	//	get domain of grid function
 	domain_type& domain = *u->domain().get();
 
@@ -34,6 +33,9 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	std::vector<MultiIndex<2> > multInd;
 
 	DimCRFVGeometry<dim> geo;
+
+	SetAttachmentValues(aaDefTensor , u->template begin<side_type>(), u->template end<side_type>(), 0);
+	SetAttachmentValues(aaVol , u->template begin<side_type>(), u->template end<side_type>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -92,7 +94,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 						uValue[s][d]=DoFRef(*u,multInd[0]);
 					}
 					// UG_LOG("scv.volume(" << s << ")=" << scv.volume() << "\n");
-					// m_acVolume[sides[s]] += scv.volume();
+					aaVol[sides[s]] += scv.volume();
 				}
 
 				for (size_t ip=0;ip<nip;ip++){
@@ -115,6 +117,150 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 					aaDefTensor[sides[scvf.to()]]-=ipDefTensorFlux;
 				}
 			}
+	}
+	// average
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+		if (si>0) continue;
+		SideIterator sideIter = u->template begin<side_type>(si);
+		SideIterator sideIterEnd = u->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			side_type* elem = *sideIter;
+			aaDefTensor[elem]/=(number)aaVol[elem];
+		}
+	}
+}
+
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU,SmartPtr<TGridFunction> u){
+	//	get domain of grid function
+	domain_type& domain = *u->domain().get();
+
+	//	create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+
+	DimCRFVGeometry<dim> geo;
+
+	SetAttachmentValues(aaDefTensor , u->template begin<side_type>(), u->template end<side_type>(), 0);
+	SetAttachmentValues(aaVol , u->template begin<side_type>(), u->template end<side_type>(), 0);
+
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+		if (si>0) continue;
+			//	get iterators
+			ElemIterator iter = u->template begin<elem_type>(si);
+			ElemIterator iterEnd = u->template end<elem_type>(si);
+
+			//	loop elements of dimension
+			for(  ;iter !=iterEnd; ++iter)
+			{
+				//	get Elem
+				elem_type* elem = *iter;
+				//	get vertices and extract corner coordinates
+				const size_t numVertices = elem->num_vertices();
+				for(size_t i = 0; i < numVertices; ++i){
+					vVrt[i] = elem->vertex(i);
+					coCoord[i] = posAcc[vVrt[i]];
+					// UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
+				};
+
+				//	evaluate finite volume geometry
+				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+				static const size_t MaxNumSidesOfElem = 10;
+
+				typedef MathVector<dim> MVD;
+				std::vector<MVD> uValue(MaxNumSidesOfElem);
+				MVD ipVelocity;
+
+				typename grid_type::template traits<side_type>::secure_container sides;
+
+				UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+				domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+				size_t nofsides = geo.num_scv();
+
+				size_t nip = geo.num_scvf();
+
+				for (size_t s=0;s < nofsides;s++)
+				{
+					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+					uValue[s]=aaU[sides[s]];
+					aaVol[sides[s]] += scv.volume();
+				}
+
+				for (size_t ip=0;ip<nip;ip++){
+					// 	get current SCVF
+					ipVelocity = 0;
+					const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
+					for (size_t s=0;s < nofsides;s++){
+						for (int d=0;d<dim;d++){
+						    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
+						};
+					};
+					dimMat ipDefTensorFlux;
+					ipDefTensorFlux = 0;
+					for (int d=0;d<dim;d++){
+						for (int j=0;j<d;j++){
+							ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
+						}
+					}
+					aaDefTensor[sides[scvf.from()]]+=ipDefTensorFlux;
+					aaDefTensor[sides[scvf.to()]]-=ipDefTensorFlux;
+				}
+			}
+	}
+	// average
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+		if (si>0) continue;
+		SideIterator sideIter = u->template begin<side_type>(si);
+		SideIterator sideIterEnd = u->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			side_type* elem = *sideIter;
+			aaDefTensor[elem]/=(number)aaVol[elem];
+		}
+	}
+}
+
+// Frobenius norm of dim x dim matrix
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+number StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::FNorm(MathMatrix<dim,dim> M){
+	number norm=0;
+	for (int d1=0;d1<dim;d1++)
+		for (int d2=0;d2<dim;d2++){
+			norm += 2 * M[d1][d2] * M[d1][d2];
+		}
+	return sqrt(norm);
+}
+
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,aSideDimVector aaU,SmartPtr<TGridFunction> u){
+	//	get domain of grid function
+	domain_type& domain = *u->domain().get();
+
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+		if (si>0) continue;
+		SideIterator sideIter = u->template begin<side_type>(si);
+		SideIterator sideIterEnd = u->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			side_type* elem = *sideIter;
+			dimMat Mij;
+			for (int d1=0;d1 < dim;d1++)
+				for (int d2=0;d2 < dim;d2++)
+					Mij[d1][d2] = aaU[elem][d1]*aaU[elem][d2];
+			Mij*=factor;
+			aaResult[elem]+=Mij;
+		}
 	}
 }
 
@@ -141,7 +287,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
-	this->assembleDeformationTensor(m_acDeformation,m_u);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u);
 
 	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
@@ -247,6 +393,8 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 			tensorNorm = sqrt(tensorNorm);
 			// for possible other choices of delta see Fršhlich p 160
 			delta = pow(delta,(number)1.0/(number)dim);
+			number fnorm = this->FNorm(m_acDeformation[elem]);
+			fnorm-=1;
 			// calculate viscosity constant
 			// UG_LOG("c=" << m_c << " delta=" << delta << " tensor=" << tensorNorm << "\n");
 			m_acTurbulentViscosity[elem] = m_c * delta*delta * tensorNorm;

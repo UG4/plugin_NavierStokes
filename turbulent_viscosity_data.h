@@ -61,8 +61,12 @@ class StdTurbulentViscosityData
 		typedef MathMatrix<dim,dim> dimMat;
 		typedef Attachment<dimMat> ATensor;
 
+		typedef MathVector<dim> vecDim;
+		typedef Attachment<vecDim> AMathVectorDim;
+
 		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
 		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
+		typedef typename Grid::AttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
 	public:
 		////////////////
 		// one value
@@ -171,8 +175,12 @@ class StdTurbulentViscosityData
 			                  this->num_ip(s));
 		}
 
-		template <typename aaDefTensorType>
-		void assembleDeformationTensor(aaDefTensorType& aaDefTensor,SmartPtr<TGridFunction> u);
+		void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
+		void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU,SmartPtr<TGridFunction> u);
+
+		number FNorm(MathMatrix<dim,dim> M);
+
+		void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,aSideDimVector aaU,SmartPtr<TGridFunction> u);
 
 	protected:
 	///	access to implementation
