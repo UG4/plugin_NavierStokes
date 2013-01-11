@@ -23,7 +23,7 @@ namespace NavierStokes{
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-prepare_element_loop_fv1()
+prep_elem_loop_fv1()
 {
 // 	Only first order implementation
 	if(!(TFVGeom<TElem, dim>::order == 1))
@@ -54,17 +54,17 @@ prepare_element_loop_fv1()
 
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW("NavierStokes::prepare_element_loop:"
+		UG_THROW("NavierStokes::prep_elem_loop:"
 						" Kinematic Viscosity has not been set, but is required.");
 
 //	check, that Density has been set
 	if(!m_imDensitySCVF.data_given())
-		UG_THROW("NavierStokes::prepare_element_loop:"
+		UG_THROW("NavierStokes::prep_elem_loop:"
 						" Density has not been set, but is required.");
 
 //	check, that Density has been set
 	if(!m_imDensitySCV.data_given())
-		UG_THROW("NavierStokes::prepare_element_loop:"
+		UG_THROW("NavierStokes::prep_elem_loop:"
 						" Density has not been set, but is required.");
 
 //	set local positions for imports
@@ -89,14 +89,14 @@ prepare_element_loop_fv1()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-finish_element_loop_fv1()
+fsh_elem_loop_fv1()
 {}
 
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-prepare_element_fv1(TElem* elem, const LocalVector& u)
+prep_elem_fv1(TElem* elem, const LocalVector& u)
 {
 //	get corners
 	m_vCornerCoords = this->template element_corners<TElem>(elem);
@@ -104,7 +104,7 @@ prepare_element_fv1(TElem* elem, const LocalVector& u)
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
 	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW("NavierStokes::prepare_element:"
+		UG_THROW("NavierStokes::prep_elem:"
 						" Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
@@ -136,7 +136,7 @@ prepare_element_fv1(TElem* elem, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
+add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -156,7 +156,7 @@ ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 	//	get and check current and old solution
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
-			UG_THROW("NavierStokes::ass_JA_elem: "
+			UG_THROW("NavierStokes::add_jac_A_elem: "
 							" Stabilization needs exactly two time points.");
 
 	//	remember local solutions
@@ -480,7 +480,7 @@ ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-ass_dA_elem_fv1(LocalVector& d, const LocalVector& u)
+add_def_A_elem_fv1(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -500,7 +500,7 @@ ass_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 	//	get and check current and old solution 
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		if(vLocSol->size() != 2)
-			UG_THROW("NavierStokes::ass_dA_elem: "
+			UG_THROW("NavierStokes::add_def_A_elem: "
 							" Stabilization needs exactly two time points.");
 
 	//	remember local solutions
@@ -659,7 +659,7 @@ ass_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-ass_JM_elem_fv1(LocalMatrix& J, const LocalVector& u)
+add_jac_M_elem_fv1(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -689,7 +689,7 @@ ass_JM_elem_fv1(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-ass_dM_elem_fv1(LocalVector& d, const LocalVector& u)
+add_def_M_elem_fv1(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -719,7 +719,7 @@ ass_dM_elem_fv1(LocalVector& d, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-ass_rhs_elem_fv1(LocalVector& d)
+add_rhs_elem_fv1(LocalVector& d)
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -796,15 +796,15 @@ register_fv1_func()
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
 
-	this->enable_fast_ass_elem(true);
-	set_prep_elem_loop_fct(	id, &T::template prepare_element_loop_fv1<TElem, TFVGeom>);
-	set_prep_elem_fct(	 	id, &T::template prepare_element_fv1<TElem, TFVGeom>);
-	set_fsh_elem_loop_fct( 	id, &T::template finish_element_loop_fv1<TElem, TFVGeom>);
-	set_ass_JA_elem_fct(	id, &T::template ass_JA_elem_fv1<TElem, TFVGeom>);
-	set_ass_JM_elem_fct(	id, &T::template ass_JM_elem_fv1<TElem, TFVGeom>);
-	set_ass_dA_elem_fct(	id, &T::template ass_dA_elem_fv1<TElem, TFVGeom>);
-	set_ass_dM_elem_fct(	id, &T::template ass_dM_elem_fv1<TElem, TFVGeom>);
-	set_ass_rhs_elem_fct(	id, &T::template ass_rhs_elem_fv1<TElem, TFVGeom>);
+	this->enable_fast_add_elem(true);
+	set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fv1<TElem, TFVGeom>);
+	set_prep_elem_fct(	 	id, &T::template prep_elem_fv1<TElem, TFVGeom>);
+	set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fv1<TElem, TFVGeom>);
+	set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fv1<TElem, TFVGeom>);
+	set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fv1<TElem, TFVGeom>);
+	set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fv1<TElem, TFVGeom>);
+	set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fv1<TElem, TFVGeom>);
+	set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fv1<TElem, TFVGeom>);
 }
 
 } // namespace NavierStokes

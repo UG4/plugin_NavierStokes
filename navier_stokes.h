@@ -277,7 +277,7 @@ class NavierStokes
 	 * the DataImports in case of element-fixed points.
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prepare_element_loop_fv1();
+		void prep_elem_loop_fv1();
 
 	///	prepares the element for evaluation
 	/**
@@ -292,11 +292,11 @@ class NavierStokes
 	 * \param[in]	glob_ind	global indices of the local vector components
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prepare_element_fv1(TElem* elem, const LocalVector& u);
+		void prep_elem_fv1(TElem* elem, const LocalVector& u);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void finish_element_loop_fv1();
+		void fsh_elem_loop_fv1();
 
 	///	adds the stiffness part to the local jacobian
 	/**
@@ -304,7 +304,7 @@ class NavierStokes
 	 * the local jacobian.
 	 *
 	 * For the definition of \f$ \vec{f}^{\text{diff}}|_{ip}\f$ and
-	 * \f$ \vec{f}^{\text{conv}}|_{ip}\f$ see ass_dA_elem.
+	 * \f$ \vec{f}^{\text{conv}}|_{ip}\f$ see add_def_A_elem.
 	 *
 	 * The derivative of the diffusive flux is given by
 	 * \f{align*}
@@ -363,7 +363,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_JA_elem_fv1(LocalMatrix& J, const LocalVector& u);
+		void add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the stiffness part to the local defect
 	/**
@@ -433,7 +433,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_dA_elem_fv1(LocalVector& d, const LocalVector& u);
+		void add_def_A_elem_fv1(LocalVector& d, const LocalVector& u);
 
 	///	adds the mass part to the local jacobian
 	/**
@@ -459,7 +459,7 @@ class NavierStokes
 	 * \tparam	TFVGeom Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_JM_elem_fv1(LocalMatrix& J, const LocalVector& u);
+		void add_jac_M_elem_fv1(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the mass part to the local defect
 	/**
@@ -487,7 +487,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_dM_elem_fv1(LocalVector& d, const LocalVector& u);
+		void add_def_M_elem_fv1(LocalVector& d, const LocalVector& u);
 
 	///	adds the source part to the local defect
 	/**
@@ -510,7 +510,7 @@ class NavierStokes
 	 * \tparam	TFVGeom	Finite Volume Geometry
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_rhs_elem_fv1(LocalVector& d);
+		void add_rhs_elem_fv1(LocalVector& d);
 
 	///	computes the pecled blended Upwind veloctity
 	/**
@@ -620,28 +620,28 @@ class NavierStokes
 		/* members for staggered grid discretization */
 	public:
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prepare_element_loop_cr();
+		void prep_elem_loop_cr();
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prepare_element_cr(TElem* elem, LocalVector& u);
+		void prep_elem_cr(TElem* elem, LocalVector& u);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void finish_element_loop_cr();
+		void fsh_elem_loop_cr();
 		
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_JA_elem_cr(LocalMatrix& J, const LocalVector& u);
+		void add_jac_A_elem_cr(LocalMatrix& J, const LocalVector& u);
 		
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_dM_elem_cr(LocalVector& d, const LocalVector& u);
+		void add_def_M_elem_cr(LocalVector& d, const LocalVector& u);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_dA_elem_cr(LocalVector& d, const LocalVector& u);
+		void add_def_A_elem_cr(LocalVector& d, const LocalVector& u);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_JM_elem_cr(LocalMatrix& J, const LocalVector& u);
+		void add_jac_M_elem_cr(LocalMatrix& J, const LocalVector& u);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void ass_rhs_elem_cr(LocalVector& d);
+		void add_rhs_elem_cr(LocalVector& d);
 
 	private:
 		void register_all_cr_funcs(bool bHang);
