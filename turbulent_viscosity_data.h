@@ -33,6 +33,36 @@ template <typename TData, int dim, typename TImpl,typename TGridFunction>
 class StdTurbulentViscosityData
 	: 	public UserData<TData,dim>
 {
+		///	domain type
+		typedef typename TGridFunction::domain_type domain_type;
+
+		///	algebra type
+		typedef typename TGridFunction::algebra_type algebra_type;
+
+		/// position accessor type
+		typedef typename domain_type::position_accessor_type position_accessor_type;
+
+		///	grid type
+		typedef typename domain_type::grid_type grid_type;
+
+		/// element type
+		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+		/// side type
+		typedef typename elem_type::side side_type;
+
+		/// element iterator
+		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
+		/// side iterator
+		typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+
+		/// attachment accessor types
+		typedef MathMatrix<dim,dim> dimMat;
+		typedef Attachment<dimMat> ATensor;
+
+		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
+		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
 	public:
 		////////////////
 		// one value
@@ -141,12 +171,16 @@ class StdTurbulentViscosityData
 			                  this->num_ip(s));
 		}
 
+		template <typename aaDefTensorType>
+		void assembleDeformationTensor(aaDefTensorType& aaDefTensor,SmartPtr<TGridFunction> u);
+
 	protected:
 	///	access to implementation
 		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
 
 	///	const access to implementation
 		const TImpl& getImpl() const {return static_cast<const TImpl&>(*this);}
+
 };
 
 

@@ -24,6 +24,100 @@
 namespace ug{
 namespace NavierStokes{
 
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+template <typename aaDefTensorType>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aaDefTensorType& aaDefTensor,SmartPtr<TGridFunction> u){
+	//	get domain of grid function
+	domain_type& domain = *u->domain().get();
+
+	//	create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+
+	DimCRFVGeometry<dim> geo;
+
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+		if (si>0) continue;
+			//	get iterators
+			ElemIterator iter = u->template begin<elem_type>(si);
+			ElemIterator iterEnd = u->template end<elem_type>(si);
+
+			//	loop elements of dimension
+			for(  ;iter !=iterEnd; ++iter)
+			{
+				//	get Elem
+				elem_type* elem = *iter;
+				//	get vertices and extract corner coordinates
+				const size_t numVertices = elem->num_vertices();
+				for(size_t i = 0; i < numVertices; ++i){
+					vVrt[i] = elem->vertex(i);
+					coCoord[i] = posAcc[vVrt[i]];
+					// UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
+				};
+
+				//	evaluate finite volume geometry
+				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+				static const size_t MaxNumSidesOfElem = 10;
+
+				typedef MathVector<dim> MVD;
+				std::vector<MVD> uValue(MaxNumSidesOfElem);
+				MVD ipVelocity;
+
+				typename grid_type::template traits<side_type>::secure_container sides;
+
+				UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+				domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+				size_t nofsides = geo.num_scv();
+
+				size_t nip = geo.num_scvf();
+
+				for (size_t s=0;s < nofsides;s++)
+				{
+					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+					for (int d=0;d<dim;d++){
+					//	get indices of function fct on vertex
+						u->multi_indices(sides[s], d, multInd);
+
+						//	read value of index from vector
+						uValue[s][d]=DoFRef(*u,multInd[0]);
+					}
+					// UG_LOG("scv.volume(" << s << ")=" << scv.volume() << "\n");
+					// m_acVolume[sides[s]] += scv.volume();
+				}
+
+				for (size_t ip=0;ip<nip;ip++){
+					// 	get current SCVF
+					ipVelocity = 0;
+					const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
+					for (size_t s=0;s < nofsides;s++){
+						for (int d=0;d<dim;d++){
+						    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
+						};
+					};
+					dimMat ipDefTensorFlux;
+					ipDefTensorFlux = 0;
+					for (int d=0;d<dim;d++){
+						for (int j=0;j<d;j++){
+							ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
+						}
+					}
+					aaDefTensor[sides[scvf.from()]]+=ipDefTensorFlux;
+					aaDefTensor[sides[scvf.to()]]-=ipDefTensorFlux;
+				}
+			}
+	}
+}
+
 template<typename TGridFunction>
 void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	//	get domain of grid function
@@ -46,6 +140,8 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	this->assembleDeformationTensor(m_acDeformation,m_u);
 
 	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)

@@ -319,6 +319,13 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	number xLineValue[17];
 	number yLineValue[17];
 
+	static const size_t unhandled = 1000000;
+
+	for (size_t i=0;i<17;i++){
+		xLineValue[i]=unhandled;
+		yLineValue[i]=unhandled;
+	}
+
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -421,8 +428,9 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 								interpolation += valSH * rTrialSpace.shape(sh, localPos);
 								//UG_LOG("value(" << sh << ")=" << valSH << "\n");
 							}
-							xLineValue[i]=interpolation;
-							//UG_LOG("interpolation=" << interpolation << "\n");
+							// if there is a previous value, then average
+							if (xLineValue[i]!=unhandled) xLineValue[i] = 0.5*(xLineValue[i] + interpolation);
+							else xLineValue[i]=interpolation;
 						}
 					}
 				}
@@ -468,7 +476,9 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 								//	add shape fct at ip * value at shape
 								interpolation += valSH * rTrialSpace.shape(sh, localPos);
 							}
-							yLineValue[i]=interpolation;
+							// if there is a previous value, then average
+							if (yLineValue[i]!=unhandled) yLineValue[i] = 0.5*(yLineValue[i] + interpolation);
+							else yLineValue[i]=interpolation;
 						}
 					}
 				}
@@ -477,14 +487,26 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	};// for(int si = 0; si < u.num_subsets(); ++si)
 	UG_LOG("\nData evaluation for Re=" << Re << ":\n\n");
 	UG_LOG("u values on line through x=0.5:" << "\n\n");
+	number maxdiff = 0;
+	number diffsum = 0;
 	for (size_t i=0;i<17;i++){
-		UG_LOG("u(" << i+1 << ")= " << xLineValue[i] << "  u_ghia(" << i+1 << ")= " << xLineReferenceValue[i] << "  udiff(" << i+1 << ")= " << abs(xLineReferenceValue[i]-xLineValue[i]) << "\n");
+		number localdiff=abs(xLineReferenceValue[i]-xLineValue[i]);
+		UG_LOG("y(" << i+1 << ") = " << yco[i] << "; u(" << i+1 << ") = " << xLineValue[i] << "; u_ghia(" << i+1 << ") = " << xLineReferenceValue[i] << "; udiff(" << i+1 << ") = " << localdiff << ";\n");
+		if (localdiff>maxdiff) maxdiff = localdiff;
+		diffsum += localdiff;
 	}
-	UG_LOG("\nv values on line through y=0.5:" << "\n\n");
+	UG_LOG("max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
+	UG_LOG("\n\nv values on line through y=0.5:" << "\n\n");
+	maxdiff = 0;
+	diffsum = 0;
 	for (size_t i=0;i<17;i++){
-		UG_LOG("v(" << i+1 << ")= " << yLineValue[i] << "  v_ghia(" << i+1 << ")= " << yLineReferenceValue[i] << "  vdiff(" << i+1 << ")= " << abs(yLineReferenceValue[i]-yLineValue[i]) << "\n");
+		number localdiff=abs(yLineReferenceValue[i]-yLineValue[i]);
+		UG_LOG("x(" << i+1 << ") = " << xco[i] << "; v(" << i+1 << ") = " << yLineValue[i] << "; v_ghia(" << i+1 << ") = " << yLineReferenceValue[i] << "; vdiff(" << i+1 << ") = " << abs(yLineReferenceValue[i]-yLineValue[i]) << ";\n");
+		if (localdiff>maxdiff) maxdiff = localdiff;
+		diffsum += localdiff;
 	}
-	UG_LOG("\n");
+	UG_LOG("max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
+	UG_LOG("\n\n");
 }
 
 } // end namespace ug

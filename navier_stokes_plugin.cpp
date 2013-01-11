@@ -20,7 +20,6 @@
 #include "bnd/symmetric_boundary.h"
 
 #include "turbulent_viscosity_data.h"
-#include "cr_order_cuthill_mckee.h"
 #include "cr_reorder.h"
 #include "cr_ilut.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
