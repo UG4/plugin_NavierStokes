@@ -17,8 +17,7 @@
 #include "lib_disc/spatial_disc/user_data/data_export.h"
 #include "lib_disc/spatial_disc/user_data/data_import.h"
 
-#include "navier_stokes.h"
-#include "upwind.h"
+#include "upwind_interface.h"
 #include "stabilization.h"
 #include "turbulent_viscosity_data.h"
 

@@ -17,6 +17,8 @@
 #include "lib_disc/spatial_disc/user_data/user_data.h"
 #include "lib_disc/spatial_disc/user_data/const_user_data.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
+#include "lib_disc/spatial_disc/disc_util/cr_finite_volume_geometry.h"
+
 #ifdef UG_FOR_LUA
 #include "bindings/lua/lua_user_data.h"
 #endif
