@@ -476,10 +476,7 @@ class NavierStokesWeightedUpwind
 	///	constructor
 		NavierStokesWeightedUpwind(number weight) : m_weight(weight)
 		{
-			UG_LOG(">>>>   weight:"<<weight<<", m_weight"<<m_weight<<"\n");
 			this->set_shape_ip_flag(false);
-			UG_LOG(">>>>   weight:"<<weight<<", m_weight"<<m_weight<<"\n");
-			UG_LOG(">>>>   Storage weight: " << &m_weight<<"\n");
 		}
 
 		void set_weight(number weight) {m_weight = weight;}

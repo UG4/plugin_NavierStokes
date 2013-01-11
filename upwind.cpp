@@ -193,12 +193,6 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 // 	get corners of elem
     const MathVector<dim>* elementfaces = geo->scv_global_ips();
 
-    static bool isInit = false;
-    if(!isInit){
-    	UG_LOG(">>>>   function weight: " << &m_weight<<"\n");
-    	isInit = true;
-    }
-
 // 	set full upwind shapes
 	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
