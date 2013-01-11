@@ -370,62 +370,17 @@ static void Dimension(Registry& reg, string grp)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesRegularUpwind", tag);
 	}
-	
-// CR staggered	upwinds
-	
-	//	NavierStokesCRNoUpwind
+
+//	NavierStokesWeightedUpwind
 	{
-		typedef NavierStokesCRNoUpwind<dim> T;
+		typedef NavierStokesWeightedUpwind<dim> T;
 		typedef INavierStokesUpwind<dim> TBase;
-		string name = string("NavierStokesCRNoUpwind").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-		.add_constructor()
-		.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesCRNoUpwind", tag);
-	}
-	
-	//	NavierStokesCRFullUpwind
-	{
-		typedef NavierStokesCRFullUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
-		string name = string("NavierStokesCRFullUpwind").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-		.add_constructor()
-		.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesCRFullUpwind", tag);
-	}
-	
-	//	NavierStokesCRWeightedUpwind
-	{
-		typedef NavierStokesCRWeightedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
-		string name = string("NavierStokesCRWeightedUpwind").append(suffix);
+		string name = string("NavierStokesWeightedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.template add_constructor<void (*)(number)>("Weight factor")
+		.add_method("set_weight", &T::set_weight, "", "")
 		.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesCRWeightedUpwind", tag);
-	}
-	
-	//	NavierStokesCRLinearProfileSkewedUpwind
-	{
-		typedef NavierStokesCRLinearProfileSkewedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
-		string name = string("NavierStokesCRLinearProfileSkewedUpwind").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-		.add_constructor()
-		.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesCRLinearProfileSkewedUpwind", tag);
-	}
-	
-	//	NavierStokesCRSkewedUpwind
-	{
-		typedef NavierStokesCRSkewedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
-		string name = string("NavierStokesCRSkewedUpwind").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-		.add_constructor()
-		.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesCRSkewedUpwind", tag);
+		reg.add_class_to_group(name, "NavierStokesWeightedUpwind", tag);
 	}
 
 

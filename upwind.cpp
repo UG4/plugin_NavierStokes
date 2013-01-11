@@ -54,6 +54,35 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	}
 }
 
+template <int dim>
+template <typename TElem>
+void
+NavierStokesNoUpwind<dim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+//	set shapes
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+	//	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+		{
+		//	set upwind shape
+			vUpShapeSh[ip][sh] = scvf.shape(sh);
+		}
+
+	//	compute convection length
+	//  \todo: (optional) A convection length is not really defined for no upwind.
+	//	       but in the computation of a stabilization the term cancels, so
+	//   	   we only have to ensure that the conv_lengh is non-zero
+        vConvLength[ip] = 1.0;
+	}
+}
 /////////////////////////////////////////////////////////////////////////////
 // Full Upwind
 /////////////////////////////////////////////////////////////////////////////
@@ -99,8 +128,111 @@ compute(const FV1Geometry<TElem, dim>* geo,
     }
 }
 
+template <int dim>
+template <typename TElem>
+void
+NavierStokesFullUpwind<dim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+//	two help vectors
+	MathVector<dim> dist;
+
+// 	get corners of elem
+    const MathVector<dim>* elementfaces = geo->scv_global_ips();
+
+// 	set shapes
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+    //	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+    //  reset shapes to zero for all IPs
+        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
+        	vUpShapeSh[ip][sh]=0.0;
+
+    // 	switch upwind
+        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
+        if(flux > 0.0)
+        {
+        	vUpShapeSh[ip][scvf.from()] = 1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
+        }
+        else
+        {
+        	vUpShapeSh[ip][scvf.to()] = 1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
+        }
+    }
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////
+// Weighted Upwind on Crouzeix-Raviart type elements
+// upwinding between full and no upwind
+// shapes computed as (1-m_weight)*no_upwind_shape + m_weight*full_upwind_shape
+//////////////////////////////////////////////////////////////////////////////////
+
+template <int dim>
+template <typename TElem>
+void
+NavierStokesWeightedUpwind<dim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+//	two help vectors
+	MathVector<dim> dist;
+
+// 	get corners of elem
+    const MathVector<dim>* elementfaces = geo->scv_global_ips();
+
+    static bool isInit = false;
+    if(!isInit){
+    	UG_LOG(">>>>   function weight: " << &m_weight<<"\n");
+    	isInit = true;
+    }
+
+// 	set full upwind shapes
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+    //	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+    //  reset shapes to zero for all IPs
+        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
+        	vUpShapeSh[ip][sh]=0.0;
+
+	// 	compute upwind shapes
+        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
+        if(flux > 0.0)
+        {
+        	vUpShapeSh[ip][scvf.from()] = this->m_weight*1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
+        }
+        else
+        {
+        	vUpShapeSh[ip][scvf.to()] = this->m_weight*1.0;
+        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
+        }
+
+	//	add no upwind shapes
+		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+		{
+			//	set upwind shape
+			vUpShapeSh[ip][sh] += (1-this->m_weight) * scvf.shape(sh);
+		}
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////
-// Skewed Upwind and Linear Profile Skewed Upwind
+// Skewed Upwind
 /////////////////////////////////////////////////////////////////////////////
 
 /// computes the closest node to a elem side ray intersection
@@ -190,6 +322,79 @@ compute(const FV1Geometry<TElem, dim>* geo,
 template <int dim>
 template <typename TElem>
 void
+NavierStokesSkewedUpwind<dim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+// 	corners of geometry
+	const MathVector<dim>* vCornerCoords = geo->corners();
+
+//	loop all scvf
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+    //	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+		size_t num_sh =  scvf.num_sh();
+
+	// 	reset shapes to zero
+ 		for(size_t sh = 0; sh < num_sh; ++sh)
+ 			vUpShapeSh[ip][sh] = 0.0;
+
+ 	//	if the velocity is zero, there will be no possibility to find the
+ 	//	cutted side. In this case we have no velocity and therefore there is
+ 	//	no convection. We set all upwind shapes to zero.
+ 		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
+
+ 	// 	side and intersection vectors
+ 		static const int refDim = CRFVGeometry<TElem, dim>::dim;
+ 		size_t side = 0;
+ 		MathVector<dim> globalIntersection;
+ 		MathVector<refDim> localIntersection;
+
+ 	// 	find local intersection and side
+ 		try{
+ 			ElementSideRayIntersection<typename CRFVGeometry<TElem, dim>::ref_elem_type, dim>
+ 			(	side, globalIntersection, localIntersection,
+ 				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
+ 		}UG_CATCH_THROW("GetSkewedUpwindShapes: Cannot find cut side.");
+
+ 	// 	get linear trial space
+ 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
+ 		const LocalShapeFunctionSet<refDim>& TrialSpace =
+ 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+ 	// 	get Reference Element
+ 		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
+
+ 		number max = -1000;
+ 		size_t maxind;
+
+ 	// 	loop shape functions
+ 		for(size_t sh=0;sh < num_sh;sh++){
+ 			number shape = TrialSpace.shape(sh, localIntersection);
+ 			if (shape>max){
+ 				max=shape;
+ 				maxind = sh;
+ 			}
+ 		}
+ 		vUpShapeSh[ip][maxind] = 1;
+
+ 	//	compute conv length
+		vConvLength[ip] = VecDistance(scvf.global_ip(), geo->scv(maxind).global_ip());
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Linear Profile Skewed Upwind
+/////////////////////////////////////////////////////////////////////////////
+
+template <int dim>
+template <typename TElem>
+void
 NavierStokesLinearProfileSkewedUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
@@ -253,7 +458,71 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	}
 }
 
+template <int dim>
+template <typename TElem>
+void
+NavierStokesLinearProfileSkewedUpwind<dim>::
+compute(const CRFVGeometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+// 	corners of geometry
+	const MathVector<dim>* vCornerCoords = geo->corners();
 
+//	loop all scvf
+	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+	{
+    //	get SubControlVolumeFace
+		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+
+		size_t num_sh =  scvf.num_sh();
+
+	// 	reset shapes to zero
+ 		for(size_t sh = 0; sh < num_sh; ++sh)
+ 			vUpShapeSh[ip][sh] = 0.0;
+
+ 	//	if the velocity is zero, there will be no possibility to find the
+ 	//	cutted side. In this case we have no velocity and therefore there is
+ 	//	no convection. We set all upwind shapes to zero.
+ 		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
+
+ 	// 	side and intersection vectors
+ 		static const int refDim = CRFVGeometry<TElem, dim>::dim;
+ 		size_t side = 0;
+ 		MathVector<dim> globalIntersection;
+ 		MathVector<refDim> localIntersection;
+
+ 	// 	find local intersection and side
+ 		try{
+ 			ElementSideRayIntersection<typename CRFVGeometry<TElem, dim>::ref_elem_type, dim>
+ 			(	side, globalIntersection, localIntersection,
+ 				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
+ 		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
+
+ 	// 	get linear trial space
+ 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
+ 		const LocalShapeFunctionSet<refDim>& TrialSpace =
+ 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+ 	// 	get Reference Element
+ 		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
+
+  	// 	loop shape functions
+ 		for(size_t sh=0;sh < num_sh;sh++){
+ 			vUpShapeSh[ip][sh] = TrialSpace.shape(sh, localIntersection);
+ 		}
+
+ 	//	compute conv length
+ 		vConvLength[ip] = VecDistance(scvf.global_ip(), globalIntersection);
+	}
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Positive Upwind
+/////////////////////////////////////////////////////////////////////////////
 
 template <int dim>
 template <typename TElem>
@@ -399,6 +668,10 @@ compute(const FV1Geometry<TElem, dim>* geo,
 		vConvLength[ip] = VecDistance(scvf.global_ip(), upPos);
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////
+// Regular Upwind
+/////////////////////////////////////////////////////////////////////////////
 
 template <int dim>
 template <typename TElem>
@@ -574,269 +847,6 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// No Upwind
-/////////////////////////////////////////////////////////////////////////////
-
-template <int dim>
-template <typename TElem>
-void
-NavierStokesCRNoUpwind<dim>::
-compute(const CRFVGeometry<TElem, dim>* geo,
-        const MathVector<dim> vIPVel[maxNumSCVF],
-        number vUpShapeSh[maxNumSCVF][maxNumSH],
-        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-        number vConvLength[maxNumSCVF])
-{
-//	set shapes
-	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-	{
-	//	get SubControlVolumeFace
-		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-		{
-		//	set upwind shape
-			vUpShapeSh[ip][sh] = scvf.shape(sh);
-		}
-
-	//	compute convection length
-	//  \todo: (optional) A convection length is not really defined for no upwind.
-	//	       but in the computation of a stabilization the term cancels, so
-	//   	   we only have to ensure that the conv_lengh is non-zero
-        vConvLength[ip] = 1.0;
-	}
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// Full Upwind
-/////////////////////////////////////////////////////////////////////////////
-
-template <int dim>
-template <typename TElem>
-void
-NavierStokesCRFullUpwind<dim>::
-compute(const CRFVGeometry<TElem, dim>* geo,
-        const MathVector<dim> vIPVel[maxNumSCVF],
-        number vUpShapeSh[maxNumSCVF][maxNumSH],
-        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-        number vConvLength[maxNumSCVF])
-{
-//	two help vectors
-	MathVector<dim> dist;
-
-// 	get corners of elem
-    const MathVector<dim>* elementfaces = geo->scv_global_ips();
-
-// 	set shapes
-	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-	{
-    //	get SubControlVolumeFace
-		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-    //  reset shapes to zero for all IPs
-        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
-        	vUpShapeSh[ip][sh]=0.0;
-
-    // 	switch upwind
-        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
-        if(flux > 0.0)
-        {
-        	vUpShapeSh[ip][scvf.from()] = 1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
-        }
-        else
-        {
-        	vUpShapeSh[ip][scvf.to()] = 1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////
-// Weighted Upwind on Crouzeix-Raviart type elements
-// upwinding between full and no upwind
-// shapes computed as (1-m_weight)*no_upwind_shape + m_weight*full_upwind_shape
-//////////////////////////////////////////////////////////////////////////////////
-
-template <int dim>
-template <typename TElem>
-void
-NavierStokesCRWeightedUpwind<dim>::
-compute(const CRFVGeometry<TElem, dim>* geo,
-        const MathVector<dim> vIPVel[maxNumSCVF],
-        number vUpShapeSh[maxNumSCVF][maxNumSH],
-        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-        number vConvLength[maxNumSCVF])
-{
-//	two help vectors
-	MathVector<dim> dist;
-
-// 	get corners of elem
-    const MathVector<dim>* elementfaces = geo->scv_global_ips();
-
-// 	set full upwind shapes
-	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-	{
-    //	get SubControlVolumeFace
-		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-    //  reset shapes to zero for all IPs
-        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
-        	vUpShapeSh[ip][sh]=0.0;
-
-	// 	compute upwind shapes
-        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
-        if(flux > 0.0)
-        {
-        	vUpShapeSh[ip][scvf.from()] = m_weight*1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
-        }
-        else
-        {
-        	vUpShapeSh[ip][scvf.to()] = m_weight*1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
-        }
-		
-	//	add no upwind shapes
-		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-		{
-			//	set upwind shape
-			vUpShapeSh[ip][sh] += (1-m_weight) * scvf.shape(sh);
-		}	
-    }
-}
-
-template <int dim>
-template <typename TElem>
-void
-NavierStokesCRLinearProfileSkewedUpwind<dim>::
-compute(const CRFVGeometry<TElem, dim>* geo,
-        const MathVector<dim> vIPVel[maxNumSCVF],
-        number vUpShapeSh[maxNumSCVF][maxNumSH],
-        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-        number vConvLength[maxNumSCVF])
-{
-// 	corners of geometry
-	const MathVector<dim>* vCornerCoords = geo->corners();
-
-//	loop all scvf
-	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-	{
-    //	get SubControlVolumeFace
-		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-		size_t num_sh =  scvf.num_sh();
-
-	// 	reset shapes to zero
- 		for(size_t sh = 0; sh < num_sh; ++sh)
- 			vUpShapeSh[ip][sh] = 0.0;
-
- 	//	if the velocity is zero, there will be no possibility to find the
- 	//	cutted side. In this case we have no velocity and therefore there is
- 	//	no convection. We set all upwind shapes to zero.
- 		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
-
- 	// 	side and intersection vectors
- 		static const int refDim = CRFVGeometry<TElem, dim>::dim;
- 		size_t side = 0;
- 		MathVector<dim> globalIntersection;
- 		MathVector<refDim> localIntersection;
-
- 	// 	find local intersection and side
- 		try{
- 			ElementSideRayIntersection<typename CRFVGeometry<TElem, dim>::ref_elem_type, dim>
- 			(	side, globalIntersection, localIntersection,
- 				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
- 		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
-
- 	// 	get linear trial space
- 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
- 		const LocalShapeFunctionSet<refDim>& TrialSpace =
- 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
-
- 	// 	get Reference Element
- 		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
-
-  	// 	loop shape functions
- 		for(size_t sh=0;sh < num_sh;sh++){
- 			vUpShapeSh[ip][sh] = TrialSpace.shape(sh, localIntersection);
- 		}
-
- 	//	compute conv length
- 		vConvLength[ip] = VecDistance(scvf.global_ip(), globalIntersection);
-	}
-}
-
-template <int dim>
-template <typename TElem>
-void
-NavierStokesCRSkewedUpwind<dim>::
-compute(const CRFVGeometry<TElem, dim>* geo,
-        const MathVector<dim> vIPVel[maxNumSCVF],
-        number vUpShapeSh[maxNumSCVF][maxNumSH],
-        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-        number vConvLength[maxNumSCVF])
-{
-// 	corners of geometry
-	const MathVector<dim>* vCornerCoords = geo->corners();
-
-//	loop all scvf
-	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-	{
-    //	get SubControlVolumeFace
-		const typename CRFVGeometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-		size_t num_sh =  scvf.num_sh();
-
-	// 	reset shapes to zero
- 		for(size_t sh = 0; sh < num_sh; ++sh)
- 			vUpShapeSh[ip][sh] = 0.0;
-
- 	//	if the velocity is zero, there will be no possibility to find the
- 	//	cutted side. In this case we have no velocity and therefore there is
- 	//	no convection. We set all upwind shapes to zero.
- 		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
-
- 	// 	side and intersection vectors
- 		static const int refDim = CRFVGeometry<TElem, dim>::dim;
- 		size_t side = 0;
- 		MathVector<dim> globalIntersection;
- 		MathVector<refDim> localIntersection;
-
- 	// 	find local intersection and side
- 		try{
- 			ElementSideRayIntersection<typename CRFVGeometry<TElem, dim>::ref_elem_type, dim>
- 			(	side, globalIntersection, localIntersection,
- 				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
- 		}UG_CATCH_THROW("GetSkewedUpwindShapes: Cannot find cut side.");
-
- 	// 	get linear trial space
- 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
- 		const LocalShapeFunctionSet<refDim>& TrialSpace =
- 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
-
- 	// 	get Reference Element
- 		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
-
- 		number max = -1000;
- 		size_t maxind;
-
- 	// 	loop shape functions
- 		for(size_t sh=0;sh < num_sh;sh++){
- 			number shape = TrialSpace.shape(sh, localIntersection);
- 			if (shape>max){
- 				max=shape;
- 				maxind = sh;
- 			}
- 		}
- 		vUpShapeSh[ip][maxind] = 1;
-
- 	//	compute conv length
-		vConvLength[ip] = VecDistance(scvf.global_ip(), geo->scv(maxind).global_ip());
-	}
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 //	explicit instantiations
 ////////////////////////////////////////////////////////////////////////////////
@@ -844,31 +854,21 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 #ifdef UG_DIM_2
 template class NavierStokesNoUpwind<2>;
 template class NavierStokesFullUpwind<2>;
+template class NavierStokesWeightedUpwind<2>;
 template class NavierStokesSkewedUpwind<2>;
 template class NavierStokesLinearProfileSkewedUpwind<2>;
 template class NavierStokesPositiveUpwind<2>;
 template class NavierStokesRegularUpwind<2>;
-
-template class NavierStokesCRFullUpwind<2>;
-template class NavierStokesCRNoUpwind<2>;
-template class NavierStokesCRWeightedUpwind<2>;
-template class NavierStokesCRLinearProfileSkewedUpwind<2>;
-template class NavierStokesCRSkewedUpwind<2>;
 #endif
 
 #ifdef UG_DIM_3
 template class NavierStokesNoUpwind<3>;
 template class NavierStokesFullUpwind<3>;
+template class NavierStokesWeightedUpwind<3>;
 template class NavierStokesSkewedUpwind<3>;
 template class NavierStokesLinearProfileSkewedUpwind<3>;
 template class NavierStokesPositiveUpwind<3>;
 template class NavierStokesRegularUpwind<3>;
-
-template class NavierStokesCRNoUpwind<3>;
-template class NavierStokesCRFullUpwind<3>;
-template class NavierStokesCRWeightedUpwind<3>;
-template class NavierStokesCRLinearProfileSkewedUpwind<3>;
-template class NavierStokesCRSkewedUpwind<3>;
 #endif
 
 } // namespace NavierStokes

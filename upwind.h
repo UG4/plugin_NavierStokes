@@ -35,14 +35,11 @@ class INavierStokesUpwind
 		typedef fv1_dim_traits<dim, dim> traits;
 
 	public:
-	///	number of SubControlVolumes
-		static const size_t maxNumSCV = traits::maxNumSCV;
-
 	///	max number of SubControlVolumeFaces
-		static const size_t maxNumSCVF = traits::maxNumSCVF;
+		static const size_t maxNumSCVF = traits::maxNumSCVF + 10;
 
 	/// max number of shape functions
-		static const size_t maxNumSH = traits::maxNSH;
+		static const size_t maxNumSH = traits::maxNSH + 10;
 
 	public:
 	/// Abbreviation for own type
@@ -332,35 +329,20 @@ upwind_vel(const size_t scvf,
 	return vel;
 }
 
-template <int dim, typename TImpl>
-class NavierStokesUpwindBase : public INavierStokesUpwind<dim>
+template <template <class Elem, int WorldDim> class TFVGeom, int dim, typename TImpl>
+class NavierStokesUpwindRegister
 {
 	public:
 	///	Base class
 		typedef INavierStokesUpwind<dim> base_type;
 
-	///	This class
-		typedef NavierStokesUpwindBase<dim, TImpl> this_type;
-
 	protected:
-		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
-		NavierStokesUpwindBase() {register_func(Int2Type<dim>());}
-
-	///	update of values for FV1Geometry
-		template <typename TElem>
-		void compute(const FV1Geometry<TElem, dim>* geo,
-		             const MathVector<dim> vIPVel[maxNumSCVF],
-		             number vUpShapeSh[maxNumSCVF][maxNumSH],
-		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-		             number vConvLength[maxNumSCVF])
-		{
-			getImpl().template compute<TElem>(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
-		}
+		NavierStokesUpwindRegister() {register_func(Int2Type<dim>());}
 
 	private:
 		void register_func(Int2Type<1>)
@@ -385,23 +367,20 @@ class NavierStokesUpwindBase : public INavierStokesUpwind<dim>
 		template <typename TElem>
 		void register_func()
 		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-						             const MathVector<dim> vIPVel[maxNumSCVF],
-						             number vUpShapeSh[maxNumSCVF][maxNumSH],
-						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-						             number vConvLength[maxNumSCVF]);
+			typedef TFVGeom<TElem, dim> TGeom;
+			typedef void (TImpl::*TFunc)(
+					const TGeom* obj,
+					const MathVector<dim> vIPVel[maxNumSCVF],
+					number vUpShapeSh[maxNumSCVF][maxNumSH],
+					number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					number vConvLength[maxNumSCVF]);
 
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
+			getImpl().template register_update_func<TGeom, TFunc>(&TImpl::template compute<TElem>);
 		}
 
 	protected:
 	///	access to implementation
 		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
-
-	///	const access to implementation
-		const TImpl& getImpl() const {return static_cast<const TImpl&>(*this);}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -410,11 +389,12 @@ class NavierStokesUpwindBase : public INavierStokesUpwind<dim>
 
 template <int dim>
 class NavierStokesNoUpwind
-	: public NavierStokesUpwindBase<dim, NavierStokesNoUpwind<dim> >
+: public INavierStokesUpwind<dim>,
+  public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesNoUpwind<dim> >,
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesNoUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
 
@@ -429,6 +409,14 @@ class NavierStokesNoUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
+
+	///	update of values for CRFVGeometry
+		template <typename TElem>
+		void compute(const CRFVGeometry<TElem, dim>* geo,
+					 const MathVector<dim> vIPVel[maxNumSCVF],
+					 number vUpShapeSh[maxNumSCVF][maxNumSH],
+					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					 number vConvLength[maxNumSCVF]);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -437,11 +425,12 @@ class NavierStokesNoUpwind
 
 template <int dim>
 class NavierStokesFullUpwind
-: public NavierStokesUpwindBase<dim, NavierStokesFullUpwind<dim> >
+: public INavierStokesUpwind<dim>,
+  public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesFullUpwind<dim> >,
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesFullUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
 
@@ -456,6 +445,55 @@ class NavierStokesFullUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
+
+	///	update of values for CRFVGeometry
+		template <typename TElem>
+		void compute(const CRFVGeometry<TElem, dim>* geo,
+					 const MathVector<dim> vIPVel[maxNumSCVF],
+					 number vUpShapeSh[maxNumSCVF][maxNumSH],
+					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					 number vConvLength[maxNumSCVF]);
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////
+// Weighted Upwind
+// upwinding between full and no upwind
+// shapes computed as m_weight*no_upwind_shape + (1-m_weight)*full_upwind_shape
+////////////////////////////////////////////////////////////////////////////////////
+
+template <int dim>
+class NavierStokesWeightedUpwind
+: public INavierStokesUpwind<dim>,
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesWeightedUpwind<dim> >
+{
+	public:
+		typedef INavierStokesUpwind<dim> base_type;
+		static const size_t maxNumSCVF = base_type::maxNumSCVF;
+		static const size_t maxNumSH = base_type::maxNumSH;
+
+	public:
+	///	constructor
+		NavierStokesWeightedUpwind(number weight) : m_weight(weight)
+		{
+			UG_LOG(">>>>   weight:"<<weight<<", m_weight"<<m_weight<<"\n");
+			this->set_shape_ip_flag(false);
+			UG_LOG(">>>>   weight:"<<weight<<", m_weight"<<m_weight<<"\n");
+			UG_LOG(">>>>   Storage weight: " << &m_weight<<"\n");
+		}
+
+		void set_weight(number weight) {m_weight = weight;}
+
+	///	update of values for CRFVGeometry
+		template <typename TElem>
+		void compute(const CRFVGeometry<TElem, dim>* geo,
+					 const MathVector<dim> vIPVel[maxNumSCVF],
+					 number vUpShapeSh[maxNumSCVF][maxNumSH],
+					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					 number vConvLength[maxNumSCVF]);
+
+	protected:
+		number m_weight;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -464,11 +502,12 @@ class NavierStokesFullUpwind
 
 template <int dim>
 class NavierStokesSkewedUpwind
-: public NavierStokesUpwindBase<dim, NavierStokesSkewedUpwind<dim> >
+: public INavierStokesUpwind<dim>,
+  public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesSkewedUpwind<dim> >,
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesSkewedUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
 
@@ -483,6 +522,14 @@ class NavierStokesSkewedUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
+
+	///	update of values for CRFVGeometry
+		template <typename TElem>
+		void compute(const CRFVGeometry<TElem, dim>* geo,
+					 const MathVector<dim> vIPVel[maxNumSCVF],
+					 number vUpShapeSh[maxNumSCVF][maxNumSH],
+					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					 number vConvLength[maxNumSCVF]);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -491,11 +538,12 @@ class NavierStokesSkewedUpwind
 
 template <int dim>
 class NavierStokesLinearProfileSkewedUpwind
-: public NavierStokesUpwindBase<dim, NavierStokesLinearProfileSkewedUpwind<dim> >
+: public INavierStokesUpwind<dim>,
+  public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesLinearProfileSkewedUpwind<dim> >,
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesLinearProfileSkewedUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
 
@@ -510,6 +558,14 @@ class NavierStokesLinearProfileSkewedUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
+
+	///	update of values for CRFVGeometry
+		template <typename TElem>
+		void compute(const CRFVGeometry<TElem, dim>* geo,
+					 const MathVector<dim> vIPVel[maxNumSCVF],
+					 number vUpShapeSh[maxNumSCVF][maxNumSH],
+					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					 number vConvLength[maxNumSCVF]);
 };
 
 
@@ -519,11 +575,11 @@ class NavierStokesLinearProfileSkewedUpwind
 
 template <int dim>
 class NavierStokesPositiveUpwind
-: public NavierStokesUpwindBase<dim, NavierStokesPositiveUpwind<dim> >
+: public INavierStokesUpwind<dim>,
+  public NavierStokesUpwindRegister<FV1Geometry,dim, NavierStokesPositiveUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
 
@@ -546,11 +602,11 @@ class NavierStokesPositiveUpwind
 
 template <int dim>
 class NavierStokesRegularUpwind
-: public NavierStokesUpwindBase<dim, NavierStokesRegularUpwind<dim> >
+: public INavierStokesUpwind<dim>,
+  public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesRegularUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
 		static const size_t maxNumSCVF = base_type::maxNumSCVF;
 		static const size_t maxNumSH = base_type::maxNumSH;
 
@@ -561,215 +617,6 @@ class NavierStokesRegularUpwind
 	///	update of values for FV1Geometry
 		template <typename TElem>
 		void compute(const FV1Geometry<TElem, dim>* geo,
-					 const MathVector<dim> vIPVel[maxNumSCVF],
-					 number vUpShapeSh[maxNumSCVF][maxNumSH],
-					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					 number vConvLength[maxNumSCVF]);
-};
-
-
-template <int dim, typename TImpl>
-class NavierStokesCRUpwindBase : public INavierStokesUpwind<dim>
-{
-	public:
-	///	Base class
-		typedef INavierStokesUpwind<dim> base_type;
-
-	///	This class
-		typedef NavierStokesCRUpwindBase<dim, TImpl> this_type;
-
-	protected:
-		static const size_t maxNumSCV = base_type::maxNumSCV;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
-
-	public:
-	///	constructor
-		NavierStokesCRUpwindBase() {register_func(Int2Type<dim>());}
-
-	///	update of values for FV1Geometry
-		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
-		             const MathVector<dim> vIPVel[maxNumSCVF],
-		             number vUpShapeSh[maxNumSCVF][maxNumSH],
-		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-		             number vConvLength[maxNumSCVF])
-		{
-			getImpl().template compute<TElem>(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
-		}
-
-	private:
-		void register_func(Int2Type<1>)
-		{
-			register_func<Edge>();
-		}
-
-		void register_func(Int2Type<2>)
-		{
-			register_func<Triangle>();
-			register_func<Quadrilateral>();
-		}
-
-		void register_func(Int2Type<3>)
-		{
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();
-		}
-
-		template <typename TElem>
-		void register_func()
-		{
-			typedef CRFVGeometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(
-									const TGeom* obj,
-						             const MathVector<dim> vIPVel[maxNumSCVF],
-						             number vUpShapeSh[maxNumSCVF][maxNumSH],
-						             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-						             number vConvLength[maxNumSCVF]);
-
-			this->template register_update_func<TGeom, TFunc>(&this_type::template compute<TElem>);
-		}
-
-	protected:
-	///	access to implementation
-		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
-
-	///	const access to implementation
-		const TImpl& getImpl() const {return static_cast<const TImpl&>(*this);}
-};
-
-/////////////////////////////////////////////////////////////////////////////
-// No Upwind
-/////////////////////////////////////////////////////////////////////////////
-
-template <int dim>
-class NavierStokesCRNoUpwind
-: public NavierStokesCRUpwindBase<dim, NavierStokesCRNoUpwind<dim> >
-{
-	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
-
-	public:
-	///	constructor
-		NavierStokesCRNoUpwind(){this->set_shape_ip_flag(false);}
-
-	///	update of values for CRFVGeometry
-		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
-					 const MathVector<dim> vIPVel[maxNumSCVF],
-					 number vUpShapeSh[maxNumSCVF][maxNumSH],
-					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					 number vConvLength[maxNumSCVF]);
-};
-
-/////////////////////////////////////////////////////////////////////////////
-// Full Upwind
-/////////////////////////////////////////////////////////////////////////////
-
-template <int dim>
-class NavierStokesCRFullUpwind
-: public NavierStokesCRUpwindBase<dim, NavierStokesCRFullUpwind<dim> >
-{
-	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
-
-	public:
-	///	constructor
-		NavierStokesCRFullUpwind(){this->set_shape_ip_flag(false);}
-
-	///	update of values for CRFVGeometry
-		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
-					 const MathVector<dim> vIPVel[maxNumSCVF],
-					 number vUpShapeSh[maxNumSCVF][maxNumSH],
-					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					 number vConvLength[maxNumSCVF]);
-};
-
-////////////////////////////////////////////////////////////////////////////////////
-// Weighted Upwind
-// upwinding between full and no upwind
-// shapes computed as m_weight*no_upwind_shape + (1-m_weight)*full_upwind_shape
-////////////////////////////////////////////////////////////////////////////////////
-
-template <int dim>
-class NavierStokesCRWeightedUpwind
-: public NavierStokesCRUpwindBase<dim, NavierStokesCRWeightedUpwind<dim> >
-{
-	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
-
-	protected:
-		number m_weight;
-
-	public:
-	///	constructor
-		NavierStokesCRWeightedUpwind(number weight)
-		{
-			this->set_shape_ip_flag(false);
-			m_weight = weight;
-		}
-
-	///	update of values for CRFVGeometry
-		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
-					 const MathVector<dim> vIPVel[maxNumSCVF],
-					 number vUpShapeSh[maxNumSCVF][maxNumSH],
-					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					 number vConvLength[maxNumSCVF]);
-};
-
-template <int dim>
-class NavierStokesCRLinearProfileSkewedUpwind
-: public NavierStokesCRUpwindBase<dim, NavierStokesCRLinearProfileSkewedUpwind<dim> >
-{
-	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
-
-	public:
-	///	constructor
-		NavierStokesCRLinearProfileSkewedUpwind(){this->set_shape_ip_flag(false);}
-
-	///	update of values for FV1Geometry
-		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
-					 const MathVector<dim> vIPVel[maxNumSCVF],
-					 number vUpShapeSh[maxNumSCVF][maxNumSH],
-					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					 number vConvLength[maxNumSCVF]);
-};
-
-template <int dim>
-class NavierStokesCRSkewedUpwind
-: public NavierStokesCRUpwindBase<dim, NavierStokesCRSkewedUpwind<dim> >
-{
-	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCV = base_type::maxNumSCV;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
-
-	public:
-	///	constructor
-		NavierStokesCRSkewedUpwind(){this->set_shape_ip_flag(false);}
-
-	///	update of values for FV1Geometry
-		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
