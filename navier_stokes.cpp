@@ -7,6 +7,7 @@
 
 #include "navier_stokes_common.h"
 #include "navier_stokes_fv1.h"
+#include "navier_stokes_fvho.h"
 #include "navier_stokes_cr.h"
 
 namespace ug{

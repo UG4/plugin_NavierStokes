@@ -74,6 +74,7 @@ void NavierStokes<TDomain>::init()
 	this->register_import(m_imSource);
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensitySCVF);
+	this->register_import(m_imDensitySCVFp);
 	this->register_import(m_imDensitySCV);
 
 	m_imSource.set_rhs_part();
@@ -81,6 +82,14 @@ void NavierStokes<TDomain>::init()
 
 //	default value for density
 	set_density(1.0);
+
+//	set defaults
+	m_order = 1;
+	m_bQuadOrderUserDef = false;
+	m_quadOrder = -1;
+	m_quadOrderSCV = -1;
+	m_quadOrderSCVF = -1;
+	m_discScheme = "stab";
 }
 
 template<typename TDomain>
@@ -107,6 +116,7 @@ set_disc_scheme(const char* c_scheme)
 
 	//	check
 	if(	scheme != std::string("stab") &&
+		scheme != std::string("fv") &&
 		scheme != std::string("staggered"))
 	{
 		UG_THROW("NavierStokes: Only 'stab' and 'staggered' supported.");
@@ -123,16 +133,42 @@ template<typename TDomain>
 bool NavierStokes<TDomain>::
 request_finite_element_id(const std::vector<LFEID>& vLfeID)
 {
-	return true;// todo check
-	if(m_discScheme != "staggered"){
-	//	check number
-		if(vLfeID.size() != dim+1) return false;
-		//	check that Lagrange 1st order
-		for(size_t i = 0; i < vLfeID.size(); ++i)
-			if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
-			return true;
+//	check number
+	if(vLfeID.size() != dim+1)
+	{
+		UG_LOG("NavierStokes:"
+				" Wrong number of functions given. Need exactly "<<dim+1<<"\n");
+		return false;
 	}
+
+	if(m_discScheme != "fvcr"){
+		//	check that Lagrange order
+		if(vLfeID[0].type() != LFEID::LAGRANGE)
+		{
+			UG_LOG("NavierStokes: Lagrange trial space needed.\n");
+			return false;
+		}
+	};
+
+//	for fv only 1st order
+	if(m_discScheme == "stab" && vLfeID[0].order() != 1)
+	{
+		UG_LOG("NavierStokes: FV Scheme only implemented for 1st order.\n");
+		return false;
+	}
+
+//	check that not ADAPTIVE
+	if(vLfeID[0].order() < 1)
+	{
+		UG_LOG("NavierStokes: Adaptive or invalid order not implemented.\n");
+		return false;
+	}
+
+//	remember lfeID;
 	m_lfeID = vLfeID[0];
+
+//	set order
+	m_order = vLfeID[0].order();
 
 	//	update assemble functions
 	set_ass_funcs();
@@ -145,8 +181,27 @@ template<typename TDomain>
 void NavierStokes<TDomain>::
 set_ass_funcs()
 {
+//	set default quadrature order if not set by user
+	if(!m_bQuadOrderUserDef)
+	{
+	//	FE
+		m_quadOrder = 2* m_order + 1;
+
+	//	FV
+		m_quadOrderSCV = m_order;
+		m_quadOrderSCVF = m_order;
+	}
+//	set all non-set orders
+	else
+	{
+		if(m_quadOrder < 0) m_quadOrder = 2 * m_order + 1;
+		if(m_quadOrderSCV < 0) m_quadOrderSCV = m_order;
+		if(m_quadOrderSCVF < 0) m_quadOrderSCVF = m_order;
+	}
+
 	//	switch, which assemble functions to use; both supported.
 	if(m_discScheme == "stab") register_all_fv1_funcs(false);
+	else if(m_discScheme == "fv") register_all_fvho_funcs(m_order, m_quadOrderSCV, m_quadOrderSCVF);
 	else if(m_discScheme == "staggered") register_all_cr_funcs(false);
 }
 
@@ -182,6 +237,7 @@ void NavierStokes<TDomain>::
 set_density(SmartPtr<UserData<number, dim> > data)
 {
 	m_imDensitySCVF.set_data(data);
+	m_imDensitySCVFp.set_data(data);
 	m_imDensitySCV.set_data(data);
 }
 

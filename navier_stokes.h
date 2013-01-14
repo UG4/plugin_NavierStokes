@@ -259,6 +259,12 @@ class NavierStokes
 	///	current shape function set
 		LFEID m_lfeID;
 
+	///	current integration order
+		bool m_bQuadOrderUserDef;
+		int m_quadOrder;
+		int m_quadOrderSCV;
+		int m_quadOrderSCVF;
+
 		void init();
 		void set_ass_funcs();
 
@@ -574,6 +580,7 @@ class NavierStokes
 
 	///	Data import for kinematic viscosity
 		DataImport<number, dim> m_imDensitySCVF;
+		DataImport<number, dim> m_imDensitySCVFp;
 		DataImport<number, dim> m_imDensitySCV;
 
 	///	Stabilization for velocity in continuity equation
@@ -645,6 +652,58 @@ class NavierStokes
 
 	private:
 		void register_all_cr_funcs(bool bHang);
+
+	public:
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void prep_elem_loop_fvho();
+
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void prep_elem_fvho(TElem* elem, const LocalVector& u);
+
+	///	finishes the loop over all elements
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void fsh_elem_loop_fvho();
+
+	///	assembles the local stiffness matrix using a finite volume scheme
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_jac_A_elem_fvho(LocalMatrix& J, const LocalVector& u);
+
+	///	assembles the local mass matrix using a finite volume scheme
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_jac_M_elem_fvho(LocalMatrix& J, const LocalVector& u);
+
+	///	assembles the stiffness part of the local defect
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_def_A_elem_fvho(LocalVector& d, const LocalVector& u);
+
+	///	assembles the mass part of the local defect
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_def_M_elem_fvho(LocalVector& d, const LocalVector& u);
+
+	///	assembles the local right hand side
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_rhs_elem_fvho(LocalVector& d);
+
+	// 	FVHO Assemblings
+		void register_all_fvho_funcs(int order, int quadOrderSCV, int quadOrderSCVF);
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider> void register_fvho_func();
+
+	//	helper class holding a geometry
+		template<typename TGeom>
+		struct PFlexGeomProvider
+		{
+			typedef TGeom Type;
+			static inline TGeom& get(){static TGeom inst; return inst;}
+		};
+		template<typename TGeom>
+		struct VFlexGeomProvider
+		{
+			typedef TGeom Type;
+			static inline TGeom& get(){static TGeom inst; return inst;}
+		};
+
+		std::vector<std::vector<number> > m_vvPShape;
+		std::vector<std::vector<number> > m_vvVShape;
 };
 
 /// @}
