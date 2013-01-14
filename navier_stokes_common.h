@@ -37,7 +37,7 @@ NavierStokes<TDomain>::NavierStokes(const char* functions,
 	init();
 
 	if(discType != NULL) set_disc_scheme(discType);
-	else set_disc_scheme("stab");
+	else set_disc_scheme("fv1");
 }
 
 template<typename TDomain>
@@ -54,7 +54,7 @@ NavierStokes<TDomain>::NavierStokes(const std::vector<std::string>& vFct,
 	init();
 
 	if(discType != NULL) set_disc_scheme(discType);
-	else set_disc_scheme("stab");
+	else set_disc_scheme("fv1");
 }
 
 template<typename TDomain>
@@ -89,7 +89,7 @@ void NavierStokes<TDomain>::init()
 	m_quadOrder = -1;
 	m_quadOrderSCV = -1;
 	m_quadOrderSCVF = -1;
-	m_discScheme = "stab";
+	m_discScheme = "fv1";
 }
 
 template<typename TDomain>
@@ -115,7 +115,7 @@ set_disc_scheme(const char* c_scheme)
 	std::string scheme = c_scheme;
 
 	//	check
-	if(	scheme != std::string("stab") &&
+	if(	scheme != std::string("fv1") &&
 		scheme != std::string("fv") &&
 		scheme != std::string("staggered"))
 	{
@@ -151,7 +151,7 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 	};
 
 //	for fv only 1st order
-	if(m_discScheme == "stab" && vLfeID[0].order() != 1)
+	if(m_discScheme == "fv1" && vLfeID[0].order() != 1)
 	{
 		UG_LOG("NavierStokes: FV Scheme only implemented for 1st order.\n");
 		return false;
@@ -200,7 +200,7 @@ set_ass_funcs()
 	}
 
 	//	switch, which assemble functions to use; both supported.
-	if(m_discScheme == "stab") register_all_fv1_funcs(false);
+	if(m_discScheme == "fv1") register_all_fv1_funcs(false);
 	else if(m_discScheme == "fv") register_all_fvho_funcs(m_order, m_quadOrderSCV, m_quadOrderSCVF);
 	else if(m_discScheme == "staggered") register_all_cr_funcs(false);
 }

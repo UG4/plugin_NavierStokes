@@ -21,7 +21,7 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 	if(vLfeID.size() != dim+1) return false;
 
 //	check trial spaces
-	if(m_spMaster->disc_scheme() == "stab"){
+	if(m_spMaster->disc_scheme() == "fv1"){
 		for(size_t i = 0; i < vLfeID.size(); ++i)
 			if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
 	}
@@ -137,7 +137,7 @@ NavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 	m_imDensity.set_data(spMaster->get_density ());
 
 //	register assemble functions
-	if(spMaster->disc_scheme() == "stab") this->register_all_fv1_funcs(false);
+	if(spMaster->disc_scheme() == "fv1") this->register_all_fv1_funcs(false);
 	else if(spMaster->disc_scheme() == "staggered") this->register_all_cr_funcs(false);
 	else UG_THROW("NavierStokesNoNormalStressOutflow: Disc scheme not supported.");
 }
