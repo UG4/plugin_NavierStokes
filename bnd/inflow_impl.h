@@ -39,8 +39,10 @@ add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND)
 		UG_THROW("NavierStokesInflow::add: Symbolic names for"
 				" velocity and pressure not set. Please set them first.");
 
-	if(m_spMaster->disc_scheme() != "staggered")
+	if(m_spMaster->disc_scheme() != "staggered"){
 		m_spNeumannDisc->add(user, m_vFctName[dim].c_str(), subsetsBND);
+		m_spNeumannDisc->set_disc_scheme(m_spMaster->disc_scheme().c_str());
+	}
 
 	std::string velNames;
 	for(int i=0;i<TDomain::dim; ++i)
