@@ -163,23 +163,6 @@ add_jac_A_elem_fvho(LocalMatrix& J, const LocalVector& u)
 	static const typename VGeomProvider::Type& vgeo = VGeomProvider::get();
 	static const typename PGeomProvider::Type& pgeo = PGeomProvider::get();
 
-//	check for source term to pass to the stabilization
-	const DataImport<MathVector<dim>, dim>* pSource = NULL;
-	if(m_imSource.data_given())	pSource = &m_imSource;
-
-//	interpolate velocity at ip with standard lagrange interpolation
-	std::vector<MathVector<dim> > StdVel(vgeo.num_scvf());
-	for(size_t i = 0; i < vgeo.num_scvf(); ++i){
-		const typename VGeomProvider::Type::SCVF& scvf = vgeo.scvf(i);
-		for(size_t ip = 0; ip < scvf.num_ip(); ++ip){
-
-		VecSet(StdVel[ip], 0.0);
-		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			for(int d1 = 0; d1 < dim; ++d1)
-				StdVel[ip][d1] += u(d1, sh) * scvf.shape(ip, sh);
-		}
-	}
-
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
 	{
@@ -296,19 +279,6 @@ add_def_A_elem_fvho(LocalVector& d, const LocalVector& u)
 //	request geometry
 	static const typename VGeomProvider::Type& vgeo = VGeomProvider::get();
 	static const typename PGeomProvider::Type& pgeo = PGeomProvider::get();
-
-//	interpolate velocity at ip with standard lagrange interpolation
-	std::vector<MathVector<dim> > StdVel(vgeo.num_scvf());
-	for(size_t i = 0; i < vgeo.num_scvf(); ++i){
-		const typename VGeomProvider::Type::SCVF& scvf = vgeo.scvf(i);
-		for(size_t ip = 0; ip < scvf.num_ip(); ++ip){
-
-		VecSet(StdVel[ip], 0.0);
-		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-			for(int d1 = 0; d1 < dim; ++d1)
-				StdVel[ip][d1] += u(d1, sh) * scvf.shape(ip, sh);
-		}
-	}
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
