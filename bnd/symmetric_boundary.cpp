@@ -176,9 +176,11 @@ prep_elem_cr(TElem* elem, const LocalVector& u)
 
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
-	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW("CRNavierStokesSymBC::prep_elem_cr:"
-						" Cannot update Finite Volume Geometry.\n");
+	try{
+		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
+	}
+	UG_CATCH_THROW("CRNavierStokesSymBC::prep_elem_cr:"
+						" Cannot update Finite Volume Geometry.");
 
 //	find and set the local and the global positions of the IPs for imports
 	typedef typename TFVGeom<TElem, dim>::BF BF;

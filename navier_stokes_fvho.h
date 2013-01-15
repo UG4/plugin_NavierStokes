@@ -35,11 +35,12 @@ prep_elem_loop_fvho()
 	static const ReferenceObjectID roid = reference_element_type::REFERENCE_OBJECT_ID;
 
 	static typename VGeomProvider::Type& vgeo = VGeomProvider::get();
-	if(!vgeo.update_local(roid, m_order))
-		UG_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 	static typename PGeomProvider::Type& pgeo = PGeomProvider::get();
-	if(!pgeo.update_local(roid, m_order-1))
-		UG_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
+	try{
+		vgeo.update_local(roid, m_order);
+		pgeo.update_local(roid, m_order-1);
+	}
+	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
 	typedef typename reference_element_traits<TElem>::reference_element_type
@@ -103,13 +104,14 @@ prep_elem_fvho(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
 	static typename VGeomProvider::Type& vgeo = VGeomProvider::get();
-	if(!vgeo.update(elem, this->template element_corners<TElem>(elem),
-	               &(this->subset_handler())))
-		UG_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 	static typename PGeomProvider::Type& pgeo = PGeomProvider::get();
-	if(!pgeo.update(elem, this->template element_corners<TElem>(elem),
-	               &(this->subset_handler())))
-		UG_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
+	try{
+		vgeo.update(elem, this->template element_corners<TElem>(elem),
+	               &(this->subset_handler()));
+	    pgeo.update(elem, this->template element_corners<TElem>(elem),
+	               &(this->subset_handler()));
+	}
+	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
 	if(VGeomProvider::Type::usesHangingNodes)

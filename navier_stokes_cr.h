@@ -91,9 +91,11 @@ prep_elem_cr(TElem* elem, LocalVector& u)
 
 // 	Update Geometry for this element
 	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
-	if(!geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler())))
-		UG_THROW("NavierStokes::prep_elem:"
-						" Cannot update Finite Volume Geometry.");
+	try{
+		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
+	}
+	UG_CATCH_THROW("NavierStokes::prep_elem:"
+					" Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
 	if(TFVGeom<TElem, dim>::usesHangingNodes)
