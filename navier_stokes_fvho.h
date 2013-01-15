@@ -520,7 +520,7 @@ add_rhs_elem_fvho(LocalVector& d)
 // register for all dim
 template<>
 void NavierStokes<Domain1d>::
-register_all_fvho_funcs(int order, int quadOrderSCV, int quadOrderSCVF)
+register_all_fvho_funcs(int order)
 {
 	UG_THROW("Not implemented.");
 }
@@ -528,7 +528,7 @@ register_all_fvho_funcs(int order, int quadOrderSCV, int quadOrderSCVF)
 // register for all dim
 template<>
 void NavierStokes<Domain2d>::
-register_all_fvho_funcs(int order, int quadOrderSCV, int quadOrderSCVF)
+register_all_fvho_funcs(int order)
 {
 	typedef DimFVGeometry<2, dim> FVGeom;
 	register_fvho_func<Triangle, VFlexGeomProvider<FVGeom>, PFlexGeomProvider<FVGeom> >();
@@ -538,7 +538,7 @@ register_all_fvho_funcs(int order, int quadOrderSCV, int quadOrderSCVF)
 // register for all dim
 template<>
 void NavierStokes<Domain3d>::
-register_all_fvho_funcs(int order, int quadOrderSCV, int quadOrderSCVF)
+register_all_fvho_funcs(int order)
 {
 	typedef DimFVGeometry<3, dim> FVGeom;
 	register_fvho_func<Tetrahedron, VFlexGeomProvider<FVGeom>, PFlexGeomProvider<FVGeom> >();

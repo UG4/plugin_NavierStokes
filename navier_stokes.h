@@ -260,10 +260,7 @@ class NavierStokes
 		LFEID m_lfeID;
 
 	///	current integration order
-		bool m_bQuadOrderUserDef;
 		int m_quadOrder;
-		int m_quadOrderSCV;
-		int m_quadOrderSCVF;
 
 		void init();
 		void set_ass_funcs();
@@ -685,7 +682,7 @@ class NavierStokes
 		void add_rhs_elem_fvho(LocalVector& d);
 
 	// 	FVHO Assemblings
-		void register_all_fvho_funcs(int order, int quadOrderSCV, int quadOrderSCVF);
+		void register_all_fvho_funcs(int order);
 		template<typename TElem, typename VGeomProvider, typename PGeomProvider> void register_fvho_func();
 
 	//	helper class holding a geometry

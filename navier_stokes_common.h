@@ -85,10 +85,7 @@ void NavierStokes<TDomain>::init()
 
 //	set defaults
 	m_order = 1;
-	m_bQuadOrderUserDef = false;
 	m_quadOrder = -1;
-	m_quadOrderSCV = -1;
-	m_quadOrderSCVF = -1;
 	m_discScheme = "fv1";
 }
 
@@ -182,26 +179,12 @@ void NavierStokes<TDomain>::
 set_ass_funcs()
 {
 //	set default quadrature order if not set by user
-	if(!m_bQuadOrderUserDef)
-	{
-	//	FE
-		m_quadOrder = 2* m_order + 1;
 
-	//	FV
-		m_quadOrderSCV = m_order;
-		m_quadOrderSCVF = m_order;
-	}
-//	set all non-set orders
-	else
-	{
-		if(m_quadOrder < 0) m_quadOrder = 2 * m_order + 1;
-		if(m_quadOrderSCV < 0) m_quadOrderSCV = m_order;
-		if(m_quadOrderSCVF < 0) m_quadOrderSCVF = m_order;
-	}
+	m_quadOrder = 2* m_order + 1;
 
 	//	switch, which assemble functions to use; both supported.
 	if(m_discScheme == "fv1") register_all_fv1_funcs(false);
-	else if(m_discScheme == "fv") register_all_fvho_funcs(m_order, m_quadOrderSCV, m_quadOrderSCVF);
+	else if(m_discScheme == "fv") register_all_fvho_funcs(m_order);
 	else if(m_discScheme == "staggered") register_all_cr_funcs(false);
 }
 
