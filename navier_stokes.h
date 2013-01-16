@@ -254,10 +254,12 @@ class NavierStokes
 		std::string m_discScheme;
 
 	///	current order of disc scheme
-		int m_order;
+		int m_vorder;
+		int m_porder;
 
 	///	current shape function set
-		LFEID m_lfeID;
+		LFEID m_vLFEID;
+		LFEID m_pLFEID;
 
 	///	current integration order
 		int m_quadOrder;
@@ -701,6 +703,42 @@ class NavierStokes
 
 		std::vector<std::vector<number> > m_vvPShape;
 		std::vector<std::vector<number> > m_vvVShape;
+
+	public:
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void prep_elem_loop_fe();
+
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void prep_elem_fe(TElem* elem, const LocalVector& u);
+
+	///	finishes the loop over all elements
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void fsh_elem_loop_fe();
+
+	///	assembles the local stiffness matrix using a finite volume scheme
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_jac_A_elem_fe(LocalMatrix& J, const LocalVector& u);
+
+	///	assembles the local mass matrix using a finite volume scheme
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_jac_M_elem_fe(LocalMatrix& J, const LocalVector& u);
+
+	///	assembles the stiffness part of the local defect
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_def_A_elem_fe(LocalVector& d, const LocalVector& u);
+
+	///	assembles the mass part of the local defect
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_def_M_elem_fe(LocalVector& d, const LocalVector& u);
+
+	///	assembles the local right hand side
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
+		void add_rhs_elem_fe(LocalVector& d);
+
+	// 	FVHO Assemblings
+		void register_all_fe_funcs(int order);
+		template<typename TElem, typename VGeomProvider, typename PGeomProvider> void register_fe_func();
+
 };
 
 /// @}

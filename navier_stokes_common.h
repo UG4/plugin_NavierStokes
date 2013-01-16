@@ -15,6 +15,8 @@
 #endif
 
 #include "navier_stokes.h"
+#include <vector>
+#include <string>
 
 namespace ug{
 namespace NavierStokes{
@@ -38,7 +40,7 @@ NavierStokes<TDomain>::NavierStokes(const char* functions,
 
 	if(discType != NULL) set_disc_scheme(discType);
 	else set_disc_scheme("fv1");
-}
+};
 
 template<typename TDomain>
 NavierStokes<TDomain>::NavierStokes(const std::vector<std::string>& vFct,
@@ -55,7 +57,7 @@ NavierStokes<TDomain>::NavierStokes(const std::vector<std::string>& vFct,
 
 	if(discType != NULL) set_disc_scheme(discType);
 	else set_disc_scheme("fv1");
-}
+};
 
 template<typename TDomain>
 void NavierStokes<TDomain>::init()
@@ -84,7 +86,6 @@ void NavierStokes<TDomain>::init()
 	set_density(1.0);
 
 //	set defaults
-	m_order = 1;
 	m_quadOrder = -1;
 	m_discScheme = "fv1";
 }
@@ -112,11 +113,12 @@ set_disc_scheme(const char* c_scheme)
 	std::string scheme = c_scheme;
 
 	//	check
-	if(	scheme != std::string("fv1") &&
+	if(	scheme != std::string("fe") &&
+		scheme != std::string("fv1") &&
 		scheme != std::string("fv") &&
 		scheme != std::string("staggered"))
 	{
-		UG_THROW("NavierStokes: Only 'stab' and 'staggered' supported.");
+		UG_THROW("NavierStokes: Supported schemes: fe, fv1, fv, staggered.");
 	}
 
 	//	remember
@@ -138,34 +140,77 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 		return false;
 	}
 
-	if(m_discScheme != "fvcr"){
-		//	check that Lagrange order
-		if(vLfeID[0].type() != LFEID::LAGRANGE)
+	for(int d = 1; d < dim; ++d)
+		if(vLfeID[0] != vLfeID[d])
 		{
-			UG_LOG("NavierStokes: Lagrange trial space needed.\n");
+			UG_LOG("NavierStokes: trial spaces for velocity expected to be"
+					" identical for all velocity components.\n");
 			return false;
 		}
-	};
 
-//	for fv only 1st order
-	if(m_discScheme == "fv1" && vLfeID[0].order() != 1)
-	{
-		UG_LOG("NavierStokes: FV Scheme only implemented for 1st order.\n");
-		return false;
+//	staggered
+	if(m_discScheme == "staggered"){
+		for(int d = 0; d < dim; ++d)
+			if(vLfeID[d].type() != LFEID::CROUZEIX_RAVIART)
+			{
+				UG_LOG("NavierStokes: 'staggered' expects Crouzeix-Raviart trial"
+						" space for velocity.\n");
+				return false;
+			}
+		if(vLfeID[dim].type() != LFEID::PIECEWISE_CONSTANT)
+		{
+			UG_LOG("NavierStokes: 'staggered' expects piecewise constant trial"
+					" space for pressure.\n");
+			return false;
+		}
 	}
-
-//	check that not ADAPTIVE
-	if(vLfeID[0].order() < 1)
+//	fv1
+	else if(m_discScheme == "fv1")
 	{
-		UG_LOG("NavierStokes: Adaptive or invalid order not implemented.\n");
+		for(int d = 0; d <= dim; ++d)
+			if(vLfeID[d].type() != LFEID::LAGRANGE || vLfeID[d].order() != 1)
+			{
+				UG_LOG("NavierStokes: 'fv1' expects Lagrange P1 trial space "
+						"for velocity and pressure.\n");
+				return false;
+			}
+	}
+//	fv
+	else if(m_discScheme == "fv")
+	{
+		for(int d = 0; d <= dim; ++d)
+			if(vLfeID[d].type() != LFEID::LAGRANGE)
+			{
+				UG_LOG("NavierStokes: 'fv' expects Lagrange trial space "
+						"for velocity and pressure.\n");
+				return false;
+			}
+		for(int d = 0; d < dim; ++d)
+			if(vLfeID[d].order() != vLfeID[dim].order() + 1)
+			{
+				UG_LOG("NavierStokes: 'fv' expects Lagrange trial space "
+						"P_k for velocity and P_{k-1} pressure.\n");
+				return false;
+			}
+	}
+//	fe
+	else if(m_discScheme == "fe")
+	{
+		// all admissible
+	}
+//	wrong scheme
+	else {
+		UG_LOG("NavierStokes: disc scheme '"<<m_discScheme<<"' not reconized.\n");
 		return false;
 	}
 
 //	remember lfeID;
-	m_lfeID = vLfeID[0];
+	m_vLFEID = vLfeID[0];
+	m_pLFEID = vLfeID[dim];
 
 //	set order
-	m_order = vLfeID[0].order();
+	m_vorder = vLfeID[0].order();
+	m_porder = vLfeID[dim].order();
 
 	//	update assemble functions
 	set_ass_funcs();
@@ -180,12 +225,17 @@ set_ass_funcs()
 {
 //	set default quadrature order if not set by user
 
-	m_quadOrder = 2* m_order + 1;
+	m_quadOrder = 2* m_vorder + 1;
 
 	//	switch, which assemble functions to use; both supported.
 	if(m_discScheme == "fv1") register_all_fv1_funcs(false);
-	else if(m_discScheme == "fv") register_all_fvho_funcs(m_order);
+	else if(m_discScheme == "fe") register_all_fe_funcs(m_vorder);
+	else if(m_discScheme == "fv") register_all_fvho_funcs(m_vorder);
 	else if(m_discScheme == "staggered") register_all_cr_funcs(false);
+	else {
+		UG_THROW("NavierStokes: disc scheme '"<<m_discScheme<<"' not reconized.\n");
+	}
+
 }
 
 /////////// kinematic Viscosity

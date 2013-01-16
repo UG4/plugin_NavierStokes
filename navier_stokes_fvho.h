@@ -37,8 +37,8 @@ prep_elem_loop_fvho()
 	static typename VGeomProvider::Type& vgeo = VGeomProvider::get();
 	static typename PGeomProvider::Type& pgeo = PGeomProvider::get();
 	try{
-		vgeo.update_local(roid, m_order);
-		pgeo.update_local(roid, m_order-1);
+		vgeo.update_local(roid, m_vorder);
+		pgeo.update_local(roid, m_porder);
 	}
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
@@ -65,7 +65,7 @@ prep_elem_loop_fvho()
 		                                               pgeo.num_scvf_ips());
 
 		const LocalShapeFunctionSet<dim>& rVTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_order));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_vorder));
 		const MathVector<dim>* PLocIP = pgeo.scv_local_ips();
 
 		m_vvVShape.resize(pgeo.num_scvf_ips());
@@ -77,7 +77,7 @@ prep_elem_loop_fvho()
 		}
 
 		const LocalShapeFunctionSet<dim>& rPTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_order-1));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_porder));
 		const MathVector<dim>* VLocIP = vgeo.scv_local_ips();
 
 		m_vvPShape.resize(vgeo.num_scvf_ips());
