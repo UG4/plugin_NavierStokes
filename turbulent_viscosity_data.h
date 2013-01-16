@@ -18,6 +18,8 @@
 #include "lib_disc/spatial_disc/user_data/const_user_data.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
 #include "lib_disc/spatial_disc/disc_util/cr_finite_volume_geometry.h"
+#include "lib_grid/tools/periodic_boundary_manager.h"
+#include "lib_grid/algorithms/attachment_util.h"
 
 #ifdef UG_FOR_LUA
 #include "bindings/lua/lua_user_data.h"
@@ -64,9 +66,12 @@ class StdTurbulentViscosityData
 		typedef MathVector<dim> vecDim;
 		typedef Attachment<vecDim> AMathVectorDim;
 
-		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
+/*		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
 		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
-		typedef typename Grid::AttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
+		typedef typename Grid::AttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;*/
+		typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
+		typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
+		typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
 	public:
 		////////////////
 		// one value
@@ -182,6 +187,8 @@ class StdTurbulentViscosityData
 
 		void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,aSideDimVector aaU,SmartPtr<TGridFunction> u);
 
+		void transferToLowerLevels(aSideNumber& aaData,ApproximationSpace<domain_type>& approximationSpace);
+
 	protected:
 	///	access to implementation
 		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
@@ -228,8 +235,8 @@ class CRSmagorinskyTurbViscData
 		typedef MathMatrix<dim,dim> dimMat;
 		typedef Attachment<dimMat> ATensor;
 
-		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
-		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
+		typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
+		typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
 
 	public:
 		/**
@@ -279,6 +286,9 @@ class CRSmagorinskyTurbViscData
 		//	approximation space for level and surface grid
 		SmartPtr<ApproximationSpace<domain_type> > m_spApproxSpace;
 
+		//  periodic boundary manager
+		PeriodicBoundaryManager* m_pbm;
+
 	public:
 	/// constructor
 		CRSmagorinskyTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,number c = 0.05){
@@ -288,6 +298,7 @@ class CRSmagorinskyTurbViscData
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
 			m_grid = &grid;
+			m_pbm = m_grid->periodic_boundary_manager();
 			// attachments
 			grid.template attach_to<side_type>(m_aTurbulentViscosity);
 			grid.template attach_to<side_type>(m_aVolume);
@@ -296,6 +307,7 @@ class CRSmagorinskyTurbViscData
 			m_acTurbulentViscosity.access(grid,m_aTurbulentViscosity);
 			m_acVolume.access(grid,m_aVolume);
 			m_acDeformation.access(grid,m_aDeformation);
+
 		}
 		
 		virtual ~CRSmagorinskyTurbViscData() {
@@ -419,9 +431,9 @@ class CRDynamicTurbViscData
 		typedef MathVector<dim> vecDim;
 		typedef Attachment<vecDim> AMathVectorDim;
 
-		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
-		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
-		typedef typename Grid::AttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
+		typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
+		typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
+		typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
 
 	public:
 		/**
@@ -496,6 +508,9 @@ class CRDynamicTurbViscData
 	//	approximation space for level and surface grid
 		SmartPtr<ApproximationSpace<domain_type> > m_spApproxSpace;
 
+	//  periodic boundary manager
+		PeriodicBoundaryManager* m_pbm;
+
 	public:
 	/// constructor
 		CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct){
@@ -504,6 +519,7 @@ class CRDynamicTurbViscData
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
 			m_grid = &grid;
+			m_pbm = m_grid->periodic_boundary_manager();
 			// attachments
 			grid.template attach_to<side_type>(m_aTurbulentViscosity);
 			grid.template attach_to<side_type>(m_aTurbulentC);
@@ -581,7 +597,7 @@ class CRDynamicTurbViscData
 				vValue[ip] = 0.0;
 				for(size_t sh = 0; sh < vShape.size(); ++sh)
 				{
-					const number valSH = m_acTurbulentViscosity[sides[sh]];
+					 number valSH = m_acTurbulentViscosity[sides[sh]];
 					 vValue[ip] += valSH * vShape[sh];
 				}
 			}

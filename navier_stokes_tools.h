@@ -11,11 +11,13 @@
 #include <vector>
 #include "lib_disc/function_spaces/approximation_space.h"
 #include "lib_grid/lg_base.h"
+#include "lib_grid/algorithms/attachment_util.h"
 #include "common/profiler/profiler.h"
 
 namespace ug{
 
-/// orders the all DofDistributions of the ApproximationSpace using Cuthill-McKee
+// compute vorticity
+// for velocity field (u,v,w) the vorticity is \partial_x v - \partial_y u
 template <typename TGridFunction>
 void vorticity(TGridFunction& vort,TGridFunction& u)
 {
@@ -41,7 +43,7 @@ void vorticity(TGridFunction& vort,TGridFunction& u)
 	typedef typename elem_type::side side_type;
 
 	//  volume attachment
-	typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
+	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
 	aSideNumber m_acVolume;
 	ANumber m_aVolume;
 
@@ -71,6 +73,8 @@ void vorticity(TGridFunction& vort,TGridFunction& u)
 			UG_THROW("Component " << d << " in approximation space of parameter 2 must be of Crouzeix-Raviart type.");
 		}
 	}
+
+	PeriodicBoundaryManager* pbm = grid.periodic_boundary_manager();
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -150,6 +154,8 @@ void vorticity(TGridFunction& vort,TGridFunction& u)
 		{
 			//	get Elem
 			side_type* elem = *sideIter;
+			// if periodic slave continue
+			if (pbm && pbm->is_slave(elem)) continue;
 			vort.multi_indices(elem, 0, multInd);
 			DoFRef(vort,multInd[0])/=m_acVolume[elem];
 			if (DoFRef(vort,multInd[0])*DoFRef(vort,multInd[0])>maxvort*maxvort){
@@ -159,29 +165,7 @@ void vorticity(TGridFunction& vort,TGridFunction& u)
 	}
 	grid.template detach_from<side_type>(m_aVolume);
 }
-/*
-bool ContainsPoint(ug::Face*& f
-		, ug::MathVector<2ul, double>& p,
-		const ug::Grid::VertexAttachmentAccessor<ug::Attachment<ug::MathVector<2ul, double> > >& aaPos
-		)
-{
-	switch(f->num_vertices()){
-		case 3: return PointIsInsideTriangle(p, aaPos[f->vertex(0)],
-											 aaPos[f->vertex(1)],
-											 aaPos[f->vertex(2)]);
-				break;
-		case 4: return PointIsInsideQuadrilateral(p, aaPos[f->vertex(0)],
-												  aaPos[f->vertex(1)],
-												  aaPos[f->vertex(2)],
-												  aaPos[f->vertex(3)]);
-				break;
-		default:
-			UG_THROW("Unknown face type with " << f->num_vertices()
-					<< " vertices encountered in ContainsPoint(...).");
-	}
-	return false;
-}
-*/
+
 // array0 = array1
 void copyGhiaNumbers(number array0[17],number array1[17]){
 	for (size_t i=0;i<17;i++) array0[i]=array1[i];
