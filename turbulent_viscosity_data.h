@@ -66,9 +66,6 @@ class StdTurbulentViscosityData
 		typedef MathVector<dim> vecDim;
 		typedef Attachment<vecDim> AMathVectorDim;
 
-/*		typedef typename Grid::AttachmentAccessor<side_type,ANumber > aSideNumber;
-		typedef typename Grid::AttachmentAccessor<side_type,ATensor > aSideTensor;
-		typedef typename Grid::AttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;*/
 		typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
 		typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
 		typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
@@ -181,11 +178,21 @@ class StdTurbulentViscosityData
 		}
 
 		void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
-		void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU,SmartPtr<TGridFunction> u);
+		void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU);
 
 		number FNorm(MathMatrix<dim,dim> M);
 
-		void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,aSideDimVector aaU,SmartPtr<TGridFunction> u);
+		void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,aSideDimVector aaU);
+		void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,SmartPtr<TGridFunction> u);
+
+//		void filterData(aSideDimVector& aaUHat,SmartPtr<TGridFunction> u);
+		template <typename AccessorType>
+		void elementFilter(AccessorType aaUHat,aSideNumber& aaVolHat,AccessorType aaU);
+
+		template <typename VType>
+		void elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU);
+
+		void fillAttachment(aSideDimVector& aaU,SmartPtr<TGridFunction> u);
 
 		void transferToLowerLevels(aSideNumber& aaData,ApproximationSpace<domain_type>& approximationSpace);
 
@@ -196,6 +203,8 @@ class StdTurbulentViscosityData
 	///	const access to implementation
 		const TImpl& getImpl() const {return static_cast<const TImpl&>(*this);}
 
+		// grid function
+		SmartPtr<TGridFunction> m_uInfo;
 };
 
 
@@ -294,6 +303,7 @@ class CRSmagorinskyTurbViscData
 		CRSmagorinskyTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,number c = 0.05){
 			m_c = c;
 			m_u = spGridFct;
+			this->m_uInfo = m_u;
 			m_spApproxSpace = approxSpace;
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
@@ -515,6 +525,7 @@ class CRDynamicTurbViscData
 	/// constructor
 		CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct){
 			m_u = spGridFct;
+			this->m_uInfo = m_u;
 			m_spApproxSpace = approxSpace;
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();

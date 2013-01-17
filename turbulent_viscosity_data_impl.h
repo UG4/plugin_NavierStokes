@@ -50,6 +50,130 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::transferToLowerLe
 }
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::fillAttachment(aSideDimVector& aaU,SmartPtr<TGridFunction> u){
+	//	get domain
+	domain_type& domain = *u->domain().get();
+	//	create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+		ElemIterator iter = u->template begin<side_type>(si);
+		ElemIterator iterEnd = u->template end<side_type>(si);
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			side_type* side = iter;
+			for (int d=0;d<dim;d++){
+				u->multi_indices(side, d, multInd);
+				aaU[side][d]=DoFRef(*u,multInd[0]);
+			}
+		}
+	}
+}
+
+// go over all elements, interpolate data to barycenter, average by multiplying with corresponding element volume and deviding by complete adjacent element volume
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+template <typename VType>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU){
+	//	get domain of grid function
+	domain_type& domain = *m_uInfo->domain().get();
+	DimCRFVGeometry<dim> geo;
+
+	// set attachment values to zero
+	SetAttachmentValues(aaUHat , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
+
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	// assemble deformation tensor fluxes
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		if (si>0) continue;
+		//	get iterators
+		ElemIterator iter = m_uInfo->template begin<elem_type>(si);
+		ElemIterator iterEnd = m_uInfo->template end<elem_type>(si);
+
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			MathVector<dim> bary,localBary;
+			bary = 0;
+
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				bary += coCoord[i];
+			};
+			bary /= numVertices;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			//	get trial space
+			const LocalShapeFunctionSet<dim>& rTrialSpace =
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+			//	get Reference Mapping
+			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
+
+			map.global_to_local(localBary,bary);
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+			//	memory for shapes
+			std::vector<number> vShape;
+
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+			rTrialSpace.shapes(vShape, localBary);
+
+			size_t nofsides = geo.num_scv();
+
+			VType value;
+			value = 0;
+			number elementVolume = 0;
+			for (size_t s=0;s<nofsides;s++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+				VType localValue = aaU[sides[s]];
+				localValue *= vShape[s];
+				value += localValue;
+				elementVolume += scv.volume();
+			}
+			value *= elementVolume;
+			for (size_t s=0;s<nofsides;s++){
+				aaUHat += value;
+			}
+		}
+	}
+	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
+	// average
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			side_type* elem = *sideIter;
+			if (pbm && pbm->is_slave(elem)) continue;
+			aaUHat[elem]/=(number)aaVol[elem];
+		}
+	}
+}
+
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u){
 	//	get domain
 	domain_type& domain = *u->domain().get();
@@ -164,17 +288,17 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 }
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
-void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU,SmartPtr<TGridFunction> u){
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU){
 	//	get domain of grid function
-	domain_type& domain = *u->domain().get();
+	domain_type& domain = *m_uInfo->domain().get();
 
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
 
 	DimCRFVGeometry<dim> geo;
 
-	SetAttachmentValues(aaDefTensor , u->template begin<side_type>(), u->template end<side_type>(), 0);
-	SetAttachmentValues(aaVol , u->template begin<side_type>(), u->template end<side_type>(), 0);
+	SetAttachmentValues(aaDefTensor , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -187,8 +311,8 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		if (si>0) continue;
 			//	get iterators
-			ElemIterator iter = u->template begin<elem_type>(si);
-			ElemIterator iterEnd = u->template end<elem_type>(si);
+			ElemIterator iter = m_uInfo->template begin<elem_type>(si);
+			ElemIterator iterEnd = m_uInfo->template end<elem_type>(si);
 
 			//	loop elements of dimension
 			for(  ;iter !=iterEnd; ++iter)
@@ -253,8 +377,8 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		if (si>0) continue;
-		SideIterator sideIter = u->template begin<side_type>(si);
-		SideIterator sideIterEnd = u->template end<side_type>(si);
+		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
 			side_type* elem = *sideIter;
@@ -282,23 +406,54 @@ number StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::FNorm(MathMatri
 }
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
-void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,aSideDimVector aaU,SmartPtr<TGridFunction> u){
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,aSideDimVector aaU){
 	//	get domain of grid function
-	domain_type& domain = *u->domain().get();
+	domain_type& domain = *m_uInfo->domain().get();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		if (si>0) continue;
-		SideIterator sideIter = u->template begin<side_type>(si);
-		SideIterator sideIterEnd = u->template end<side_type>(si);
+		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
 			side_type* elem = *sideIter;
-			dimMat Mij;
+			dimMat Tij;
 			for (int d1=0;d1 < dim;d1++)
 				for (int d2=0;d2 < dim;d2++)
-					Mij[d1][d2] = aaU[elem][d1]*aaU[elem][d2];
-			Mij*=factor;
-			aaResult[elem]+=Mij;
+					Tij[d1][d2] = aaU[elem][d1]*aaU[elem][d2];
+			Tij*=factor;
+			aaResult[elem]+=Tij;
+		}
+	}
+}
+
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,SmartPtr<TGridFunction> u){
+	//	get domain of grid function
+	domain_type& domain = *m_uInfo->domain().get();
+	//	create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+		if (si>0) continue;
+		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			side_type* elem = *sideIter;
+			dimMat Tij;
+			MathVector<dim> uValue;
+			for (int d=0;d<dim;d++){
+				//	get indices of function fct on vertex
+				u->multi_indices(elem, d, multInd);
+				//	read value of index from vector
+				uValue[d]=DoFRef(*u,multInd[0]);
+			}
+			for (int d1=0;d1 < dim;d1++)
+				for (int d2=0;d2 < dim;d2++)
+					Tij[d1][d2] = uValue[d1]*uValue[elem][d2];
+			Tij*=factor;
+			aaResult[elem]+=Tij;
 		}
 	}
 }
@@ -307,16 +462,6 @@ template<typename TGridFunction>
 void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	//	get domain of grid function
 	domain_type& domain = *m_u->domain().get();
-
-	DimCRFVGeometry<dim> geo;
-
-	// initialize attachment values with 0
-	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acVolume,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-
-	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
 
 	//	coord and vertex array
 //	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -340,7 +485,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 			number tensorNorm = this->FNorm(m_acDeformation[elem]);
 			m_acTurbulentViscosity[elem] = m_c * delta*delta * tensorNorm;
 		}
-	};
+	}
 	// transfer attachment data to lower levels
 	this->transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
 }
