@@ -185,16 +185,16 @@ class StdTurbulentViscosityData
 		void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,aSideDimVector aaU);
 		void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,SmartPtr<TGridFunction> u);
 
-//		void filterData(aSideDimVector& aaUHat,SmartPtr<TGridFunction> u);
-		template <typename AccessorType>
-		void elementFilter(AccessorType aaUHat,aSideNumber& aaVolHat,AccessorType aaU);
-
 		template <typename VType>
 		void elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU);
+
+		void elementFilter(aSideDimVector& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
 
 		void fillAttachment(aSideDimVector& aaU,SmartPtr<TGridFunction> u);
 
 		void transferToLowerLevels(aSideNumber& aaData,ApproximationSpace<domain_type>& approximationSpace);
+
+		void normalizeTensor(aSideTensor& aaTensor);
 
 	protected:
 	///	access to implementation
