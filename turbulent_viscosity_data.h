@@ -194,7 +194,14 @@ class StdTurbulentViscosityData
 
 		void transferToLowerLevels(aSideNumber& aaData,ApproximationSpace<domain_type>& approximationSpace);
 
-		void normalizeTensor(aSideTensor& aaTensor);
+		void scaleTensorByNorm(aSideTensor& aaTensor);
+
+		// set non-periodic boundaries so that viscosity can be set to zero there
+		void setTurbulenceZeroBoundaries(const char* subsets){
+			try{
+				m_turbZeroSg = m_uInfo->subset_grp_by_name(subsets);
+			}UG_CATCH_THROW("ERROR while parsing Subsets.");
+		}
 
 	protected:
 	///	access to implementation
@@ -205,6 +212,9 @@ class StdTurbulentViscosityData
 
 		// grid function
 		SmartPtr<TGridFunction> m_uInfo;
+
+		// subset group
+		SubsetGroup m_turbZeroSg;
 };
 
 
@@ -499,10 +509,6 @@ class CRDynamicTurbViscData
 		aSideTensor m_acDeformation;
 		ATensor m_aDeformation;
 		
-	//  deformation tensor norm attachment
-		aSideNumber m_acDeformationNorm;
-		ANumber m_aDeformationNorm;
-
 	//	coarser grid deformation tensor attachment
 		aSideTensor m_acDeformationHat;
 		ATensor m_aDeformationHat;
@@ -538,7 +544,6 @@ class CRDynamicTurbViscData
 			grid.template attach_to<side_type>(m_aVolumeHat);
 			grid.template attach_to<side_type>(m_aUHat);
 			grid.template attach_to<side_type>(m_aDeformation);
-			grid.template attach_to<side_type>(m_aDeformationNorm);
 			grid.template attach_to<side_type>(m_aDeformationHat);
 			grid.template attach_to<side_type>(m_aLij);
 			grid.template attach_to<side_type>(m_aMij);
@@ -549,7 +554,6 @@ class CRDynamicTurbViscData
 			m_acVolumeHat.access(grid,m_aVolumeHat);
 			m_acUHat.access(grid,m_aUHat);
 			m_acDeformation.access(grid,m_aDeformation);
-			m_acDeformationNorm.access(grid,m_aDeformationNorm);
 			m_acDeformationHat.access(grid,m_aDeformationHat);
 			m_acLij.access(grid,m_aLij);
 			m_acMij.access(grid,m_aMij);
@@ -565,7 +569,6 @@ class CRDynamicTurbViscData
 			grid.template detach_from<side_type>(m_aUHat);
 			grid.template detach_from<side_type>(m_aDeformation);
 			grid.template detach_from<side_type>(m_aDeformationHat);
-			grid.template detach_from<side_type>(m_aDeformationNorm);
 			grid.template detach_from<side_type>(m_aLij);
 			grid.template detach_from<side_type>(m_aMij);
 		};

@@ -92,7 +92,6 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		if (si>0) continue;
 		//	get iterators
 		ElemIterator iter = m_uInfo->template begin<elem_type>(si);
 		ElemIterator iterEnd = m_uInfo->template end<elem_type>(si);
@@ -148,6 +147,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 			for (size_t s=0;s<nofsides;s++){
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 				VType localValue = aaU[sides[s]];
+				//for debug UG_LOG(localValue << "\n");
 				localValue *= vShape[s];
 				value += localValue;
 				elementVolume += scv.volume();
@@ -155,6 +155,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 			value *= elementVolume;
 			for (size_t s=0;s<nofsides;s++){
 				aaUHat[sides[s]] += value;
+				aaVol[sides[s]] += elementVolume;
 			}
 		}
 	}
@@ -166,9 +167,9 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
-			side_type* elem = *sideIter;
-			if (pbm && pbm->is_slave(elem)) continue;
-			aaUHat[elem]/=(number)aaVol[elem];
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
+			aaUHat[side]/=(number)aaVol[side];
 		}
 	}
 }
@@ -197,7 +198,6 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		if (si>0) continue;
 		//	get iterators
 		ElemIterator iter = m_uInfo->template begin<elem_type>(si);
 		ElemIterator iterEnd = m_uInfo->template end<elem_type>(si);
@@ -254,15 +254,19 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 				MathVector<dim> localValue;
 				for (int d=0;d<dim;d++){
-					 localValue[d]=DoFRef(*u,multInd[0]);
-					 u->multi_indices(sides[s], d, multInd);
+					u->multi_indices(sides[s], d, multInd);
+					localValue[d]=DoFRef(*u,multInd[0]);
 				}
+				//for debug UG_LOG("localValue=" << localValue << "\n");
+				//for debug UG_LOG("vShape=" << vShape[s] << "\n");
 				localValue *= vShape[s];
 				value += localValue;
 				elementVolume += scv.volume();
 			}
+			//for debug UG_LOG("value=" << value << " vol=" << elementVolume << "\n");
 			value *= elementVolume;
 			for (size_t s=0;s<nofsides;s++){
+				aaVol[sides[s]]+=elementVolume;
 				aaUHat[sides[s]] += value;
 			}
 		}
@@ -275,9 +279,10 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
-			side_type* elem = *sideIter;
-			if (pbm && pbm->is_slave(elem)) continue;
-			aaUHat[elem]/=(number)aaVol[elem];
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
+			//for debug UG_LOG("# " << aaUHat[side] << " " << aaVol[side] << "\n");
+			aaUHat[side]/=(number)aaVol[side];
 		}
 	}
 }
@@ -295,6 +300,11 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 
 	DimCRFVGeometry<dim> geo;
 
+	// add boundary subsets to enforce boundary subset computations in geo.update()
+	for(size_t i = 0; i < this->m_turbZeroSg.size(); ++i){
+		geo.add_boundary_subset(this->m_turbZeroSg[i]);
+	}
+
 	// set attachment values to zero
 	SetAttachmentValues(aaDefTensor , u->template begin<side_type>(), u->template end<side_type>(), 0);
 	SetAttachmentValues(aaVol , u->template begin<side_type>(), u->template end<side_type>(), 0);
@@ -308,7 +318,6 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		if (si>0) continue;
 			//	get iterators
 			ElemIterator iter = u->template begin<elem_type>(si);
 			ElemIterator iterEnd = u->template end<elem_type>(si);
@@ -348,9 +357,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 				{
 					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 					for (int d=0;d<dim;d++){
-						//	get indices of function fct on vertex
 						u->multi_indices(sides[s], d, multInd);
-						//	read value of index from vector
 						uValue[s][d]=DoFRef(*u,multInd[0]);
 					}
 					aaVol[sides[s]] += scv.volume();
@@ -367,13 +374,27 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 					};
 					dimMat ipDefTensorFlux;
 					ipDefTensorFlux = 0;
-					for (int d=0;d<dim;d++){
+					for (int i=0;i<dim;i++){
 						for (int j=0;j<dim;j++){
-							ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
+							ipDefTensorFlux[i][j]= 0.5 * (ipVelocity[i] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[i]);
 						}
 					}
 					aaDefTensor[sides[scvf.from()]]+=ipDefTensorFlux;
 					aaDefTensor[sides[scvf.to()]]-=ipDefTensorFlux;
+				}
+				for(size_t sgi = 0; sgi < this->m_turbZeroSg.size(); ++sgi){
+					const size_t sgsi=this->m_turbZeroSg[sgi];
+					if (geo.num_bf(sgsi) == 0) continue;
+					for(size_t bfi = 0; bfi < geo.num_bf(sgsi); ++bfi){
+						const typename DimCRFVGeometry<dim>::BF& bf = geo.bf(sgsi, bfi);
+						const size_t sideID = bf.node_id();
+						for (int i=0;i<dim;i++)
+							for (int j=0;j<dim;j++){
+								// bf ip and u position are identical for CR-FV-Geometry
+								//for debug UG_LOG("[" << i << "," << j << "]" <<  0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]) << "\n");
+								aaDefTensor[sides[sideID]][i][j] += 0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]);
+							}
+					}
 				}
 			}
 	}
@@ -381,35 +402,42 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		SideIterator sideIter = u->template begin<side_type>(si);
 		SideIterator sideIterEnd = u->template end<side_type>(si);
+		//for debug UG_LOG("|||||||||||||||||||||||||||||||||||\n");
+		//for debug UG_LOG("si=" << si << "\n");
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
-			side_type* elem = *sideIter;
-			if (pbm && pbm->is_slave(elem)) continue;
-			aaDefTensor[elem]/=(number)aaVol[elem];
-/*			MathVector<dim> posCo;
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
+			aaDefTensor[side]/=(number)aaVol[side];
+			//for debug UG_LOG("$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+			MathVector<dim> posCo;
 						for (int d=0;d<dim;d++)
-										posCo[d] = 0.5*posAcc[elem->vertex(0)][d] + 0.5*posAcc[elem->vertex(1)][d];
-						UG_LOG(" c=" << posCo << "\n");
-						for (int d1=0;d1<dim;d1++)
-							for (int d2=0;d2<dim;d2++)
-									UG_LOG(" tensor(" << d1 << "," << d2 << ")=" << aaDefTensor[elem][d1][d2] << "\n");*/
+										posCo[d] = 0.5*posAcc[side->vertex(0)][d] + 0.5*posAcc[side->vertex(1)][d];
+						//for debug UG_LOG(" c=" << posCo << "\n");
+		//for debug				for (int d1=0;d1<dim;d1++)
+		//for debug					for (int d2=0;d2<dim;d2++)
+									//for debug UG_LOG(" tensor(" << d1 << "," << d2 << ")=" << aaDefTensor[side][d1][d2] << "\n");
+			//for debug UG_LOG(" norm=" << FNorm(aaDefTensor[side]) << "\n");
 		}
 	}
 }
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
-void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::normalizeTensor(aSideTensor& aaTensor){
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scaleTensorByNorm(aSideTensor& aaTensor){
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
+	// get periodic boundary manager
+	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		if (si>0) continue;
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
 			side_type* side = *sideIter;
-			aaTensor[side]/=(number)FNorm(aaTensor[side]);
+			if (pbm && pbm->is_slave(side)) continue;
+			//for debug UG_LOG("&&&&&&&& norm = " << FNorm(aaTensor[side]) << "\n");
+			aaTensor[side]*=(number)FNorm(aaTensor[side]);
 		}
 	}
 }
@@ -418,11 +446,17 @@ template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU){
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
-
+	// get periodic boundary manager
+	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
 
 	DimCRFVGeometry<dim> geo;
+
+	// add boundary subsets to enforce boundary subset computations in geo.update()
+	for(size_t i = 0; i < this->m_turbZeroSg.size(); ++i){
+		geo.add_boundary_subset(this->m_turbZeroSg[i]);
+	}
 
 	SetAttachmentValues(aaDefTensor , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
 	SetAttachmentValues(aaVol , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
@@ -436,10 +470,11 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		if (si>0) continue;
 			//	get iterators
 			ElemIterator iter = m_uInfo->template begin<elem_type>(si);
 			ElemIterator iterEnd = m_uInfo->template end<elem_type>(si);
+
+			//for debug UG_LOG("|||||||||||||||||||| si = " << si << "\n");
 
 			//	loop elements of dimension
 			for(  ;iter !=iterEnd; ++iter)
@@ -451,7 +486,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 				for(size_t i = 0; i < numVertices; ++i){
 					vVrt[i] = elem->vertex(i);
 					coCoord[i] = posAcc[vVrt[i]];
-					// UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
+					// //for debug UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
 				};
 
 				//	evaluate finite volume geometry
@@ -477,6 +512,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 				{
 					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 					uValue[s]=aaU[sides[s]];
+					//for debug UG_LOG("uvalue(" << s << ")=" << uValue[s] << "\n");
 					aaVol[sides[s]] += scv.volume();
 				}
 
@@ -492,31 +528,47 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 					dimMat ipDefTensorFlux;
 					ipDefTensorFlux = 0;
 					for (int d=0;d<dim;d++){
-						for (int j=0;j<d;j++){
+						for (int j=0;j<dim;j++){
 							ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
 						}
 					}
 					aaDefTensor[sides[scvf.from()]]+=ipDefTensorFlux;
 					aaDefTensor[sides[scvf.to()]]-=ipDefTensorFlux;
 				}
+				for(size_t sgi = 0; sgi < this->m_turbZeroSg.size(); ++sgi){
+					const size_t sgsi=this->m_turbZeroSg[sgi];
+					if (geo.num_bf(sgsi) == 0) continue;
+					for(size_t bfi = 0; bfi < geo.num_bf(sgsi); ++bfi){
+						const typename DimCRFVGeometry<dim>::BF& bf = geo.bf(sgsi, bfi);
+						const size_t sideID = bf.node_id();
+						for (int i=0;i<dim;i++)
+							for (int j=0;j<dim;j++){
+								// bf ip and u position are identical for CR-FV-Geometry
+								//for debug UG_LOG("[" << i << "," << j << "]" <<  0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]) << "\n");
+								aaDefTensor[sides[sideID]][i][j] += 0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]);
+						}
+					}
+				}
 			}
 	}
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		if (si>0) continue;
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
-			side_type* elem = *sideIter;
-			MathVector<dim> posCo;
-			for (int d=0;d<dim;d++)
-							posCo[d] = 0.5*posAcc[elem->vertex(0)][d] + 0.5*posAcc[elem->vertex(1)][d];
-			UG_LOG(" c=" << posCo << "\n");
-			for (int d1=0;d1<dim;d1++)
-				for (int d2=0;d2<dim;d2++)
-						UG_LOG(" tensor(" << d1 << "," << d2 << ")=" << aaDefTensor[elem][d1][d2] << "\n");
-			aaDefTensor[elem]/=(number)aaVol[elem];
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
+			aaDefTensor[side]/=(number)aaVol[side];
+/*					//for debug UG_LOG("$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+						MathVector<dim> posCo;
+									for (int d=0;d<dim;d++)
+													posCo[d] = 0.5*posAcc[side->vertex(0)][d] + 0.5*posAcc[side->vertex(1)][d];
+									//for debug UG_LOG(" c=" << posCo << "\n");
+									for (int d1=0;d1<dim;d1++)
+										for (int d2=0;d2<dim;d2++)
+												//for debug UG_LOG(" tensor(" << d1 << "," << d2 << ")=" << aaDefTensor[side][d1][d2] << "\n");
+						//for debug UG_LOG(" norm=" << FNorm(aaDefTensor[side]) << "\n");*/
 		}
 	}
 }
@@ -527,29 +579,30 @@ number StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::FNorm(MathMatri
 	number norm=0;
 	for (int d1=0;d1<dim;d1++)
 		for (int d2=0;d2<dim;d2++){
-			norm += 2 * M[d1][d2] * M[d1][d2];
+			norm +=  M[d1][d2] * M[d1][d2];
 		}
-	return sqrt(norm);
+	return sqrt(2.0*norm);
 }
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,aSideDimVector aaU){
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
-
+	// get periodic boundary manager
+	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		if (si>0) continue;
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
-			side_type* elem = *sideIter;
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
 			dimMat Tij;
 			for (int d1=0;d1 < dim;d1++)
 				for (int d2=0;d2 < dim;d2++)
-					Tij[d1][d2] = aaU[elem][d1]*aaU[elem][d2];
+					Tij[d1][d2] = aaU[side][d1]*aaU[side][d2];
 			Tij*=factor;
-			aaResult[elem]+=Tij;
+			aaResult[side]+=Tij;
 		}
 	}
 }
@@ -558,29 +611,29 @@ template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,SmartPtr<TGridFunction> u){
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
+	// get periodic boundary manager
+	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		if (si>0) continue;
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
-			side_type* elem = *sideIter;
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
 			dimMat Tij;
 			MathVector<dim> uValue;
 			for (int d=0;d<dim;d++){
-				//	get indices of function fct on vertex
-				u->multi_indices(elem, d, multInd);
-				//	read value of index from vector
+				u->multi_indices(side, d, multInd);
 				uValue[d]=DoFRef(*u,multInd[0]);
 			}
 			for (int d1=0;d1 < dim;d1++)
 				for (int d2=0;d2 < dim;d2++)
 					Tij[d1][d2] = uValue[d1]*uValue[d2];
 			Tij*=factor;
-			aaResult[elem]+=Tij;
+			aaResult[side]+=Tij;
 		}
 	}
 }
@@ -589,6 +642,7 @@ template<typename TGridFunction>
 void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	//	get domain of grid function
 	domain_type& domain = *m_u->domain().get();
+	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 
 	//	coord and vertex array
 //	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -599,18 +653,34 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	// compute turbulent viscosity , loop over sides
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
+		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
 		SideIterator sideIter = m_u->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_u->template end<side_type>(si);
+		bool periodic_subset = false;
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
 			//	get Elem
-			side_type* elem = *sideIter;
-			if (m_pbm && m_pbm->is_slave(elem)) continue;
-			number delta = m_acVolume[elem];
+			side_type* side = *sideIter;
+			if (m_pbm && m_pbm->is_slave(side)){
+				periodic_subset = true;
+				continue;
+			}
+			number delta = m_acVolume[side];
 			// for possible other choices of delta see Fršhlich p 160
 			delta = pow(delta,(number)1.0/(number)dim);
-			number tensorNorm = this->FNorm(m_acDeformation[elem]);
-			m_acTurbulentViscosity[elem] = m_c * delta*delta * tensorNorm;
+			number tensorNorm = this->FNorm(m_acDeformation[side]);
+			m_acTurbulentViscosity[side] = m_c * delta*delta * tensorNorm;
+		}
+		// fill slave elements
+		if (periodic_subset==true){
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				//	get Elem
+				side_type* side = *sideIter;
+				if (m_pbm && m_pbm->is_slave(side)){
+
+				}
+			}
 		}
 	}
 	// transfer attachment data to lower levels
@@ -623,21 +693,18 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	domain_type& domain = *m_u->domain().get();
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
-	const position_accessor_type& posAcc = domain.position_accessor();
-
-	DimCRFVGeometry<dim> geo;
+	// for debug typedef typename domain_type::position_accessor_type position_accessor_type;
+	// for debug const position_accessor_type& posAcc = domain.position_accessor();
 
 	// initialize attachment values with 0
-	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+//	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acVolume,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+//	SetAttachmentValues(m_acVolume,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 	SetAttachmentValues(m_acTurbulentC,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acVolumeHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acUHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acDeformationNorm,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acDeformationHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acLij,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+//	SetAttachmentValues(m_acVolumeHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+//	SetAttachmentValues(m_acUHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+//	SetAttachmentValues(m_acDeformationHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+//	SetAttachmentValues(m_acLij,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 	SetAttachmentValues(m_acMij,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 
 	// compute Lij term \hat{u_i u_j} - \hat{u_i} \hat{u_j}
@@ -656,332 +723,122 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	// assemble \hat{S} using \hat{u}
 	assembleDeformationTensor(m_acDeformationHat,m_acVolume,m_acUHat);
 	// normalize \hat{S}
-	normalizeTensor(m_acDeformationHat);
+	scaleTensorByNorm(m_acDeformationHat);
 	// Mij second term \hat{|S|S}
 	// compute S
 	assembleDeformationTensor(m_acDeformation,m_acVolumeHat,m_u);
-	// normalize S
-	normalizeTensor(m_acDeformation);
+	// compute |S| S
+	scaleTensorByNorm(m_acDeformation);
 	// filter |S| S
+	//for debug UG_LOG("------------------------------------------------------\n");
 	elementFilter(m_acMij,m_acVolumeHat,m_acDeformation);
+
+	bool use_filter = true;
 
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
 
-	//	coord and vertex array
-	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
-
-	// assemble deformation tensor fluxes
+	// complete Mij term computation by scaling and adding the two terms,
+	// solve the local least squares problem and compute local c and local turbulent viscosity
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		if (si>0) continue;
-		//	get iterators
-		ElemIterator iter = m_u->template begin<elem_type>(si);
-		ElemIterator iterEnd = m_u->template end<elem_type>(si);
-
-		//	loop elements of dimension
-		for(  ;iter !=iterEnd; ++iter)
-		{
-			//	get Elem
-			elem_type* elem = *iter;
-			//	get vertices and extract corner coordinates
-			const size_t numVertices = elem->num_vertices();
-			MathVector<dim> bary,localBary;
-			bary = 0;
-
-			for(size_t i = 0; i < numVertices; ++i){
-				vVrt[i] = elem->vertex(i);
-				coCoord[i] = posAcc[vVrt[i]];
-				bary += coCoord[i];
-			};
-			bary /= numVertices;
-
-			//	reference object id
-			ReferenceObjectID roid = elem->reference_object_id();
-
-			//	get trial space
-			const LocalShapeFunctionSet<dim>& rTrialSpace =
-				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
-
-			//	get Reference Mapping
-			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
-
-			map.global_to_local(localBary,bary);
-
-			//	memory for shapes
-			std::vector<number> vShape;
-
-			//	evaluate finite volume geometry
-			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
-
-			static const size_t MaxNumSidesOfElem = 10;
-
-			typedef MathVector<dim> MVD;
-			std::vector<MVD> uValue(MaxNumSidesOfElem);
-			MVD ipVelocity;
-
-			typename grid_type::template traits<side_type>::secure_container sides;
-
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
-
-			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
-
-			size_t nofsides = geo.num_scv();
-
-			size_t nip = geo.num_scvf();
-
-			number elementVolume = 0;
-			MathVector<dim> baryValue;
-			baryValue = 0;
-
-			rTrialSpace.shapes(vShape, localBary);
-
-			for (size_t s=0;s < nofsides;s++)
-			{
-				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
-				for (int d=0;d<dim;d++){
-					//	get indices of function fct on vertex
-					m_u->multi_indices(sides[s], d, multInd);
-					//	read value of index from vector
-					uValue[s][d]=DoFRef(*m_u,multInd[0]);
-					baryValue[d] += vShape[s] * uValue[s][d];
-				}
-				// UG_LOG("scv.volume(" << s << ")=" << scv.volume() << "\n");
-				m_acVolume[sides[s]] += scv.volume();
-				elementVolume += scv.volume();
-			}
-			dimMat Lij;
-			// first part of Lij term: \hat{u_i u_j}
-			for (int d1=0;d1 < dim;d1++)
-				for (int d2=0;d2 < dim;d2++)
-					Lij = baryValue[d1] * baryValue[d2];
-			baryValue*=elementVolume;
-			Lij*=elementVolume;
-			// second filter volume, second filter function uHat and first term of Lij tensor
-			for (size_t s=0;s < nofsides;s++)
-			{
-				m_acVolumeHat[sides[s]] += elementVolume;
-				m_acUHat[sides[s]] += baryValue;
-				m_acLij[sides[s]] += Lij;
-			}
-
-			for (size_t ip=0;ip<nip;ip++){
-				// 	get current SCVF
-				ipVelocity = 0;
-				const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
-				for (size_t s=0;s < nofsides;s++){
-					for (int d=0;d<dim;d++){
-					    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
-					};
-				};
-				dimMat ipDefTensorFlux;
-				ipDefTensorFlux = 0;
-				for (int d=0;d<dim;d++){
-					for (int j=0;j<d;j++){
-						ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
-					}
-				}
-				m_acDeformation[sides[scvf.from()]]+=ipDefTensorFlux;
-				m_acDeformation[sides[scvf.to()]]-=ipDefTensorFlux;
-			}
-		}
-		// average uHat and Lij first term part, multiply deformation tensor with its norm
+		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
 		SideIterator sideIter = m_u->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_u->template end<side_type>(si);
-		for(  ;sideIter !=sideIterEnd; sideIter++)
-		{
-			//	get Elem
-			number tensorNorm=0;
-			side_type* elem = *sideIter;
-			dimMat defTensor = m_acDeformation[elem];
-			number delta = m_acVolume[elem];
-			// complete deformation tensor computation by averaging
-			defTensor/=delta;
-			// compute norm of tensor
-			for (int d1=0;d1<dim;d1++)
+		for(  ;sideIter !=sideIterEnd; sideIter++){
+			side_type* side = *sideIter;
+			if (m_pbm && m_pbm->is_slave(side)) continue;
+			// use c to compute turbulent viscosity
+			number delta = m_acVolume[side];
+			delta = pow(delta,(number)1.0/(number)dim);
+			number deltaHat = m_acVolumeHat[side];
+			deltaHat = pow(deltaHat,(number)1.0/(number)dim);
+			m_u->multi_indices(side, 0, multInd);
+			//for debug UG_LOG("--------------------------------------------------");
+			//for debug UG_LOG("co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
+			//for debug UG_LOG("u = " << DoFRef(*m_u,multInd[0]) << "\n");
+			m_u->multi_indices(side, 1, multInd);
+			//for debug UG_LOG("v = " << DoFRef(*m_u,multInd[0]) << "\n");
+			//for debug UG_LOG("uHat = " << m_acUHat[side] << "\n");
+			//for debug UG_LOG("deformNorm = " << FNorm(m_acDeformation[side]) << "\n");
+			//UG_LOG("deformHatNorm = " << FNorm( m_acDeformationHat[side]) << "\n");
+			//for debug UG_LOG("hatDeform = " << m_acMij[side] << "\n");
+			// complete Mij term computation
+			m_acDeformationHat[side] *= -2*deltaHat*deltaHat;
+			m_acMij[side] *= 2*delta*delta;
+			m_acMij[side] += m_acDeformationHat[side];
+			//for debug UG_LOG("Mij " << FNorm(m_acMij[side]) << "\n");
+			for (int d1=0;d1<dim;d1++){
 				for (int d2=0;d2<dim;d2++){
-					// UG_LOG("tensor(" << d1 << "," << d2 << ")=" << defTensor[d1][d2] << "\n");
-					tensorNorm += 2 * defTensor[d1][d2] * defTensor[d1][d2];
+					//for debug UG_LOG(m_acMij[side][d1][d2] << " ");
 				}
-			tensorNorm = sqrt(tensorNorm);
-			defTensor *= tensorNorm;
-			m_acDeformationNorm[elem] = tensorNorm;
-			m_acDeformation[elem] = defTensor;
-			number deltaHat = m_acVolumeHat[elem];
-			m_acUHat[elem]/=deltaHat;
-			m_acLij[elem]/=deltaHat;
-		}
-		// iterate over elements again and complete computation of Lij tensor, assemble hat deformation tensor
-		iter = m_u->template begin<elem_type>(si);
-		//	loop elements of dimension
-		for(  ;iter !=iterEnd; ++iter)
-		{
-			//	get Elem
-			elem_type* elem = *iter;
-			//	get vertices and extract corner coordinates
-			const size_t numVertices = elem->num_vertices();
-			MathVector<dim> bary,localBary;
-			bary = 0;
-
-			for(size_t i = 0; i < numVertices; ++i){
-				vVrt[i] = elem->vertex(i);
-				coCoord[i] = posAcc[vVrt[i]];
-				bary += coCoord[i];
-			};
-			bary /= numVertices;
-
-			//	reference object id
-			ReferenceObjectID roid = elem->reference_object_id();
-
-			//	get trial space
-			const LocalShapeFunctionSet<dim>& rTrialSpace =
-				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
-
-			//	get Reference Mapping
-			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
-
-			map.global_to_local(localBary,bary);
-
-			//	memory for shapes
-			std::vector<number> vShape;
-
-			//	evaluate finite volume geometry
-			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
-
-			static const size_t MaxNumSidesOfElem = 10;
-
-			typedef MathVector<dim> MVD;
-			std::vector<MVD> uValue(MaxNumSidesOfElem);
-			MVD ipVelocity;
-
-			typename grid_type::template traits<side_type>::secure_container sides;
-
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
-
-			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
-
-			size_t nofsides = geo.num_scv();
-
-			size_t nip = geo.num_scvf();
-
-			number elementVolume = 0;
-			dimMat baryTensorValue;
-			baryTensorValue = 0;
-
-			rTrialSpace.shapes(vShape, localBary);
-
-			for (size_t s=0;s < nofsides;s++)
-			{
-				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
-				for (int d1=0;d1<dim;d1++){
-					for (int d2=0;d2<dim;d2++)
-						baryTensorValue[d1][d2] += vShape[s] * m_acDeformation[sides[s]][d1][d2];
-				}
-				// UG_LOG("scv.volume(" << s << ")=" << scv.volume() << "\n");
-				elementVolume += scv.volume();
+				//for debug UG_LOG("\n");
 			}
-
-			baryTensorValue*=elementVolume;
-
-			// complete Lij computation
-			for (size_t s=0;s < nofsides;s++)
-			{
-				dimMat Lij;
-				for (int d1=0;d1 < dim;d1++)
-					for (int d2=0;d2 < dim;d2++)
-						Lij[d1][d2] = m_acUHat[sides[s]][d1]*m_acUHat[sides[s]][d2];
-				m_acLij[sides[s]] -= Lij;
-				m_acMij[sides[s]] += baryTensorValue;
-			}
-			// compute second filter deformation tensor from \hat{u} values
-			for (size_t ip=0;ip<nip;ip++){
-				// 	get current SCVF
-				ipVelocity = 0;
-				const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
-				for (size_t s=0;s < nofsides;s++){
-					for (int d=0;d<dim;d++){
-					    ipVelocity[d] += scvf.shape(s)*m_acUHat[sides[s]][d];
-					};
-				};
-				dimMat ipDefTensorFlux;
-				ipDefTensorFlux = 0;
-				for (int d=0;d<dim;d++){
-					for (int j=0;j<d;j++){
-						ipDefTensorFlux[d][j]= 0.5 * (ipVelocity[d] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[d]);
-					}
-				}
-				m_acDeformationHat[sides[scvf.from()]]+=ipDefTensorFlux;
-				m_acDeformationHat[sides[scvf.to()]]-=ipDefTensorFlux;
-			}
-		}
-		sideIter = m_u->template begin<side_type>(si);
-		for(  ;sideIter !=sideIterEnd; sideIter++)
-		{
-			//	get Elem
-			number tensorNorm=0;
-			side_type* elem = *sideIter;
-			dimMat defTensor = m_acDeformationHat[elem];
-			number deltaHat = m_acVolumeHat[elem];
-			// compute second Mij term by averaging
-			m_acMij[elem] /= 2*deltaHat;
-			// complete deformation tensor computation by averaging
-			defTensor/=deltaHat;
-			// compute norm of tensor
-			for (int d1=0;d1<dim;d1++)
+			//for debug UG_LOG("Lij " << FNorm(m_acLij[side]) << "\n");
+			for (int d1=0;d1<dim;d1++){
 				for (int d2=0;d2<dim;d2++){
-					// UG_LOG("tensor(" << d1 << "," << d2 << ")=" << defTensor[d1][d2] << "\n");
-					tensorNorm += 2 * defTensor[d1][d2] * defTensor[d1][d2];
+					//for debug UG_LOG(m_acLij[side][d1][d2] << " ");
 				}
-			tensorNorm = sqrt(tensorNorm);
-			// scale tensor with norm
-			defTensor *= 2*tensorNorm;
-			m_acDeformationHat[elem] = defTensor;
-			// add first Mij term
-			m_acMij[elem] -= m_acDeformationHat[elem];
+				//for debug UG_LOG("\n");
+			}
 			// compute local c
+			// solve least squares problem
 			number c = 0;
 			for (int d1=0;d1<dim;d1++)
 				for (int d2=0;d2<dim;d2++)
-					c += m_acLij[elem][d1][d2]*m_acMij[elem][d1][d2];
+					c += m_acLij[side][d1][d2]*m_acMij[side][d1][d2];
 			number denom=0;
+			//for debug UG_LOG("c=" << c << "\n");
 			for (int d1=0;d1<dim;d1++)
 				for (int d2=0;d2<dim;d2++)
-					denom += m_acMij[elem][d1][d2]*m_acMij[elem][d1][d2];
+					denom += m_acMij[side][d1][d2]*m_acMij[side][d1][d2];
 			if (denom>1e-15)
 				c/=(number)denom;
 			else c=0;
-			number delta = m_acVolume[elem];
-			// for possible other choices of delta see Fršhlich p 160
-			delta = pow(delta,(number)1.0/(number)dim);
-			// UG_LOG("c = " << c << " delta = " << delta << " deformNorm = " << m_acDeformationNorm[elem] << " denom = " << denom << "\n");
-			m_acTurbulentViscosity[elem] = c * delta*delta * m_acDeformationNorm[elem];
-		}
-		// transfer to lower levels, averaging over child edges (2d) / child faces (3d)
-		for (size_t lev=m_spApproxSpace->num_levels()-2;(int)lev>=0;lev--){
-			// UG_LOG("level=" << lev << "\n");
-			const LevelDoFDistribution& lDD = *m_spApproxSpace->level_dof_distribution(lev);
-			const MultiGrid& grid = lDD.multi_grid();
-			typedef typename LevelDoFDistribution::template traits<side_type>::const_iterator coarseLevelSideIter;
-			coarseLevelSideIter clsIter, clsIterEnd;
-			clsIter = lDD.template begin<side_type>(si);
-			clsIterEnd = lDD.template end<side_type>(si);
-			for (;clsIter != clsIterEnd;clsIter++){
-				side_type* elem = *clsIter;
-				size_t numChildren = grid.num_children<side_type>(elem);
-				number avgValue=0;
-				for (size_t i=0;i<numChildren;i++){
-					avgValue += m_acTurbulentViscosity[grid.get_child<side_type>(elem, i)];
-				}
-				avgValue/=numChildren;
-				m_acTurbulentViscosity[elem] = avgValue;
-				// UG_LOG(" " << m_acTurbulentViscosity[elem] << "\n");
+
+			if (use_filter==false){
+				m_acTurbulentViscosity[side] = c * delta*delta * FNorm(m_acDeformation[side]);
+				// for debug
+				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << c << " delta = " << delta << " deformNorm = " << FNorm(m_acDeformation[side]) << " denom = " << denom << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
 			}
-			if (lev==0) break;
+			else{
+				// store c in viscosity array
+				m_acTurbulentViscosity[side] = c;
+			}
 		}
-		side_type* s;
-		m_acTurbulentViscosity[s] = 5;
 	}
+	number maxnu=-1e+8;
+	number minnu=1e+8;
+	if (use_filter==true){
+		// filter c
+		elementFilter(m_acTurbulentC,m_acVolumeHat,m_acTurbulentViscosity);
+		// compute turbulent viscosity
+		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+		{
+			//for debug UG_LOG("si = " << si << "\n");
+			if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
+			SideIterator sideIter = m_u->template begin<side_type>(si);
+			SideIterator sideIterEnd = m_u->template end<side_type>(si);
+			for(  ;sideIter !=sideIterEnd; sideIter++){
+				side_type* side = *sideIter;
+				if (m_pbm && m_pbm->is_slave(side)) continue;
+				number delta = m_acVolume[side];
+				delta = pow(delta,(number)1.0/(number)dim);
+				m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * FNorm(m_acDeformation[side]);
+				if (m_acTurbulentViscosity[side]<minnu){
+					//for debug UG_LOG("**************\n");
+					minnu=m_acTurbulentViscosity[side];
+				}
+				if (m_acTurbulentViscosity[side]>maxnu){
+					//for debug UG_LOG("##############\n");
+					maxnu=m_acTurbulentViscosity[side];
+				}
+				if (m_acTurbulentViscosity[side]+(number)1.0/140000<1e-8) m_acTurbulentViscosity[side] = (number)1.0/140000 + 1e-8;
+				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << m_acTurbulentC[side] << " delta = " << delta << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
+			}
+		}
+	}
+//	UG_THROW("Debug");
 }
 
 } // namespace NavierStokes

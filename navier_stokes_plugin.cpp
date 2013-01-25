@@ -104,6 +104,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		#ifdef UG_FOR_LUA
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 		#endif
+			.add_method("set_turbulence_zero_bnd", &T::setTurbulenceZeroBoundaries)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRSmagorinskyTurbViscData", tag);
 	}
@@ -121,6 +122,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		#ifdef UG_FOR_LUA
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 		#endif
+			.add_method("set_turbulence_zero_bnd", &T::setTurbulenceZeroBoundaries)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRDynamicTurbViscData", tag);
 	}
