@@ -287,6 +287,237 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 	}
 }
 
+// go over all elements, interpolate data to scv barycenter, average by multiplying with corresponding scv volume and deviding by volume of complete control volume
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+template <typename VType>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU){
+	//	get domain of grid function
+	domain_type& domain = *m_uInfo->domain().get();
+	DimCRFVGeometry<dim> geo;
+
+	// set attachment values to zero
+	SetAttachmentValues(aaUHat , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
+
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	// assemble deformation tensor fluxes
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		//	get iterators
+		ElemIterator iter = m_uInfo->template begin<elem_type>(si);
+		ElemIterator iterEnd = m_uInfo->template end<elem_type>(si);
+
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			MathVector<dim> bary,localBary;
+			bary = 0;
+
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				bary += coCoord[i];
+			};
+			bary /= numVertices;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			//	get trial space
+			const LocalShapeFunctionSet<dim>& rTrialSpace =
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+			//	get Reference Mapping
+			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
+
+			map.global_to_local(localBary,bary);
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+			size_t nofsides = geo.num_scv();
+
+			MathVector<dim> scvBary,scvLocalBary;
+			for (size_t s=0;s<nofsides;s++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+				scvBary = 0;
+				size_t numScvVertices = sides[s].num_vertices;
+				// compute barycenter of scv (average of side corner nodes + element bary)
+				for (size_t i=0;i<numScvVertices;i++){
+					scvBary += posAcc[sides[s]->vertex[i]];
+				}
+				scvBary += bary;
+				scvBary/=(numScvVertices+1);
+				map.global_to_local(scvLocalBary,scvBary);
+				//	memory for shapes
+				std::vector<number> vShape;
+				rTrialSpace.shapes(vShape, scvLocalBary);
+				VType localValue = 0;
+
+				for (size_t j=0;j<nofsides;j++){
+					localValue += vShape[j]*aaU[sides[j]];
+				}
+
+				localValue *= scv.volume();
+				aaVol[sides[s]]  += scv.volume();
+				aaUHat[sides[s]] += localValue;
+			}
+		}
+	}
+	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
+	// average
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
+			aaUHat[side]/=(number)aaVol[side];
+		}
+	}
+}
+
+// go over all elements, interpolate data to scv barycenter, average by multiplying with corresponding scv volume and deviding by volume of complete control volume
+template <typename TData, int dim, typename TImpl,typename TGridFunction>
+void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDimVector& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u){
+	//	get domain of grid function
+	domain_type& domain = *m_uInfo->domain().get();
+	DimCRFVGeometry<dim> geo;
+
+	// set attachment values to zero
+	SetAttachmentValues(aaUHat , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
+
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	//	create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+
+	// assemble deformation tensor fluxes
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		//	get iterators
+		ElemIterator iter = m_uInfo->template begin<elem_type>(si);
+		ElemIterator iterEnd = m_uInfo->template end<elem_type>(si);
+
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			MathVector<dim> bary,localBary;
+			bary = 0;
+
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				bary += coCoord[i];
+			};
+			bary /= numVertices;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			//	get trial space
+			const LocalShapeFunctionSet<dim>& rTrialSpace =
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+			//	get Reference Mapping
+			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
+
+			map.global_to_local(localBary,bary);
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+			size_t nofsides = geo.num_scv();
+
+			static const size_t MaxNumSidesOfElem = 10;
+
+			typedef MathVector<dim> MVD;
+			std::vector<MVD> uValue(MaxNumSidesOfElem);
+
+			for (size_t s=0;s<nofsides;s++){
+				for (int d=0;d<dim;d++){
+					u->multi_indices(sides[s], d, multInd);
+					uValue[s][d]=DoFRef(*u,multInd[0]);
+				}
+			};
+
+			MathVector<dim> scvBary,scvLocalBary;
+			for (size_t s=0;s<nofsides;s++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+				scvBary = 0;
+				size_t numScvVertices = sides[s].num_vertices;
+				// compute barycenter of scv (average of side corner nodes + element bary)
+				for (size_t i=0;i<numScvVertices;i++){
+					scvBary += posAcc[sides[s]->vertex[i]];
+				}
+				scvBary += bary;
+				scvBary/=(numScvVertices+1);
+				map.global_to_local(scvLocalBary,scvBary);
+				//	memory for shapes
+				std::vector<number> vShape;
+				rTrialSpace.shapes(vShape, scvLocalBary);
+				number localValue = 0;
+
+				for (size_t j=0;j<nofsides;j++){
+					localValue += vShape[j]*uValue[j];
+				}
+
+				localValue *= scv.volume();
+				aaVol[sides[s]]  += scv.volume();
+				aaUHat[sides[s]] += localValue;
+			}
+		}
+	}
+	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
+	// average
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
+		for(  ;sideIter !=sideIterEnd; sideIter++)
+		{
+			side_type* side = *sideIter;
+			if (pbm && pbm->is_slave(side)) continue;
+			aaUHat[side]/=(number)aaVol[side];
+		}
+	}
+}
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u){
@@ -733,7 +964,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	//for debug UG_LOG("------------------------------------------------------\n");
 	elementFilter(m_acMij,m_acVolumeHat,m_acDeformation);
 
-	bool use_filter = true;
+	bool use_filter = false;
 
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
@@ -742,7 +973,8 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	// solve the local least squares problem and compute local c and local turbulent viscosity
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
+		if (use_filter==false)
+			if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
 		SideIterator sideIter = m_u->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_u->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++){
@@ -798,6 +1030,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 
 			if (use_filter==false){
 				m_acTurbulentViscosity[side] = c * delta*delta * FNorm(m_acDeformation[side]);
+				if (m_acTurbulentViscosity[side]+(number)1.0/140000<1e-8) m_acTurbulentViscosity[side] = (number)1.0/140000 + 1e-8;
 				// for debug
 				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << c << " delta = " << delta << " deformNorm = " << FNorm(m_acDeformation[side]) << " denom = " << denom << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
 			}

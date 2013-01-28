@@ -190,6 +190,11 @@ class StdTurbulentViscosityData
 
 		void elementFilter(aSideDimVector& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
 
+		template <typename VType>
+		void scvFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU);
+
+		void scvFilter(aSideDimVector& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
+
 		void fillAttachment(aSideDimVector& aaU,SmartPtr<TGridFunction> u);
 
 		void transferToLowerLevels(aSideNumber& aaData,ApproximationSpace<domain_type>& approximationSpace);

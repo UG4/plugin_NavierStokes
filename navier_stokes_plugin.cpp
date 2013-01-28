@@ -127,6 +127,11 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "CRDynamicTurbViscData", tag);
 	}
 	
+	// CFL number computation
+	{
+		reg.add_function("cflNumber",static_cast<void (*)(function_type&,number)>(&cflNumber),grp);
+	}
+	
 	//	Order CR-Cuthill-McKee
 	{
 		reg.add_function("OrderCRCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool)>(&OrderCRCuthillMcKee), grp);
@@ -155,6 +160,11 @@ static void DomainAlgebra(Registry& reg, string grp)
 	// vorticity computation
 	{
 		reg.add_function("vorticity", static_cast<void (*)(function_type&,function_type&)>(&vorticity), grp);
+	}
+
+	// kinetic energy
+	{
+		reg.add_function("kineticEnergy", static_cast<void (*)(function_type&)>(&kineticEnergy), grp);
 	}
 
 	// driven cavity data evaluation

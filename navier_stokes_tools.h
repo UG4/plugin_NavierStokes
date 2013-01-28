@@ -494,6 +494,255 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	UG_LOG("\n\n");
 }
 
+/*
+// Computation of maximum CFL-number over elements
+// General CFL number is given as |u|*deltaT/h where u is velocity, deltaT time step length
+// and h mesh width.
+// Here following approximation for element local CFL-number is used:
+// In element compute interpolated velocity v_bary in barycenter
+// go over all "edges" between Crouzeix-Raviart nodes c_i and c_j (middle of edge/face)
+// approximate velocity between nodes is 1/|c_i-c_j|*|(c_i-c_j)*v_bary|
+// step length is |c_i-c_j| Therefore overall local cfl number is
+// 1/|c_i-c_j|^2*|(c_i-c_j)*v_bary|
+// Function computes maximum over all elements.
+ */
+template<typename TGridFunction>
+void cflNumber(TGridFunction& u,number deltaT){
+	/// domain type
+	typedef typename TGridFunction::domain_type domain_type;
+
+	///	world dimension
+	static const int dim = domain_type::dim;
+
+	/// element iterator
+	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
+	/// element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	/// side type
+	typedef typename elem_type::side side_type;
+
+	///	grid type
+	typedef typename domain_type::grid_type grid_type;
+
+	// cfl number
+	number maxCfl=0;
+	//	get domain
+	domain_type& domain = *u.domain().get();
+
+	DimCRFVGeometry<dim> geo;
+
+	//	create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+	
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		//	get iterators
+		ElemIterator iter = u.template begin<elem_type>(si);
+		ElemIterator iterEnd = u.template end<elem_type>(si);
+
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			MathVector<dim> bary,localBary;
+			bary = 0;
+
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				bary += coCoord[i];
+			};
+			bary /= numVertices;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			//	get trial space
+			const LocalShapeFunctionSet<dim>& rTrialSpace =
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+			//	get Reference Mapping
+			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
+
+			map.global_to_local(localBary,bary);
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+			//	memory for shapes
+			std::vector<number> vShape;
+
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+			rTrialSpace.shapes(vShape, localBary);
+
+			size_t nofsides = geo.num_scv();
+
+			MathVector<dim> baryV;
+			baryV = 0;
+			for (size_t s=0;s<nofsides;s++){
+				MathVector<dim> localbaryV;
+				for (int d=0;d<dim;d++){
+					u.multi_indices(sides[s], d, multInd);
+					localbaryV[d]=DoFRef(u,multInd[0]);
+				}
+				localbaryV *= vShape[s];
+				baryV += localbaryV;
+			}
+			for (size_t i=0;i<nofsides;i++){
+				const typename DimCRFVGeometry<dim>::SCV& scvi = geo.scv(i);
+				MathVector<dim> iCoord = scvi.global_ip();
+				for (size_t j=i+1;j<nofsides;j++){
+					const typename DimCRFVGeometry<dim>::SCV& scvj = geo.scv(j);
+					MathVector<dim> jCoord = scvj.global_ip();
+					MathVector<dim> subVec;
+					VecSubtract(subVec,iCoord,jCoord);
+					number localCfl=deltaT*(number)1.0/VecTwoNormSq(subVec)*abs(subVec*baryV);
+					if (localCfl>maxCfl) maxCfl=localCfl;
+				}
+			}
+		}
+	}
+	UG_LOG("\nMax CFL number is " << maxCfl << "\n\n");
+}
+
+// Compute 1/|\Omega| \int_{\Omega} \hat{u_i} \hat{u_i} dx , where \Omega is the computational domain.
+// Elementwise approximation of integral by interpolation to barycenter.
+template<typename TGridFunction>
+void kineticEnergy(TGridFunction& u){
+	// total kinetic energy
+	number totalE=0;
+	// total volume
+	number totalVol=0;
+
+	/// domain type
+	typedef typename TGridFunction::domain_type domain_type;
+
+	///	world dimension
+	static const int dim = domain_type::dim;
+
+	/// element iterator
+	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
+	/// element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	/// side type
+	typedef typename elem_type::side side_type;
+
+	///	grid type
+	typedef typename domain_type::grid_type grid_type;
+
+	//	get domain of grid function
+	domain_type& domain = *u.domain().get();
+	DimCRFVGeometry<dim> geo;
+
+	 std::vector<MultiIndex<2> > multInd;
+
+	//	coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	const position_accessor_type& posAcc = domain.position_accessor();
+
+	// assemble deformation tensor fluxes
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		//	get iterators
+		ElemIterator iter = u.template begin<elem_type>(si);
+		ElemIterator iterEnd = u.template end<elem_type>(si);
+
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			MathVector<dim> bary,localBary;
+			bary = 0;
+
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				bary += coCoord[i];
+			};
+			bary /= numVertices;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			//	get trial space
+			const LocalShapeFunctionSet<dim>& rTrialSpace =
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+
+			//	get Reference Mapping
+			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
+
+			map.global_to_local(localBary,bary);
+
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+
+			//	memory for shapes
+			std::vector<number> vShape;
+
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+			rTrialSpace.shapes(vShape, localBary);
+
+			size_t nofsides = geo.num_scv();
+
+			MathVector<dim> value;
+			value = 0;
+			number elementVolume = 0;
+			for (size_t s=0;s<nofsides;s++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+				MathVector<dim> localValue;
+				for (int d=0;d<dim;d++){
+					u.multi_indices(sides[s], d, multInd);
+					localValue[d]=DoFRef(u,multInd[0]);
+				}
+				localValue *= vShape[s];
+				value += localValue;
+				elementVolume += scv.volume();
+			}
+			for (int d=0;d<dim;d++){
+				totalE += elementVolume*value[d]*value[d];
+			}
+
+			totalVol+=elementVolume;
+		}
+	}
+	// average
+	totalE/=(number)totalVol;
+	UG_LOG("\nTotal kinetic energy in domain is " << totalE << "\n\n");
+}
+
+
 } // end namespace ug
 
 #endif /* __H__UG__LIB_DISC__NAVIER_STOKES_TOOLS__ */
