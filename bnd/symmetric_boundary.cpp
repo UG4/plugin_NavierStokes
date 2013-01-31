@@ -6,7 +6,7 @@
  */
 
 #include "common/util/provider.h"
-#include "lib_disc/spatial_disc/disc_util/cr_finite_volume_geometry.h"
+#include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
 
 #include "symmetric_boundary.h"
 #ifdef UG_FOR_LUA

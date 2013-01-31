@@ -13,7 +13,7 @@
 #define UG_NSSTAB_ASSERT(cond, exp) UG_ASSERT((cond), (exp))
 
 #include "upwind_interface.h"
-#include "lib_disc/spatial_disc/disc_util/finite_volume_geometry.h"
+#include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
 
 namespace ug{
 namespace NavierStokes{

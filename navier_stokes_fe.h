@@ -8,7 +8,7 @@
 #include "navier_stokes.h"
 
 #include "common/util/provider.h"
-#include "lib_disc/spatial_disc/disc_util/finite_element_geometry.h"
+#include "lib_disc/spatial_disc/disc_util/fe_geom.h"
 
 namespace ug{
 namespace NavierStokes{

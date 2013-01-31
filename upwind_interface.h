@@ -15,8 +15,8 @@
 #include <vector>
 
 #include "lib_disc/common/local_algebra.h"
-#include "lib_disc/spatial_disc/disc_util/finite_volume_base.h"
-#include "lib_disc/spatial_disc/disc_util/finite_volume_util.h"
+#include "lib_disc/spatial_disc/disc_util/fv_geom_base.h"
+#include "lib_disc/spatial_disc/disc_util/fv_util.h"
 
 namespace ug{
 namespace NavierStokes{
