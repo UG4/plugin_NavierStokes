@@ -390,10 +390,9 @@ class CRSmagorinskyTurbViscData
 				}
 			}
 
-			}catch(UGError_LocalShapeFunctionSetNotRegistered& ex){
-				UG_THROW("TurbulentViscosityData: "<< ex.get_msg()<<", Reference Object: "
-				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
 			}
+			UG_CATCH_THROW("TurbulentViscosityData: trial space missing, Reference Object: "
+				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
 
 			number kinViscValues[max_number_of_ips];
 			(*m_imKinViscosity)(kinViscValues,
@@ -621,10 +620,9 @@ class CRDynamicTurbViscData
 				}
 			}
 
-			}catch(UGError_LocalShapeFunctionSetNotRegistered& ex){
-				UG_THROW("TurbulentViscosityData: "<< ex.get_msg()<<", Reference Object: "
-				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
 			}
+			UG_CATCH_THROW("TurbulentViscosityData: trial space missing, Reference Object: "
+				         <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
 
 			number kinViscValues[max_number_of_ips];
 			(*m_imKinViscosity)(kinViscValues,
