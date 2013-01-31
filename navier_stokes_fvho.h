@@ -425,7 +425,7 @@ add_jac_M_elem_fvho(LocalMatrix& J, const LocalVector& u)
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
 			// 	Add to local matrix
-				J(d1, sh, d1, sh) += integral * scv.volume();
+				J(d1, sh, d1, sh) += integral;
 			}
 		}
 
@@ -463,7 +463,7 @@ add_def_M_elem_fvho(LocalVector& d, const LocalVector& u)
 		// 	Add to local defect
 			for(int d1 = 0; d1 < dim; ++d1)
 				d(d1, co) +=  Vel[d1] * m_imDensitySCV[ipCnt]
-                              * scv.weight(ip) * scv.volume();
+                              * scv.weight(ip);
 
 		//	next ip
 			ipCnt++;
