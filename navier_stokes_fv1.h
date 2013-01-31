@@ -786,7 +786,7 @@ register_all_fv1_funcs(bool bHang)
 
 //	switch assemble functions
 	if(!bHang) boost::mpl::for_each<ElemList>( RegisterFV1<FV1Geometry>(this) );
-	else throw(UGError("Not implemented."));
+	else UG_THROW("Not implemented.");
 }
 
 template<typename TDomain>

@@ -370,7 +370,7 @@ register_all_cr_funcs(bool bHang)
 
 //	switch assemble functions
 	if(!bHang) boost::mpl::for_each<ElemList>( RegisterCR<CRFVGeometry>(this) );
-	else throw(UGError("Not implemented."));
+	else UG_THROW("Not implemented.");
 }
 
 template<typename TDomain>
