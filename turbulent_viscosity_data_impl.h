@@ -18,7 +18,7 @@
 #include "lib_disc/local_finite_element/local_shape_function_set.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
 #include "lib_disc/reference_element/reference_mapping_provider.h"
-
+#include "lib_grid/tools/periodic_boundary_manager.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -897,7 +897,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 				continue;
 			}
 			number delta = m_acVolume[side];
-			// for possible other choices of delta see Fršhlich p 160
+			// for possible other choices of delta see Frï¿½hlich p 160
 			delta = pow(delta,(number)1.0/(number)dim);
 			number tensorNorm = this->FNorm(m_acDeformation[side]);
 			m_acTurbulentViscosity[side] = m_c * delta*delta * tensorNorm;
