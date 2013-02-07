@@ -20,6 +20,7 @@
 #include "bnd/symmetric_boundary.h"
 
 #include "turbulent_viscosity_data.h"
+#include "pressure_separation.h"
 #include "cr_reorder.h"
 #include "cr_ilut.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
@@ -89,6 +90,25 @@ static void DomainAlgebra(Registry& reg, string grp)
 	
 	typedef ug::GridFunction<TDomain, SurfaceDoFDistribution, TAlgebra> TFct;
 	
+	// SeparatedPressureSource
+	{
+		string name = string("SeparatedPressureSource").append(suffix);
+		typedef SeparatedPressureSource<TFct> T;
+		typedef UserData<MathVector<dim>, dim> TBase;
+		typedef INewtonUpdate TBase2;
+		reg.add_class_<T, TBase,TBase2>(name, grp)
+			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
+				.add_method("set_source", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
+				.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
+				.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
+				.add_method("set_source", static_cast<void (T::*)(number,number,number)>(&T::set_source), "", "F_x, F_y, F_z")
+			#ifdef UG_FOR_LUA
+				.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Source Vector")
+			#endif
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "SeparatedPressureSource", tag);
+	}
+
 	// Turbulent viscosity data
 	// Smagorinsky model
 	{

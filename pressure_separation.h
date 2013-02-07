@@ -1,0 +1,385 @@
+/*
+ *  pressure_separation.h
+ *
+ *  Created on: 06.02.2013
+ *      Author: Christian Wehner
+ */
+
+#ifndef __H__UG__NAVIER_STOKES_PRESSURE_SEPARATION__
+#define __H__UG__NAVIER_STOKES_PRESSURE_SEPARATION__
+
+#include "common/common.h"
+
+#include "lib_disc/common/subset_group.h"
+#include "lib_disc/common/function_group.h"
+#include "lib_disc/common/groups_util.h"
+#include "lib_disc/local_finite_element/local_shape_function_set.h"
+#include "lib_disc/spatial_disc/user_data/user_data.h"
+#include "lib_disc/spatial_disc/user_data/const_user_data.h"
+#include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
+#include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
+#include "lib_grid/tools/periodic_boundary_manager.h"
+#include "lib_grid/algorithms/attachment_util.h"
+
+#ifdef UG_FOR_LUA
+#include "bindings/lua/lua_user_data.h"
+#endif
+
+namespace ug{
+namespace NavierStokes{
+
+/**
+concept derived from grid_function_user_data.h
+*/
+template <typename TGridFunction>
+class SeparatedPressureSource
+	: 	public UserData<MathVector<TGridFunction::dim>,TGridFunction::dim>, virtual public INewtonUpdate
+{
+	///	domain type
+		typedef typename TGridFunction::domain_type domain_type;
+
+	///	algebra type
+		typedef typename TGridFunction::algebra_type algebra_type;
+
+	/// position accessor type
+		typedef typename domain_type::position_accessor_type position_accessor_type;
+
+	///	world dimension
+		static const int dim = domain_type::dim;
+
+	///	grid type
+		typedef typename domain_type::grid_type grid_type;
+
+	/// element type
+		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	/// attachment accessor
+		typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
+		typedef Grid::AttachmentAccessor<elem_type,ANumber > aElementNumber;
+
+	/// element iterator
+		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
+	/// vertex iterator
+		typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+
+	private:
+	 // old pressure attachment accessor
+		ANumber m_aPOld;
+		aElementNumber m_pOld;
+
+	//	pressure attachment accessor (interpolated pressure in vertices)
+		ANumber m_aP;
+		aVertexNumber m_p;
+
+	//  volume attachment accessor
+		ANumber m_aVol;
+		aVertexNumber m_vol;
+
+	// level set grid function
+		SmartPtr<TGridFunction> m_u;
+
+	//	approximation space for level and surface grid
+		SmartPtr<ApproximationSpace<domain_type> > m_spApproxSpace;
+
+	//  grid
+		grid_type* m_grid;
+
+	//  pressure index
+		static const size_t _P_ = dim;
+
+	private:
+
+	///	Data import for source
+		SmartPtr<UserData<MathVector<dim>,dim> > m_imSource;
+
+	public:
+		/////////// Source
+
+		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
+		{
+			m_imSource = data;
+		}
+
+		void set_source(number f_x)
+		{
+			SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
+			for (int i=0;i<dim;i++){
+				f->set_entry(i, f_x);
+			}
+			set_source(f);
+		}
+
+		void set_source(number f_x, number f_y)
+		{
+			if (dim!=2){
+				UG_THROW("NavierStokes: Setting source vector of dimension 2"
+							" to a Discretization for world dim " << dim);
+			} else {
+				SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
+							f->set_entry(0, f_x);
+							f->set_entry(1, f_y);
+							set_source(f);
+			}
+		}
+
+		void set_source(number f_x, number f_y, number f_z)
+		{
+			if (dim<3){
+				UG_THROW("NavierStokes: Setting source vector of dimension 3"
+							" to a Discretization for world dim " << dim);
+			}
+			else
+							{
+								SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>());
+											f->set_entry(0, f_x);
+											f->set_entry(1, f_y);
+											f->set_entry(2, f_z);
+											set_source(f);
+							}
+		}
+
+		#ifdef UG_FOR_LUA
+		void set_source(const char* fctName)
+		{
+			set_source(LuaUserDataFactory<MathVector<dim>, dim>::create(fctName));
+		}
+		#endif
+
+	public:
+	/// constructor
+		SeparatedPressureSource(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct){
+			m_u = spGridFct;
+			domain_type& domain = *m_u->domain().get();
+			grid_type& grid = *domain.grid();
+			m_grid = &grid;
+			m_spApproxSpace = approxSpace;
+			set_source(0.0);
+			grid.template attach_to<elem_type>(m_aPOld);
+			grid.template attach_to<VertexBase>(m_aP);
+			m_pOld.access(grid,m_aPOld);
+			m_p.access(grid,m_aP);
+			m_vol.access(grid,m_aVol);
+		}
+
+		virtual ~SeparatedPressureSource(){};
+
+	   template <int refDim>
+	        inline void evaluate(MathVector<dim> vValue[],
+	                             const MathVector<dim> vGlobIP[],
+	                             number time, int si,
+	                             LocalVector& u,
+	                             GeometricObject* elem,
+	                             const MathVector<dim> vCornerCoords[],
+	                             const MathVector<refDim> vLocIP[],
+	                             const size_t nip,
+	                             const MathMatrix<refDim, dim>* vJT = NULL) const
+	       {
+	/*	   	   // get domain
+		   	   domain_type& domain = *m_u->domain().get();
+		   	   //	create Multiindex
+		   	   std::vector<MultiIndex<2> > multInd;
+
+		   	   // coord and vertex array
+		   	   MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+		   	   VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+		   	   // get position accessor
+		   	   typedef typename domain_type::position_accessor_type position_accessor_type;
+		   	   const position_accessor_type& posAcc = domain.position_accessor();
+*/
+		   	   // evaluate source data
+		   	   (*m_imSource)(vValue,
+		   		                                vGlobIP,
+		   		                                time, si,
+		   		                                u,
+		   		                                elem,
+		   		                                vCornerCoords,
+		   		                                vLocIP,
+		   		                                nip,
+		   		                                vJT);
+			}; // evaluate
+
+		void update(){
+			//	get domain
+			domain_type& domain = *m_u->domain().get();
+			//	create Multiindex
+			std::vector<MultiIndex<2> > multInd;
+			DimFV1Geometry<dim> geo;
+
+			//	coord and vertex array
+			MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+			VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+			//	get position accessor
+			typedef typename domain_type::position_accessor_type position_accessor_type;
+			const position_accessor_type& posAcc = domain.position_accessor();
+
+			// set volume values to zero
+			SetAttachmentValues(m_vol, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+
+			// set p^{old} = p^{old} + p^{sep}
+			for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+				ElemIterator iter = m_u->template begin<elem_type>(si);
+				ElemIterator iterEnd = m_u->template end<elem_type>(si);
+				for(  ;iter !=iterEnd; ++iter)
+				{
+					elem_type* elem = *iter;
+					m_u->multi_indices(elem, _P_, multInd);
+					m_pOld[elem]+=DoFRef(*m_u,multInd[0]);
+				}
+			}
+			// compute pressure by averaging
+			for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+				ElemIterator iter = m_u->template begin<elem_type>(si);
+				ElemIterator iterEnd = m_u->template end<elem_type>(si);
+				for(  ;iter !=iterEnd; ++iter)
+				{
+					elem_type* elem = *iter;
+					number pValue = m_pOld[elem];
+					const size_t numVertices = elem->num_vertices();
+					for(size_t i = 0; i < numVertices; ++i){
+						vVrt[i] = elem->vertex(i);
+						coCoord[i] = posAcc[vVrt[i]];
+					};
+					geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+					for(size_t i = 0; i < numVertices; ++i){
+						number scvVol = geo.scv(i).volume();
+						m_vol[vVrt[i]]+=scvVol;
+						m_p[vVrt[i]]+=scvVol*pValue;
+					}
+				}
+			}
+			PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
+			// go over all vertices and average
+			for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+				VertexIterator iter = m_u->template begin<VertexBase>(si);
+				VertexIterator iterEnd = m_u->template end<VertexBase>(si);
+				for(  ;iter !=iterEnd; ++iter)
+				{
+					VertexBase* vrt = *iter;
+					if (pbm && pbm->is_slave(vrt)) continue;
+					m_p[vrt]/=m_vol[vrt];
+				}
+			}
+		}
+
+		private:
+			static const size_t max_number_of_ips = 20;
+
+		public:
+			////////////////
+			// one value
+			////////////////
+			virtual void operator() (MathVector<dim>& value,
+			                         const MathVector<dim>& globIP,
+			                         number time, int si) const
+			{
+				UG_THROW("LevelSetUserData: Need element.");
+			}
+
+			virtual void operator() (MathVector<dim>& value,
+			                         const MathVector<dim>& globIP,
+			                         number time, int si,
+			                         LocalVector& u,
+			                         GeometricObject* elem,
+			                         const MathVector<dim> vCornerCoords[],
+			                         const MathVector<1>& locIP) const
+			{
+				evaluate<1>(&value,&globIP,time,si,u,elem,vCornerCoords,&locIP, 1, NULL);
+			}
+
+			virtual void operator() (MathVector<dim>& value,
+			                         const MathVector<dim>& globIP,
+			                         number time, int si,
+			                         LocalVector& u,
+			                         GeometricObject* elem,
+			                         const MathVector<dim> vCornerCoords[],
+			                         const MathVector<2>& locIP) const
+			{
+				evaluate<2>(&value,&globIP,time,si,u,elem,vCornerCoords,&locIP, 1, NULL);
+			}
+
+			virtual void operator() (MathVector<dim>& value,
+			                         const MathVector<dim>& globIP,
+			                         number time, int si,
+			                         LocalVector& u,
+			                         GeometricObject* elem,
+			                         const MathVector<dim> vCornerCoords[],
+			                         const MathVector<3>& locIP) const
+			{
+				evaluate<3>(&value,&globIP,time,si,u,elem,vCornerCoords,&locIP, 1, NULL);
+			}
+
+			////////////////
+			// vector of values
+			////////////////
+
+			virtual void operator() (MathVector<dim> vValue[],
+			                         const MathVector<dim> vGlobIP[],
+			                         number time, int si, const size_t nip) const
+			{
+				UG_THROW("LevelSetUserData: Need element.");
+			}
+
+
+			virtual void operator()(MathVector<dim> vValue[],
+			                        const MathVector<dim> vGlobIP[],
+			                        number time, int si,
+			                        LocalVector& u,
+			                        GeometricObject* elem,
+			                        const MathVector<dim> vCornerCoords[],
+			                        const MathVector<1> vLocIP[],
+			                        const size_t nip,
+			                        const MathMatrix<1, dim>* vJT = NULL) const
+			{
+				evaluate<1>(vValue,vGlobIP,time,si,u,elem,
+				                               vCornerCoords,vLocIP,nip, vJT);
+			}
+
+			virtual void operator()(MathVector<dim> vValue[],
+			                        const MathVector<dim> vGlobIP[],
+			                        number time, int si,
+			                        LocalVector& u,
+			                        GeometricObject* elem,
+			                        const MathVector<dim> vCornerCoords[],
+			                        const MathVector<2> vLocIP[],
+			                        const size_t nip,
+			                        const MathMatrix<2, dim>* vJT = NULL) const
+			{
+					evaluate<2>(vValue,vGlobIP,time,si,u,elem,
+				                               vCornerCoords,vLocIP,nip, vJT);
+			}
+
+			virtual void operator()(MathVector<dim> vValue[],
+			                        const MathVector<dim> vGlobIP[],
+			                        number time, int si,
+			                        LocalVector& u,
+			                        GeometricObject* elem,
+			                        const MathVector<dim> vCornerCoords[],
+			                        const MathVector<3> vLocIP[],
+			                        const size_t nip,
+			                        const MathMatrix<3, dim>* vJT = NULL) const
+			{
+				evaluate<3>(vValue,vGlobIP,time,si,u,elem,
+				                               vCornerCoords,vLocIP,nip, vJT);
+			}
+
+			virtual void compute(LocalVector* u, GeometricObject* elem, bool bDeriv = false)
+			{
+				const number t = this->time();
+				const int si = this->subset();
+				for(size_t s = 0; s < this->num_series(); ++s)
+					evaluate<dim>(this->values(s), this->ips(s), t, si,
+					 			*u, elem, NULL, this->template local_ips<dim>(s),
+												this->num_ip(s));
+			}
+};
+
+} // namespace NavierStokes
+} // end namespace ug
+
+// include implementation
+#include "pressure_separation_impl.h"
+
+#endif /* __H__UG__NAVIER_STOKES_PRESSURE_SEPARATION__ */
