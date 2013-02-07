@@ -375,7 +375,7 @@ add_def_A_elem_cr(LocalVector& d, const LocalVector& u)
 
 		const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
-		if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
+		if ((! m_bStokes) && (m_bDefectUpwind == true))
 		{
 			//	compute upwind shapes
 			m_spConvUpwind->update(&geo, StdVel);
@@ -438,26 +438,37 @@ add_def_A_elem_cr(LocalVector& d, const LocalVector& u)
 
 			if (! m_bStokes) // no convective terms in the Stokes equation
 			{
-			//	find the upwind velocity at ip
-				MathVector<dim> UpwindVel;
+				if (m_bDefectUpwind == true){
+				//	find the upwind velocity at ip
+					MathVector<dim> UpwindVel;
 
-			//	switch PAC
-				UpwindVel = upwind.upwind_vel(ip, u, StdVel);
+				//	switch PAC
+					UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 
-			//	Peclet Blend
-				if(m_bPecletBlend)
-					peclet_blend_cr(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
+				//	Peclet Blend
+					if(m_bPecletBlend)
+						peclet_blend_cr(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 
-			//	compute product of standard velocity and normal
-				const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
+				//	compute product of standard velocity and normal
+					const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
 
-			//	Add contributions to local velocity components
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					d(d1, scvf.from()) += UpwindVel[d1] * prod;
-					d(d1, scvf.to()  ) -= UpwindVel[d1] * prod;
+				//	Add contributions to local velocity components
+					for(int d1 = 0; d1 < dim; ++d1)
+					{
+						d(d1, scvf.from()) += UpwindVel[d1] * prod;
+						d(d1, scvf.to()  ) -= UpwindVel[d1] * prod;
+					}
+				} else {
+					for(int d1 = 0; d1 < dim; ++d1)
+					{
+						//	compute product of standard velocity and normal
+						const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
+						d(d1, scvf.from()) += StdVel[ip][d1] * prod;
+						d(d1, scvf.to()  ) -= StdVel[ip][d1] * prod;
+					}
 				}
 			}
+
 			////////////////////////////////////////////////////
 			// Pressure Term (Momentum Equation)
 			////////////////////////////////////////////////////

@@ -206,6 +206,9 @@ class NavierStokes
 		void set_stokes(bool Stokes) {m_bStokes = Stokes;}
 		bool get_stokes() {return m_bStokes;}
 
+		void set_defect_upwind(bool defectUpwind) { m_bDefectUpwind = defectUpwind;}
+		bool get_defect_upwind() {return m_bDefectUpwind; }
+
 		//\todo: handle internally
 	///	sets assembling of diffusive term to laplace
 	/**
@@ -570,6 +573,9 @@ class NavierStokes
 
 	///	flag if using only laplace term
 		bool m_bLaplace;
+
+	/// flag if using upwind in defect computation
+		bool m_bDefectUpwind;
 
 	///	Data import for source
 		DataImport<MathVector<dim>, dim> m_imSource;

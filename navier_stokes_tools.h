@@ -411,7 +411,6 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 
 								//	add shape fct at ip * value at shape
 								interpolation += valSH * rTrialSpace.shape(sh, localPos);
-								//UG_LOG("value(" << sh << ")=" << valSH << "\n");
 							}
 							// if there is a previous value, then average
 							if (xLineValue[i]!=unhandled) xLineValue[i] = 0.5*(xLineValue[i] + interpolation);

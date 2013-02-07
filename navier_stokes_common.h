@@ -32,6 +32,7 @@ NavierStokes<TDomain>::NavierStokes(const char* functions,
 : IDomainElemDisc<TDomain>(functions, subsets),
   m_bStokes(false),
   m_bLaplace(false),
+  m_bDefectUpwind(true),
   m_spStab(NULL),
   m_spConvStab(NULL),
   m_spConvUpwind(NULL)
@@ -49,6 +50,7 @@ NavierStokes<TDomain>::NavierStokes(const std::vector<std::string>& vFct,
 : IDomainElemDisc<TDomain>(vFct, vSubset),
   m_bStokes(false),
   m_bLaplace(false),
+  m_bDefectUpwind(true),
   m_spStab(NULL),
   m_spConvStab(NULL),
   m_spConvUpwind(NULL)
@@ -71,6 +73,7 @@ void NavierStokes<TDomain>::init()
 	set_stokes(false);
 	set_peclet_blend(false);
 	set_exact_jacobian(false);
+	set_defect_upwind(true);
 
 //	register imports
 	this->register_import(m_imSource);

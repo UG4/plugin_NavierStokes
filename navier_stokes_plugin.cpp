@@ -258,6 +258,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
 			.add_method("set_laplace", &T::set_laplace)
 			.add_method("set_stokes", &T::set_stokes)
+			.add_method("set_defect_upwind", &T::set_defect_upwind)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokes", tag);
 	}
