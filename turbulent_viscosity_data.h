@@ -16,7 +16,7 @@
 #include "lib_disc/local_finite_element/local_shape_function_set.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
 #include "lib_disc/spatial_disc/user_data/const_user_data.h"
-#include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
+#include "lib_disc/operator/non_linear_operator/newton_solver/newton_update_interface.h"
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
 #include "lib_grid/tools/periodic_boundary_manager.h"
 #include "lib_grid/algorithms/attachment_util.h"

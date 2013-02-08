@@ -23,8 +23,9 @@
 #include "pressure_separation.h"
 #include "cr_reorder.h"
 #include "cr_ilut.h"
-#include "lib_disc/operator/non_linear_operator/newton_solver/newton.h"
-
+#include "lib_disc/operator/non_linear_operator/newton_solver/newton_update_interface.h"
+#include "lib_disc/function_spaces/grid_function.h"
+#include "lib_algebra/operator/interface/operator_iterator.h"
 
 using namespace std;
 using namespace ug::bridge;

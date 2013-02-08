@@ -14,6 +14,7 @@
 #define __H__UG__LIB_DISC__OPERATOR__LINEAR_OPERATOR__CRILUT__
 
 #include "lib_algebra/operator/interface/operator.h"
+#include "lib_algebra/operator/interface/operator_iterator.h"
 #ifdef UG_PARALLEL
 	#include "lib_algebra/parallelization/parallelization.h"
 #endif
