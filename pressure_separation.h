@@ -379,7 +379,5 @@ class SeparatedPressureSource
 } // namespace NavierStokes
 } // end namespace ug
 
-// include implementation
-#include "pressure_separation_impl.h"
 
 #endif /* __H__UG__NAVIER_STOKES_PRESSURE_SEPARATION__ */
