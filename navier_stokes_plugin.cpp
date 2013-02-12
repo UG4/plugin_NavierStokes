@@ -106,6 +106,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 			#ifdef UG_FOR_LUA
 				.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Source Vector")
 			#endif
+				.add_method("update", &T::update)
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "SeparatedPressureSource", tag);
 	}

@@ -1,4 +1,4 @@
-/*
+/*	
  *  pressure_separation.h
  *
  *  Created on: 06.02.2013
@@ -52,6 +52,10 @@ class SeparatedPressureSource
 
 	/// element type
 		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	/// MathVector<dim> attachment
+//		typedef MathVector<dim> vecDim;
+//		typedef Attachment<vecDim> AMathVectorDim;
 
 	/// attachment accessor
 		typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
@@ -157,9 +161,15 @@ class SeparatedPressureSource
 			set_source(0.0);
 			grid.template attach_to<elem_type>(m_aPOld);
 			grid.template attach_to<VertexBase>(m_aP);
+			grid.template attach_to<VertexBase>(m_aVol);
 			m_pOld.access(grid,m_aPOld);
 			m_p.access(grid,m_aP);
 			m_vol.access(grid,m_aVol);
+			// set all values to zero
+			SetAttachmentValues(m_vol, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+			SetAttachmentValues(m_p, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+			SetAttachmentValues(m_pOld, m_u->template begin<elem_type>(), m_u->template end<elem_type>(), 0);
+			this->update();
 		}
 
 		virtual ~SeparatedPressureSource(){};
@@ -175,19 +185,72 @@ class SeparatedPressureSource
 	                             const size_t nip,
 	                             const MathMatrix<refDim, dim>* vJT = NULL) const
 	       {
-	/*	   	   // get domain
-		   	   domain_type& domain = *m_u->domain().get();
-		   	   //	create Multiindex
-		   	   std::vector<MultiIndex<2> > multInd;
+		       UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
+		       elem_type* element = static_cast<elem_type*>(elem);
 
-		   	   // coord and vertex array
-		   	   MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-		   	   VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+		       //	reference object id
+		       ReferenceObjectID roid = elem->reference_object_id();
 
-		   	   // get position accessor
-		   	   typedef typename domain_type::position_accessor_type position_accessor_type;
-		   	   const position_accessor_type& posAcc = domain.position_accessor();
-*/
+		       const size_t numVertices = element->num_vertices();
+		       //    get domain of grid function
+		       const domain_type& domain = *m_u->domain().get();
+
+		       //    get position accessor
+		       typedef typename domain_type::position_accessor_type position_accessor_type;
+		       const position_accessor_type& posAcc = domain.position_accessor();
+
+		       position_accessor_type aaPos = m_u->domain()->position_accessor();
+
+		       // coord and vertex array
+		       MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+		       VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+		       DimCRFVGeometry<dim> crfvgeo;
+
+		       MathVector<dim> grad[domain_traits<dim>::MaxNumVerticesOfElem];
+
+		       for(size_t i = 0; i < numVertices; ++i){
+		    	   vVrt[i] = element->vertex(i);
+		    	   coCoord[i] = posAcc[vVrt[i]];
+		    	   // UG_LOG("co=[" << coCoord[i][0] << " " << coCoord[i][1] << "]\n");
+               };
+
+		       for (size_t i=0;i<domain_traits<dim>::MaxNumVerticesOfElem;i++)
+		    	   grad[i]*=0.0;
+
+               // evaluate finite volume geometry
+		       crfvgeo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+
+		       // Lagrange 1 trial space
+		       const LocalShapeFunctionSet<dim>& lagrange1 =
+		      		   LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
+
+		       std::vector<number> shapes;
+
+		       for (size_t ip=0;ip<crfvgeo.num_scvf();ip++){
+		    	   const typename DimCRFVGeometry<dim>::SCVF& scvf = crfvgeo.scvf(ip);
+		    	   number pinter=0;
+		    	   lagrange1.shapes(shapes,scvf.local_ip());
+		    	   for (size_t sh=0;sh<numVertices;sh++){
+		    		   // UG_LOG("corner(" << sh << ")=" << m_p[vVrt[sh]] << "\n");
+		    		   pinter += m_p[vVrt[sh]]*shapes[sh];
+		    	   }
+		    	   // UG_LOG("pinter = " << pinter << "\n");
+				   for (int d=0;d<dim;d++){
+					   number flux = pinter*scvf.normal()[d];
+					   grad[scvf.from()][d]-=flux;
+					   grad[scvf.to()][d]+=flux;
+				   }
+		       }
+
+		       for (size_t i=0;i<crfvgeo.num_scv();i++){
+		    	   grad[i]/=crfvgeo.scv(i).volume();
+		       }
+
+		       // UG_LOG("gradient values:\n");
+		       for (size_t i=0;i<nip;i++){
+		    	   // UG_LOG(i << " " << grad[i] << "\n");
+		       }
+
 		   	   // evaluate source data
 		   	   (*m_imSource)(vValue,
 		   		                                vGlobIP,
@@ -198,7 +261,17 @@ class SeparatedPressureSource
 		   		                                vLocIP,
 		   		                                nip,
 		   		                                vJT);
+		   	   // UG_LOG("source values:\n");
+		   	   for (size_t i=0;i<nip;i++){
+		   		   // UG_LOG(i << " " << vValue[i] << "\n");
+		   	   }
+		   	   for (size_t i=0;i<nip;i++)
+		   		   vValue[i]+=grad[i];
 			}; // evaluate
+
+	   void test(){
+
+	   }
 
 		void update(){
 			//	get domain
@@ -215,8 +288,9 @@ class SeparatedPressureSource
 			typedef typename domain_type::position_accessor_type position_accessor_type;
 			const position_accessor_type& posAcc = domain.position_accessor();
 
-			// set volume values to zero
+			// set volume and p values to zero
 			SetAttachmentValues(m_vol, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+			SetAttachmentValues(m_p, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
 
 			// set p^{old} = p^{old} + p^{sep}
 			for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
@@ -225,7 +299,8 @@ class SeparatedPressureSource
 				for(  ;iter !=iterEnd; ++iter)
 				{
 					elem_type* elem = *iter;
-					m_u->multi_indices(elem, _P_, multInd);
+					m_u->inner_multi_indices(elem, _P_, multInd);
+ // UG_LOG( DoFRef(*m_u,multInd[0]) << " " << m_pOld[elem] << " " << m_pOld[elem]+DoFRef(*m_u,multInd[0]) << "\n");
 					m_pOld[elem]+=DoFRef(*m_u,multInd[0]);
 				}
 			}
@@ -260,6 +335,8 @@ class SeparatedPressureSource
 					VertexBase* vrt = *iter;
 					if (pbm && pbm->is_slave(vrt)) continue;
 					m_p[vrt]/=m_vol[vrt];
+					//UG_LOG(posAcc[vrt] << "\n");
+					//UG_LOG(m_p[vrt] <<  " " << m_vol[vrt] << "\n");
 				}
 			}
 		}
