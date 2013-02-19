@@ -57,7 +57,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
 
 	typedef ApproximationSpace<TDomain> approximation_space_type;
-	typedef GridFunction<TDomain, SurfaceDoFDistribution, TAlgebra> function_type;
+	typedef GridFunction<TDomain, TAlgebra> function_type;
 
 //	NavierStokesInflow
 	{
@@ -89,7 +89,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesWall", tag);
 	}
 	
-	typedef ug::GridFunction<TDomain, SurfaceDoFDistribution, TAlgebra> TFct;
+	typedef ug::GridFunction<TDomain, TAlgebra> TFct;
 	
 	// SeparatedPressureSource
 	{

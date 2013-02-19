@@ -40,15 +40,15 @@ private:
 void computeDegree(std::vector<size_t>& degree,std::vector<std::vector<size_t> >& vvConnections,size_t minpind);
 
 // compute adjacency graph on Crouzeix-Raviart-elements
-template <typename TElem, typename TDD,typename TGridFunction>
-void cr_get_connections(std::vector<std::vector<size_t> >& vvConnection,size_t& minpind,TDD& dd,TGridFunction& u){
+template <typename TElem, typename TGridFunction>
+void cr_get_connections(std::vector<std::vector<size_t> >& vvConnection,size_t& minpind, DoFDistribution& dd,TGridFunction& u){
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
 
 	///	world dimension
 	static const int dim = domain_type::dim;
 
-	typename TDD::template traits<TElem>::const_iterator iter, iterBegin, iterEnd;
+	typename DoFDistribution::traits<TElem>::const_iterator iter, iterBegin, iterEnd;
 	LocalIndices ind;
 
 	size_t num_dd_ind = dd.num_indices();
@@ -60,8 +60,8 @@ void cr_get_connections(std::vector<std::vector<size_t> >& vvConnection,size_t& 
 	minpind=num_dd_ind;
 
 	for (int si=0;si<u.num_subsets();si++){
-		iterBegin = dd.template begin<TElem>(si);
-		iterEnd = dd.template end<TElem>(si);
+		iterBegin = dd.begin<TElem>(si);
+		iterEnd = dd.end<TElem>(si);
 		// 	check if at least one element exist
 		if(iterBegin == iterEnd) continue;
 		// 	Loop over all elements
@@ -176,7 +176,7 @@ void CROrderCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 	if(approxSpace.levels_enabled())
 		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,LevelDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
 			CRCuthillMcKee(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
 			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
 		}
@@ -184,7 +184,7 @@ void CROrderCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 	//	order surface
 	if(approxSpace.top_surface_enabled()){
 		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,SurfaceDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);	
+		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
 		CRCuthillMcKee(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
 		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
 	}
@@ -230,7 +230,7 @@ void CROrderSloan(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 	if(approxSpace.levels_enabled())
 		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,LevelDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
 			CRSloan(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
 			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
 		}
@@ -238,7 +238,7 @@ void CROrderSloan(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 	//	order surface
 	if(approxSpace.top_surface_enabled()){
 		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,SurfaceDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);	
+		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
 		CRSloan(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
 		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
 	}
@@ -284,7 +284,7 @@ void CROrderKing(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 	if(approxSpace.levels_enabled())
 		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,LevelDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
 			CRKing(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
 			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
 		}
@@ -292,7 +292,7 @@ void CROrderKing(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 	//	order surface
 	if(approxSpace.top_surface_enabled()){
 		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,SurfaceDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);	
+		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
 		CRKing(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
 		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
 	}
@@ -338,7 +338,7 @@ void CROrderMinimumDegree(ApproximationSpace<TDomain>& approxSpace,TGridFunction
 	if(approxSpace.levels_enabled())
 		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,LevelDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
 			CRMinimumDegree(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
 			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
 		}
@@ -346,7 +346,7 @@ void CROrderMinimumDegree(ApproximationSpace<TDomain>& approxSpace,TGridFunction
 	//	order surface
 	if(approxSpace.top_surface_enabled()){
 		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,SurfaceDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);	
+		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
 		CRMinimumDegree(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
 		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
 	}
@@ -393,7 +393,7 @@ void OrderCRCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 			//	get adjacency graph
 			std::vector<std::vector<size_t> > vvConnection;
 			size_t minpind;
-			cr_get_connections<elem_type,LevelDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
 			//	get mapping for cuthill-mckee order
 			std::vector<size_t> vNewIndex;
 			ComputeCRCuthillMcKeeOrder(vNewIndex,vvConnection,minpind,bReverse);
@@ -406,7 +406,7 @@ void OrderCRCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 		//	get adjacency graph
 		std::vector<std::vector<size_t> > vvConnection;
 		size_t minpind;
-		cr_get_connections<elem_type,SurfaceDoFDistribution,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
+		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
 		//	get mapping for cuthill-mckee order
 		std::vector<size_t> vNewIndex;
 		ComputeCRCuthillMcKeeOrder(vNewIndex,vvConnection,minpind,bReverse);
