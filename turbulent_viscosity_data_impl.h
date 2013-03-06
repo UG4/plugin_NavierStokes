@@ -870,7 +870,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 //	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble deformation tensor fluxes
-	assembleDeformationTensor(m_acDeformation,m_acVolume,m_u);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u);
 	// compute turbulent viscosity , loop over sides
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
@@ -905,7 +905,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 		}
 	}
 	// transfer attachment data to lower levels
-	transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
+	this->transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
 }
 
 template<typename TGridFunction>
@@ -930,29 +930,29 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 
 	// compute Lij term \hat{u_i u_j} - \hat{u_i} \hat{u_j}
 	// \hat{u}
-	elementFilter(m_acUHat,m_acVolumeHat,m_u);
+	this->elementFilter(m_acUHat,m_acVolumeHat,m_u);
 	// use Mij attachment to store first Lij part
 	// u_i u_j
-	addUiUjTerm(m_acMij,1.0,m_u);
+	this->addUiUjTerm(m_acMij,1.0,m_u);
 	// \hat{u_i u_j}
-	elementFilter(m_acLij,m_acVolumeHat,m_acMij);
+	this->elementFilter(m_acLij,m_acVolumeHat,m_acMij);
 	// \hat{u_i u_j} - \hat{u_i} \hat{u_j}
-	addUiUjTerm(m_acLij,-1.0,m_acUHat);
+	this->addUiUjTerm(m_acLij,-1.0,m_acUHat);
 
 	// Mij term
 	// first term |\hat{S}| \hat{S}
 	// assemble \hat{S} using \hat{u}
-	assembleDeformationTensor(m_acDeformationHat,m_acVolume,m_acUHat);
+	this->assembleDeformationTensor(m_acDeformationHat,m_acVolume,m_acUHat);
 	// normalize \hat{S}
-	scaleTensorByNorm(m_acDeformationHat);
+	this->scaleTensorByNorm(m_acDeformationHat);
 	// Mij second term \hat{|S|S}
 	// compute S
-	assembleDeformationTensor(m_acDeformation,m_acVolumeHat,m_u);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolumeHat,m_u);
 	// compute |S| S
-	scaleTensorByNorm(m_acDeformation);
+	this->scaleTensorByNorm(m_acDeformation);
 	// filter |S| S
 	//for debug UG_LOG("------------------------------------------------------\n");
-	elementFilter(m_acMij,m_acVolumeHat,m_acDeformation);
+	this->elementFilter(m_acMij,m_acVolumeHat,m_acDeformation);
 
 	bool use_filter = false;
 
@@ -1019,7 +1019,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 			else c=0;
 
 			if (use_filter==false){
-				m_acTurbulentViscosity[side] = c * delta*delta * FNorm(m_acDeformation[side]);
+				m_acTurbulentViscosity[side] = c * delta*delta * this->FNorm(m_acDeformation[side]);
 				if (m_acTurbulentViscosity[side]+(number)1.0/140000<1e-8) m_acTurbulentViscosity[side] = (number)1.0/140000 + 1e-8;
 				// for debug
 				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << c << " delta = " << delta << " deformNorm = " << FNorm(m_acDeformation[side]) << " denom = " << denom << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
@@ -1034,7 +1034,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	number minnu=1e+8;
 	if (use_filter==true){
 		// filter c
-		elementFilter(m_acTurbulentC,m_acVolumeHat,m_acTurbulentViscosity);
+		this->elementFilter(m_acTurbulentC,m_acVolumeHat,m_acTurbulentViscosity);
 		// compute turbulent viscosity
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 		{
@@ -1047,7 +1047,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 				if (m_pbm && m_pbm->is_slave(side)) continue;
 				number delta = m_acVolume[side];
 				delta = pow(delta,(number)1.0/(number)dim);
-				m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * FNorm(m_acDeformation[side]);
+				m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * this->FNorm(m_acDeformation[side]);
 				if (m_acTurbulentViscosity[side]<minnu){
 					//for debug UG_LOG("**************\n");
 					minnu=m_acTurbulentViscosity[side];

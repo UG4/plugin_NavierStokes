@@ -23,7 +23,7 @@ namespace NavierStokes{
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokes<TDomain>::
-prep_elem_loop_fv1()
+prep_elem_loop_fv1(const ReferenceObjectID roid, const int si)
 {
 // 	Only first order implementation
 	if(!(TFVGeom<TElem, dim>::order == 1))
@@ -799,14 +799,14 @@ register_fv1_func()
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fv1<TElem, TFVGeom>);
-	set_prep_elem_fct(	 	id, &T::template prep_elem_fv1<TElem, TFVGeom>);
-	set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fv1<TElem, TFVGeom>);
-	set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fv1<TElem, TFVGeom>);
-	set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fv1<TElem, TFVGeom>);
-	set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fv1<TElem, TFVGeom>);
-	set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fv1<TElem, TFVGeom>);
-	set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fv1<TElem, TFVGeom>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fv1<TElem, TFVGeom>);
+	this->set_prep_elem_fct(	 	id, &T::template prep_elem_fv1<TElem, TFVGeom>);
+	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fv1<TElem, TFVGeom>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fv1<TElem, TFVGeom>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fv1<TElem, TFVGeom>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fv1<TElem, TFVGeom>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fv1<TElem, TFVGeom>);
+	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fv1<TElem, TFVGeom>);
 }
 
 } // namespace NavierStokes

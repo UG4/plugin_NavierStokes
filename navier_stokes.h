@@ -285,7 +285,7 @@ class NavierStokes
 	 * the DataImports in case of element-fixed points.
 	 */
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem_loop_fv1();
+		void prep_elem_loop_fv1(const ReferenceObjectID roid, const int si);
 
 	///	prepares the element for evaluation
 	/**
@@ -632,7 +632,7 @@ class NavierStokes
 		/* members for staggered grid discretization */
 	public:
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem_loop_cr();
+		void prep_elem_loop_cr(const ReferenceObjectID roid, const int si);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void prep_elem_cr(TElem* elem, LocalVector& u);
@@ -660,7 +660,7 @@ class NavierStokes
 
 	public:
 		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-		void prep_elem_loop_fvho();
+		void prep_elem_loop_fvho(const ReferenceObjectID roid, const int si);
 
 		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
 		void prep_elem_fvho(TElem* elem, const LocalVector& u);
@@ -712,7 +712,7 @@ class NavierStokes
 
 	public:
 		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-		void prep_elem_loop_fe();
+		void prep_elem_loop_fe(const ReferenceObjectID roid, const int si);
 
 		template<typename TElem, typename VGeomProvider, typename PGeomProvider>
 		void prep_elem_fe(TElem* elem, const LocalVector& u);

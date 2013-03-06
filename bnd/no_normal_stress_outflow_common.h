@@ -129,8 +129,8 @@ NavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 	m_vBndSubSetIndex.clear ();
 
 //	register imports
-	register_import(m_imKinViscosity);
-	register_import(m_imDensity);
+	this->register_import(m_imKinViscosity);
+	this->register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
 	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity_data ());

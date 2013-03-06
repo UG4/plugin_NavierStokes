@@ -16,7 +16,7 @@ namespace NavierStokes{
 template<typename TDomain>
 template<typename TElem, typename VGeomProvider, typename PGeomProvider>
 void NavierStokes<TDomain>::
-prep_elem_loop_fvho()
+prep_elem_loop_fvho(const ReferenceObjectID roid, const int si)
 {
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
@@ -30,10 +30,6 @@ prep_elem_loop_fvho()
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
 
-//	request geometry
-	typedef typename reference_element_traits<TElem>::reference_element_type reference_element_type;
-	static const ReferenceObjectID roid = reference_element_type::REFERENCE_OBJECT_ID;
-
 	static typename VGeomProvider::Type& vgeo = VGeomProvider::get();
 	static typename PGeomProvider::Type& pgeo = PGeomProvider::get();
 	try{
@@ -42,11 +38,7 @@ prep_elem_loop_fvho()
 	}
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
-//	set local positions for imports
-	typedef typename reference_element_traits<TElem>::reference_element_type
-																ref_elem_type;
-	static const int refDim = ref_elem_type::dim;
-
+	static const int refDim = TElem::dim;
 	if(!VGeomProvider::Type::usesHangingNodes)
 	{
 		m_imKinViscosity.template set_local_ips<refDim>(vgeo.scvf_local_ips(),
@@ -116,10 +108,7 @@ prep_elem_fvho(TElem* elem, const LocalVector& u)
 //	set local positions for imports
 	if(VGeomProvider::Type::usesHangingNodes)
 	{
-	//	set local positions for imports
-		typedef typename reference_element_traits<TElem>::reference_element_type
-																	ref_elem_type;
-		static const int refDim = ref_elem_type::dim;
+		static const int refDim = TElem::dim;
 
 	//	request ip series
 		m_imKinViscosity.template set_local_ips<refDim>(vgeo.scvf_local_ips(),
@@ -135,10 +124,7 @@ prep_elem_fvho(TElem* elem, const LocalVector& u)
 //	set local positions for imports
 	if(PGeomProvider::Type::usesHangingNodes)
 	{
-	//	set local positions for imports
-		typedef typename reference_element_traits<TElem>::reference_element_type
-																	ref_elem_type;
-		static const int refDim = ref_elem_type::dim;
+		static const int refDim = TElem::dim;
 
 	//	request ip series
 		m_imDensitySCVFp.template set_local_ips<refDim>(pgeo.scvf_local_ips(),
@@ -524,14 +510,14 @@ void NavierStokes<TDomain>::register_fvho_func()
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fvho<TElem, VGeomProvider, PGeomProvider>);
-	set_prep_elem_fct(	 	id, &T::template prep_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fvho<TElem, VGeomProvider, PGeomProvider>);
-	set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_prep_elem_fct(	 	id, &T::template prep_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
 }
 
 } // namespace NavierStokes

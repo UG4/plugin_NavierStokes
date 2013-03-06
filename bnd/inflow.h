@@ -10,7 +10,7 @@
 
 #include "lib_disc/spatial_disc/disc_item.h"
 
-#include "lib_disc/spatial_disc/elem_disc/neumann_boundary/neumann_boundary.h"
+#include "lib_disc/spatial_disc/elem_disc/neumann_boundary/neumann_boundary_base.h"
 #include "lib_disc/spatial_disc/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
 
 namespace ug{
@@ -54,7 +54,7 @@ class NavierStokesInflow
 
 	protected:
 	///	neumann disc for pressure equation
-		SmartPtr<NeumannBoundary<TDomain> > m_spNeumannDisc;
+		SmartPtr<NeumannBoundaryBase<TDomain> > m_spNeumannDisc;
 
 	///	dirichlet disc for velocity components
 		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;

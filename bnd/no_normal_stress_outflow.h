@@ -100,7 +100,7 @@ class NavierStokesNoNormalStressOutflow
 
 	///	prepares the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem_loop_fv1();
+		void prep_elem_loop_fv1(const ReferenceObjectID roid, const int si);
 
 	///	prepares the element for evaluation
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
@@ -121,7 +121,7 @@ class NavierStokesNoNormalStressOutflow
 	public:
 	///	prepares the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem_loop_cr();
+		void prep_elem_loop_cr(const ReferenceObjectID roid, const int si);
 
 	///	prepares the element for evaluation
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>

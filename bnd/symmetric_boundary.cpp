@@ -117,7 +117,7 @@ add
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-prep_elem_loop_cr()
+prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
 {
 //	register subsetIndex at Geometry
 	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
@@ -503,14 +503,14 @@ register_cr_func()
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_cr<TElem, TFVGeom>);
-	set_prep_elem_fct(	   	id, &T::template prep_elem_cr<TElem, TFVGeom>);
-	set_fsh_elem_loop_fct(	id, &T::template fsh_elem_loop_cr<TElem, TFVGeom>);
-	set_add_jac_A_elem_fct(	id, &T::template add_JA_elem_cr<TElem, TFVGeom>);
-	set_add_jac_M_elem_fct(	id, &T::template add_JM_elem<TElem, TFVGeom>);
-	set_add_def_A_elem_fct(	id, &T::template add_dA_elem_cr<TElem, TFVGeom>);
-	set_add_def_M_elem_fct(	id, &T::template add_dM_elem<TElem, TFVGeom>);
-	set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_cr<TElem, TFVGeom>);
+	this->set_prep_elem_fct(	   	id, &T::template prep_elem_cr<TElem, TFVGeom>);
+	this->set_fsh_elem_loop_fct(	id, &T::template fsh_elem_loop_cr<TElem, TFVGeom>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_JA_elem_cr<TElem, TFVGeom>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_JM_elem<TElem, TFVGeom>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_dA_elem_cr<TElem, TFVGeom>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_dM_elem<TElem, TFVGeom>);
+	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

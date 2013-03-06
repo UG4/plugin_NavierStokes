@@ -16,7 +16,7 @@ namespace NavierStokes{
 template<typename TDomain>
 template<typename TElem, typename VGeomProvider, typename PGeomProvider>
 void NavierStokes<TDomain>::
-prep_elem_loop_fe()
+prep_elem_loop_fe(const ReferenceObjectID roid, const int si)
 {
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
@@ -30,10 +30,6 @@ prep_elem_loop_fe()
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
 
-//	request geometry
-	typedef typename reference_element_traits<TElem>::reference_element_type reference_element_type;
-	static const ReferenceObjectID roid = reference_element_type::REFERENCE_OBJECT_ID;
-
 	static DimFEGeometry<dim, dim>& vgeo = VGeomProvider::get();
 	static DimFEGeometry<dim, dim>& pgeo = PGeomProvider::get();
 	try{
@@ -43,8 +39,6 @@ prep_elem_loop_fe()
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Element Geometry.");
 
 //	set local positions for imports
-	typedef typename reference_element_traits<TElem>::reference_element_type
-																ref_elem_type;
 	m_imKinViscosity.set_local_ips(vgeo.local_ips(), vgeo.num_ip());
 	m_imDensitySCVF. set_local_ips(vgeo.local_ips(), vgeo.num_ip());
 	m_imDensitySCV.  set_local_ips(vgeo.local_ips(), vgeo.num_ip());
@@ -263,14 +257,14 @@ void NavierStokes<TDomain>::register_fe_func()
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fe<TElem, VGeomProvider, PGeomProvider>);
-	set_prep_elem_fct(	 	id, &T::template prep_elem_fe<TElem, VGeomProvider, PGeomProvider>);
-	set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fe<TElem, VGeomProvider, PGeomProvider>);
-	set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fe<TElem, VGeomProvider, PGeomProvider>);
-	set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fe<TElem, VGeomProvider, PGeomProvider>);
-	set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fe<TElem, VGeomProvider, PGeomProvider>);
-	set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fe<TElem, VGeomProvider, PGeomProvider>);
-	set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_prep_elem_fct(	 	id, &T::template prep_elem_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fe<TElem, VGeomProvider, PGeomProvider>);
+	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fe<TElem, VGeomProvider, PGeomProvider>);
 }
 
 } // namespace NavierStokes

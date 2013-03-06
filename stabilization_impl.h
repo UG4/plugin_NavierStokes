@@ -151,10 +151,10 @@ update(const FV1Geometry<TElem, dim>* geo,
 	static const size_t numSh = FV1Geometry<TElem, dim>::numSCV;
 
 //	compute upwind (no convective terms for the Stokes eq. => no upwind)
-	if (! bStokes) compute_upwind(geo, vStdVel);
+	if (! bStokes) this->compute_upwind(geo, vStdVel);
 
 //	compute diffusion length
-	compute_diff_length(*geo);
+	this->compute_diff_length(*geo);
 
 //	cache values
 	number vViscoPerDiffLenSq[numIp];
@@ -441,12 +441,12 @@ update(const FV1Geometry<TElem, dim>* geo,
 //	compute upwind and downwind (no convective terms for the Stokes eq. => no upwind)
 	if (! bStokes)
 	{
-		compute_upwind(geo, vStdVel);
-		compute_downwind(geo, vStdVel);
+		this->compute_upwind(geo, vStdVel);
+		this->compute_downwind(geo, vStdVel);
 	}
 
 //	compute diffusion length
-	compute_diff_length(*geo);
+	this->compute_diff_length(*geo);
 
 //	cache values
 	number vViscoPerDiffLenSq[numIp];
