@@ -64,7 +64,7 @@ set_geometry_type()
 	m_numSh = geo.num_sh();
 
 //	set sizes in upwind
-	if(m_spUpwind != NULL) m_spUpwind->set_geometry_type<TFVGeom>();
+	if(m_spUpwind.valid()) m_spUpwind->template set_geometry_type<TFVGeom>();
 	else UG_THROW("Upwind missing.");
 }
 
