@@ -58,7 +58,7 @@ prep_elem_loop_fvho(const ReferenceObjectID roid, const int si)
 
 		const LocalShapeFunctionSet<dim>& rVTrialSpace =
 			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_vorder));
-		const MathVector<dim>* PLocIP = pgeo.scv_local_ips();
+		const MathVector<dim>* PLocIP = pgeo.scvf_local_ips();
 
 		m_vvVShape.resize(pgeo.num_scvf_ips());
 		for(size_t ip = 0; ip < m_vvVShape.size(); ++ip){
@@ -356,27 +356,27 @@ add_def_A_elem_fvho(LocalVector& d, const LocalVector& u)
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < pgeo.num_scvf(); ++i)
 	{
-// 	get current SCVF
-	const typename PGeomProvider::Type::SCVF& scvf = pgeo.scvf(i);
+		// 	get current SCVF
+		const typename PGeomProvider::Type::SCVF& scvf = pgeo.scvf(i);
 
-//	loop integration points
-	for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
-	{
-		////////////////////////////////////////////////////
-		////////////////////////////////////////////////////
-		// Continuity Equation (conservation of mass)
-		////////////////////////////////////////////////////
-		////////////////////////////////////////////////////
+		//	loop integration points
+		for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
+		{
+			////////////////////////////////////////////////////
+			////////////////////////////////////////////////////
+			// Continuity Equation (conservation of mass)
+			////////////////////////////////////////////////////
+			////////////////////////////////////////////////////
 
-	//	compute flux at ip
-		const number contFlux = VecProd(PStdVel[ipCnt], scvf.normal()) * m_imDensitySCVFp[ipCnt];
+			//	compute flux at ip
+			const number contFlux = VecProd(PStdVel[ipCnt], scvf.normal()) * m_imDensitySCVFp[ipCnt];
 
-	//	Add contributions to local defect
-		d(_P_, scvf.from()) += contFlux * scvf.weight(ip);
-		d(_P_, scvf.to()  ) -= contFlux * scvf.weight(ip);
+			//	Add contributions to local defect
+			d(_P_, scvf.from()) += contFlux * scvf.weight(ip);
+			d(_P_, scvf.to()  ) -= contFlux * scvf.weight(ip);
 
-		ipCnt++;
-	}
+			ipCnt++;
+		}
 	}
 }
 
@@ -466,7 +466,7 @@ add_rhs_elem_fvho(LocalVector& d)
 //	if zero data given, return
 	if(!m_imSource.data_given()) return;
 
-	UG_THROW("Not implemented.")
+//	UG_THROW("Not implemented.")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
