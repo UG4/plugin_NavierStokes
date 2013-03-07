@@ -11,7 +11,7 @@
 
 #include "navier_stokes.h"
 #include "upwind.h"
-#include "stabilization.h"
+#include "fv1/stabilization.h"
 #include "navier_stokes_tools.h"
 
 #include "bnd/inflow.h"
@@ -21,8 +21,8 @@
 
 #include "turbulent_viscosity_data.h"
 #include "pressure_separation.h"
-#include "cr_reorder.h"
-#include "cr_ilut.h"
+#include "fvcr/cr_reorder.h"
+#include "fvcr/cr_ilut.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton_update_interface.h"
 #include "lib_disc/function_spaces/grid_function.h"
 #include "lib_algebra/operator/interface/operator_iterator.h"

@@ -271,7 +271,7 @@ void CRSloan(std::vector<size_t>& newIndex,std::vector<std::vector<size_t> >& vv
 			deg[*ui] = degree(*ui, G);
 
 		//Creating a property_map for the indices of a vertex
-		map_type index_map = get(boost::vertex_index, G);
+		//map_type index_map = get(boost::vertex_index, G);
 
 		//Setting the start node
 		Vertex s = vertex(0, G);
@@ -302,7 +302,7 @@ void CRSloan(std::vector<size_t>& newIndex,std::vector<std::vector<size_t> >& vv
 			deg[*ui] = degree(*ui, G);
 
 		//Creating a property_map for the indices of a vertex
-		map_type index_map = get(boost::vertex_index, G);
+		//map_type index_map = get(boost::vertex_index, G);
 
 		//Setting the start node
 		Vertex s = vertex(0, G);
