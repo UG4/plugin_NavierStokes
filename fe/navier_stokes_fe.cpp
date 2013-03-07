@@ -245,19 +245,19 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 	static const DimFEGeometry<dim, dim>& vgeo = Provider<VGeom>::get(m_vorder);
 	static const DimFEGeometry<dim, dim>& pgeo = Provider<PGeom>::get(m_porder);
 
-	for (size_t ip = 0; ip < vgeo.num_ip(); ++ip){
+	for (size_t vip = 0; vip < vgeo.num_ip(); ++vip){
 
-		for (int j = 0; j < dim; ++j){
+		for (int vdim = 0; vdim < dim; ++vdim){
 			for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
 
 				for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
-					for (int i = 0; i < dim; ++i) {
+					for (int udim = 0; udim < dim; ++udim) {
 
-						d(j, vsh) +=  m_imKinViscosity[ip]
-						               * u(j, ush)
-						               * vgeo.global_grad(ip, ush)[i]
-						               * vgeo.global_grad(ip, vsh)[i]
-						               * vgeo.weight(ip);
+						d(vdim, vsh) +=  m_imKinViscosity[vip]
+						               * u(vdim, ush)
+						               * vgeo.global_grad(vip, ush)[udim]
+						               * vgeo.global_grad(vip, vsh)[udim]
+						               * vgeo.weight(vip);
 
 						if(!m_bLaplace) UG_THROW("Not implemented.");
 					}
@@ -267,27 +267,27 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 
 		number pressure = 0.0;
 		for (size_t psh = 0; psh < pgeo.num_sh(); ++psh)
-			pressure += u(_P_, psh) * pgeo.shape(ip, psh);
+			pressure += u(_P_, psh) * pgeo.shape(vip, psh);
 
 		for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
 			for (int vdim = 0; vdim < dim; ++vdim){
 				d(vdim, vsh) -= pressure
-							   * vgeo.global_grad(ip, vsh)[vdim]
-							   * vgeo.weight(ip);
+							   * vgeo.global_grad(vip, vsh)[vdim]
+							   * vgeo.weight(vip);
 			}
 		}
 
 		number divu = 0.0;
 		for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
 			for (int udim = 0; udim < dim; ++udim) {
-				divu += u(udim, ush) * vgeo.global_grad(ip, ush)[udim];
+				divu += u(udim, ush) * vgeo.global_grad(vip, ush)[udim];
 			}
 		}
 
 		for (size_t psh = 0; psh < pgeo.num_sh(); ++psh){
 						d(_P_, psh) += divu
-						               * pgeo.shape(ip, psh)
-						               * vgeo.weight(ip);
+						               * pgeo.shape(vip, psh)
+						               * vgeo.weight(vip);
 		}
 	}
 

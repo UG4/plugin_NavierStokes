@@ -235,7 +235,7 @@ normal_flux_Jac_cr
 		MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
 
 	//	- add (\nabla u)^T
-		if(!m_spMaster->get_laplace())
+		if(!m_spMaster->laplace())
 			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
@@ -285,7 +285,7 @@ normal_flux_defect_cr
 	MatVecMult(normalFlux, gradVel, bf.normal());
 
 //	- add (\nabla u)^T \cdot \vec{n}
-	if(!m_spMaster->get_laplace())
+	if(!m_spMaster->laplace())
 		TransposedMatVecMultAdd(normalFlux, gradVel, bf.normal());
 
 	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -343,7 +343,7 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 				{
 					J(d1, bf.node_id(), d1, sh) += flux_sh*bf.normal()[d1];
 				}
-				if(!m_spMaster->get_laplace())
+				if(!m_spMaster->laplace())
 				{
 					for(int d1 = 0; d1 < dim; ++d1)
 						for(int d2 = 0; d2 < dim; ++d2)
@@ -418,7 +418,7 @@ add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 			MatVecMult(diffFlux, gradVel, bf.normal());
 
 		//	Add (\nabla u)^T \cdot \vec{n}
-			if(!m_spMaster->get_laplace())
+			if(!m_spMaster->laplace())
 				TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
 
 		//	scale by viscosity
@@ -465,8 +465,8 @@ CRNavierStokesSymBC(SmartPtr< NavierStokesBase<TDomain> > spMaster)
 	this->register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
-	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity ());
-	m_imDensity.set_data(spMaster->get_density ());
+	m_imKinViscosity.set_data(spMaster->kinematic_viscosity ());
+	m_imDensity.set_data(spMaster->density ());
 
 //	register assemble functions
 	this->register_all_cr_funcs(false);

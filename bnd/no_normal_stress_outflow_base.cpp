@@ -97,8 +97,8 @@ NavierStokesNoNormalStressOutflowBase(SmartPtr< NavierStokesBase<TDomain> > spMa
 	this->register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
-	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity ());
-	m_imDensity.set_data(spMaster->get_density ());
+	m_imKinViscosity.set_data(spMaster->kinematic_viscosity ());
+	m_imDensity.set_data(spMaster->density ());
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -52,13 +52,13 @@ class NavierStokesFVCR
 		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user);
 
 	///	returns kinematic viscosity
-		SmartPtr<UserData<number, dim> > get_kinematic_viscosity() {return m_imKinViscosity.user_data ();}
+		SmartPtr<UserData<number, dim> > kinematic_viscosity() {return m_imKinViscosity.user_data ();}
 
 	///	sets the density
 		void set_density(SmartPtr<UserData<number, dim> > user);
 
 	///	returns density
-		SmartPtr<UserData<number, dim> > get_density() {return m_imDensitySCVF.user_data ();}
+		SmartPtr<UserData<number, dim> > density() {return m_imDensitySCVF.user_data ();}
 
 	///	sets the source function
 		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);

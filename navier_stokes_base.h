@@ -150,7 +150,7 @@ class NavierStokesBase
 	///	\}
 
 	///	returns kinematic viscosity
-		virtual SmartPtr<UserData<number, dim> > get_kinematic_viscosity() = 0;
+		virtual SmartPtr<UserData<number, dim> > kinematic_viscosity() = 0;
 
 	///	sets the density
 	/**
@@ -167,7 +167,7 @@ class NavierStokesBase
 	///	\}
 
 	///	returns density
-		virtual SmartPtr<UserData<number, dim> > get_density() = 0;
+		virtual SmartPtr<UserData<number, dim> > density() = 0;
 
 	///	sets the source function
 	/**
@@ -187,7 +187,7 @@ class NavierStokesBase
 	 * \param[in]	Stokes		true to solve Stokes (i.e. without the convective terms)
 	 */
 		void set_stokes(bool Stokes) {m_bStokes = Stokes;}
-		bool get_stokes() {return m_bStokes;}
+		bool stokes() {return m_bStokes;}
 
 	///	sets assembling of diffusive term to laplace
 	/**
@@ -202,7 +202,7 @@ class NavierStokesBase
 	 * for incompressible flow (i.e. div v = 0).
 	 */
 		void set_laplace(bool bLaplace) {m_bLaplace = bLaplace;}
-		bool get_laplace() {return m_bLaplace;}
+		bool laplace() {return m_bLaplace;}
 
     ///	sets if peclet blending is used in momentum equation
         void set_peclet_blend(bool pecletBlend) {m_bPecletBlend = pecletBlend;}

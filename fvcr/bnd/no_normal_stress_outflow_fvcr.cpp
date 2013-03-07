@@ -203,7 +203,7 @@ diffusive_flux_Jac
 		MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
 
 	//	- add (\nabla u)^T
-		if(!m_spMaster->get_laplace())
+		if(!m_spMaster->laplace())
 			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
@@ -256,7 +256,7 @@ diffusive_flux_defect
 	MatVecMult(diffFlux, gradVel, bf.normal());
 
 //	- add (\nabla u)^T \cdot \vec{n}
-	if(!m_spMaster->get_laplace())
+	if(!m_spMaster->laplace())
 		TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
 
 //	3. Subtract the normal part:
@@ -365,7 +365,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 		{
 		//	A. The momentum equation:
 			diffusive_flux_Jac<BF> (ip, *bf, J, u);
-			if (!m_spMaster->get_stokes ())
+			if (!m_spMaster->stokes ())
 				convective_flux_Jac<BF> (ip, *bf, J, u);
 
 		//	B. The continuity equation
@@ -411,7 +411,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 		{
 		// A. Momentum equation:
 			diffusive_flux_defect<BF> (ip, *bf, d, u);
-			if (!m_spMaster->get_stokes ())
+			if (!m_spMaster->stokes ())
 				convective_flux_defect<BF> (ip, *bf, d, u);
 
 		// Next IP:
