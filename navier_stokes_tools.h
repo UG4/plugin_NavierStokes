@@ -619,7 +619,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 			}
 		}
 	}
-	UG_LOG("\nMax CFL number is " << maxCfl << "\n\n");
+	UG_LOG("Max CFL number is " << maxCfl << "\n");
 }
 
 // Compute 1/|\Omega| \int_{\Omega} \hat{u_i} \hat{u_i} dx , where \Omega is the computational domain.
@@ -738,7 +738,7 @@ void kineticEnergy(TGridFunction& u){
 	}
 	// average
 	totalE/=(number)totalVol;
-	UG_LOG("\nTotal kinetic energy in domain is " << totalE << "\n\n");
+	UG_LOG("Total kinetic energy in domain is " << totalE << "\n");
 }
 
 

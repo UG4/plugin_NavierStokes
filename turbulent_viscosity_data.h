@@ -388,6 +388,7 @@ class CRSmagorinskyTurbViscData
 					const number valSH = m_acTurbulentViscosity[sides[sh]];
 					 vValue[ip] += valSH * vShape[sh];
 				}
+			//	UG_LOG(ip << " " << vValue[ip] << "\n");
 			}
 
 			}
@@ -635,7 +636,7 @@ class CRDynamicTurbViscData
                     nip,
                     vJT);
 			for (size_t ip=0;ip < nip;ip++){
-				// UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
+			//  UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
 				vValue[ip] += kinViscValues[ip];
 			}
 		}
