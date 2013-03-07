@@ -21,9 +21,16 @@
 
 namespace ug{
 	
-/*	
+/*
+	// print transposed matrix to file in octave format, e.g. 	print_matrix_for_octave(mat,"A.m","A")
+	// can then be called by load('A.m');A=A';
+	// transposed matrix due to different ug and matlab matrix format (row-wise vs. column-wise)
+	// gives a lot of warnings and only usable with unblocked algebra
+	// therefore outcommented in official version
 	template<typename Matrix_type>
-	bool print_matrix_for_octave(const Matrix_type &A,char* fmatname,char* matname){
+	bool print_matrix_for_octave(const Matrix_type &A, // matrix
+	char* fmatname, // filename 
+	char* matname){ // matrix name
 		FILE* datafile;
 		datafile = fopen(fmatname,"w");
 		if (datafile==NULL){
@@ -40,8 +47,8 @@ namespace ug{
 					fprintf(datafile,"%d %d %.16lf\n",(int)it.index()+1,(int)i+1,it.value());
 		fclose(datafile);
 		return true;
-	};*/
-	
+	};
+*/
 	
 /// CRILUTPreconditioner class
 /*	Threshold ILU method

@@ -206,12 +206,12 @@ compute(const CRFVGeometry<TElem, dim>* geo,
         const number flux = VecDot(scvf.normal(), vIPVel[ip]);
         if(flux > 0.0)
         {
-        	vUpShapeSh[ip][scvf.from()] = this->m_weight*1.0;
+        	vUpShapeSh[ip][scvf.from()] = this->m_weight;
         	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
         }
         else
         {
-        	vUpShapeSh[ip][scvf.to()] = this->m_weight*1.0;
+        	vUpShapeSh[ip][scvf.to()] = this->m_weight;
         	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
         }
 
