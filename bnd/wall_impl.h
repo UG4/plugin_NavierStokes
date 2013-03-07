@@ -18,7 +18,7 @@ namespace NavierStokes{
 
 template <typename TDomain, typename TAlgebra>
 NavierStokesWall<TDomain,TAlgebra>::
-NavierStokesWall(SmartPtr< NavierStokes<TDomain> > spMaster)
+NavierStokesWall(SmartPtr< NavierStokesBase<TDomain> > spMaster)
 	: m_spDirichletConstraint(new DirichletBoundary<TDomain,TAlgebra>)
 {
 	m_vFctName = spMaster->symb_fcts();

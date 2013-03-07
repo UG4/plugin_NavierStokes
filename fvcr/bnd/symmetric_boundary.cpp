@@ -449,7 +449,7 @@ add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 
 template<typename TDomain>
 CRNavierStokesSymBC<TDomain>::
-CRNavierStokesSymBC(SmartPtr< NavierStokes<TDomain> > spMaster)
+CRNavierStokesSymBC(SmartPtr< NavierStokesBase<TDomain> > spMaster)
 : IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
 {
 //	check number of functions
@@ -465,7 +465,7 @@ CRNavierStokesSymBC(SmartPtr< NavierStokes<TDomain> > spMaster)
 	this->register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
-	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity_data ());
+	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity ());
 	m_imDensity.set_data(spMaster->get_density ());
 
 //	register assemble functions
@@ -517,9 +517,15 @@ register_cr_func()
 //	explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef UG_DIM_1
 template class CRNavierStokesSymBC<Domain1d>;
+#endif
+#ifdef UG_DIM_2
 template class CRNavierStokesSymBC<Domain2d>;
+#endif
+#ifdef UG_DIM_3
 template class CRNavierStokesSymBC<Domain3d>;
+#endif
 
 } // namespace NavierStokes
 } // end namespace ug

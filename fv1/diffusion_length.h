@@ -5,8 +5,8 @@
  *      Author: josefdubsky, andreasvogel, raphaelprohl
  */
 
-#ifndef __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__DIFFUSION_LENGTH__
-#define __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__DIFFUSION_LENGTH__
+#ifndef __H__UG__PLUGINS__NAVIER_STOKES__FV__DIFFUSION_LENGTH__
+#define __H__UG__PLUGINS__NAVIER_STOKES__FV__DIFFUSION_LENGTH__
 
 // other ug4 modules
 #include "common/common.h"
@@ -175,4 +175,4 @@ void NSDiffLengthCor(number DiffLengthSqInv[], const TFVGeometry& geo)
 } // namespace NavierStokes
 } // end namespace ug
 
-#endif /* __H__UG__LIB_DISC__SPATIAL_DISC__ELEM_DISC__NAVIER_STOKES__FV__DIFFUSION_LENGTH__ */
+#endif /* __H__UG__PLUGINS__NAVIER_STOKES__FV__DIFFUSION_LENGTH__ */

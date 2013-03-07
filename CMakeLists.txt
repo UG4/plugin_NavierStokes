@@ -13,11 +13,25 @@ include("../../../ug_plugin_cmake_includes.txt")
 
 
 # sources
-set(SOURCES	navier_stokes.cpp
-			upwind.cpp
+set(SOURCES	navier_stokes_base.cpp
+			fv1/navier_stokes_fv1.cpp
+			fe/navier_stokes_fe.cpp
+			fvcr/navier_stokes_fvcr.cpp
+			fv/navier_stokes_fv.cpp
+
+			bnd/no_normal_stress_outflow_base.cpp
+			fv1/bnd/no_normal_stress_outflow_fv1.cpp
+			fvcr/bnd/no_normal_stress_outflow_fvcr.cpp
+
+			fvcr/bnd/symmetric_boundary.cpp
 			fvcr/cr_reorder.cpp
-			bnd/no_normal_stress_outflow.cpp
-			bnd/symmetric_boundary.cpp
+			
+			upwind.cpp
+			
+			fv1/register_fv1.cpp
+			fv/register_fv.cpp
+			fvcr/register_fvcr.cpp
+			fe/register_fe.cpp
 			navier_stokes_plugin.cpp)
 
 

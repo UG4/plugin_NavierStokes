@@ -9,23 +9,23 @@
 #include "bridge/util.h"
 #include "bridge/util_domain_algebra_dependent.h"
 
-#include "navier_stokes.h"
+#include "navier_stokes_base.h"
 #include "upwind.h"
-#include "fv1/stabilization.h"
 #include "navier_stokes_tools.h"
 
-#include "bnd/inflow.h"
+#include "bnd/inflow_base.h"
 #include "bnd/wall.h"
-#include "bnd/no_normal_stress_outflow.h"
-#include "bnd/symmetric_boundary.h"
+#include "bnd/no_normal_stress_outflow_base.h"
 
 #include "turbulent_viscosity_data.h"
 #include "pressure_separation.h"
-#include "fvcr/cr_reorder.h"
-#include "fvcr/cr_ilut.h"
-#include "lib_disc/operator/non_linear_operator/newton_solver/newton_update_interface.h"
+
+#include "fv1/register_fv1.h"
+#include "fv/register_fv.h"
+#include "fvcr/register_fvcr.h"
+#include "fe/register_fe.h"
+
 #include "lib_disc/function_spaces/grid_function.h"
-#include "lib_algebra/operator/interface/operator_iterator.h"
 
 using namespace std;
 using namespace ug::bridge;
@@ -59,22 +59,18 @@ static void DomainAlgebra(Registry& reg, string grp)
 	typedef ApproximationSpace<TDomain> approximation_space_type;
 	typedef GridFunction<TDomain, TAlgebra> function_type;
 
-//	NavierStokesInflow
+	//	NavierStokesInflowBase
 	{
-		typedef NavierStokesInflow<TDomain, TAlgebra> T;
+		typedef NavierStokesInflowBase<TDomain, TAlgebra> T;
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
-		string name = string("NavierStokesInflow").append(suffix);
+		string name = string("NavierStokesInflowBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterElemDisc")
-
-			.add_method("add", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
-			.add_method("add", static_cast<void (T::*)(const std::vector<number>&, const char*)>(&T::add), "", "Velocity, Subset")
 #ifdef UG_FOR_LUA
 			.add_method("add", static_cast<void (T::*)(const char*, const char*)>(&T::add), "", "Velocity")
 #endif
-
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesInflow", tag);
+			.add_method("add", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >, const char*)>(&T::add), "", "Velocity, Subset")
+			.add_method("add", static_cast<void (T::*)(const std::vector<number>&, const char*)>(&T::add), "", "Velocity, Subset");
+		reg.add_class_to_group(name, "NavierStokesInflowBase", tag);
 	}
 
 //	NavierStokesWall
@@ -83,7 +79,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
 		string name = string("NavierStokesWall").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterElemDisc")
+			.template add_constructor<void (*)(SmartPtr< NavierStokesBase<TDomain> >)>("MasterElemDisc")
 			.add_method("add", &T::add)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWall", tag);
@@ -154,31 +150,6 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_function("cflNumber",static_cast<void (*)(function_type&,number)>(&cflNumber),grp);
 	}
 	
-	//	Order CR-Cuthill-McKee
-	{
-		reg.add_function("OrderCRCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool)>(&OrderCRCuthillMcKee), grp);
-	}
-	
-	//	Order CR-Cuthill-McKee
-	{
-		reg.add_function("CROrderCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool,bool)>(&CROrderCuthillMcKee), grp);
-	}
-	
-	//	Order CR-Sloan
-	{
-		reg.add_function("CROrderSloan", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderSloan), grp);
-	}
-	
-	//	Order CR-King
-	{
-		reg.add_function("CROrderKing", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool,bool)>(&CROrderKing), grp);
-	}
-	
-	//	Order CR-Minimum Degree
-	{
-		reg.add_function("CROrderMinimumDegree", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderMinimumDegree), grp);
-	}
-
 	// vorticity computation
 	{
 		reg.add_function("vorticity", static_cast<void (*)(function_type&,function_type&)>(&vorticity), grp);
@@ -210,22 +181,6 @@ static void Algebra(Registry& reg, string grp)
 	string suffix = GetAlgebraSuffix<TAlgebra>();
 	string tag = GetAlgebraTag<TAlgebra>();
 	
-	//	CR ILU Threshold
-	{
-		typedef CRILUTPreconditioner<TAlgebra> T;
-		typedef IPreconditioner<TAlgebra> TBase;
-		string name = string("CRILUT").append(suffix);
-		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
-		.add_constructor()
-		.add_method("set_threshold",static_cast<void (T::*)(number,number,number,number)>(&T::set_threshold),
-					"", "threshold", "sets threshold of incomplete LU factorisation")
-		.add_method("set_threshold",static_cast<void (T::*)(number)>(&T::set_threshold),
-					"", "threshold", "sets threshold of incomplete LU factorisation")
-		.add_method("set_info", &T::set_info,
-					"", "info", "sets storage information output")
-		.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "CRILUT", tag);
-	}
 }
 
 /**
@@ -244,17 +199,12 @@ static void Domain(Registry& reg, string grp)
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
-//	Navier-Stokes
+//	Navier-Stokes Base
 	{
-		typedef NavierStokes<TDomain> T;
+		typedef NavierStokesBase<TDomain> T;
 		typedef IDomainElemDisc<TDomain> TBase;
-		string name = string("NavierStokes").append(suffix);
+		string name = string("NavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
-			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
-			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
-			.template add_constructor<void (*)(const char*,const char*, const char*)>("Functions#Subset(s)#DiscScheme")
-			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&, const char*)>("Functions#Subset(s)#DiscScheme")
-
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 #ifdef UG_FOR_LUA
@@ -273,41 +223,24 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Source")
 #endif
 
-			.add_method("set_stabilization", &T::set_stabilization)
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesFV1Stabilization<dim> >)>(&T::set_conv_upwind))
-			.add_method("set_conv_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_conv_upwind))
+			.add_method("disc_type", &T::disc_type)
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_exact_jacobian", &T::set_exact_jacobian)
 			.add_method("set_laplace", &T::set_laplace)
-			.add_method("set_stokes", &T::set_stokes)
-			.add_method("set_defect_upwind", &T::set_defect_upwind)
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokes", tag);
+			.add_method("set_stokes", &T::set_stokes);
+		reg.add_class_to_group(name, "NavierStokesBase", tag);
 	}
 
-//	NavierStokesNoNormalStressOutflow
+	//	NavierStokesNoNormalStressOutflowBase
 	{
-		typedef NavierStokesNoNormalStressOutflow<TDomain> T;
+		typedef NavierStokesNoNormalStressOutflowBase<TDomain> T;
 		typedef IDomainElemDisc<TDomain> TBase;
-		string name = string("NavierStokesNoNormalStressOutflow").append(suffix);
+		string name = string("NavierStokesNoNormalStressOutflowBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterDisc")
-			.add_method("add", &T::add, "", "Subset(s)")
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflow", tag);
+			.add_method("add", &T::add, "", "Subset(s)");
+		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflowBase", tag);
 	}
 
-//	CRNavierStokesSymBC
-	{
-		typedef CRNavierStokesSymBC<TDomain> T;
-		typedef IDomainElemDisc<TDomain> TBase;
-		string name = string("CRNavierStokesSymBC").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-			.template add_constructor<void (*)(SmartPtr< NavierStokes<TDomain> >)>("MasterDisc")
-			.add_method("add", &T::add, "", "Subset(s)")
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "CRNavierStokesSymBC", tag);
-	}
 }
 
 /**
@@ -329,8 +262,6 @@ static void Dimension(Registry& reg, string grp)
 // Upwind
 /////////////////////////////////////////////////////////////////////////////
 	
-//  FV1 collocated
-
 //	INavierStokesUpwind
 	{
 		typedef INavierStokesUpwind<dim> T;
@@ -417,44 +348,6 @@ static void Dimension(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesWeightedUpwind", tag);
 	}
 
-
-/////////////////////////////////////////////////////////////////////////////
-// Stabilization
-/////////////////////////////////////////////////////////////////////////////
-
-
-//	INavierStokesFV1Stabilization
-	{
-		typedef INavierStokesFV1Stabilization<dim> T;
-		string name = string("INavierStokesFV1Stabilization").append(suffix);
-		reg.add_class_<T>(name, grp)
-			.add_method("set_upwind", &T::set_upwind)
-			.add_method("set_diffusion_length", &T::set_diffusion_length);
-		reg.add_class_to_group(name, "INavierStokesFV1Stabilization", tag);
-	}
-
-//	NavierStokesFIELDSStabilization
-	{
-		typedef NavierStokesFIELDSStabilization<dim> T;
-		typedef INavierStokesFV1Stabilization<dim> TBase;
-		string name = string("NavierStokesFIELDSStabilization").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor()
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesFIELDSStabilization", tag);
-	}
-
-//	NavierStokesFLOWStabilization
-	{
-		typedef NavierStokesFLOWStabilization<dim> T;
-		typedef INavierStokesFV1Stabilization<dim> TBase;
-		string name = string("NavierStokesFLOWStabilization").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
-			.add_constructor()
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "NavierStokesFLOWStabilization", tag);
-	}
-
 }
 
 }; // end Functionality
@@ -467,14 +360,19 @@ static void Dimension(Registry& reg, string grp)
 extern "C" void
 InitUGPlugin_NavierStokes(Registry* reg, string grp)
 {
-	grp.append("/SpatialDisc/NavierStokes");
+	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::Functionality Functionality;
 
 	try{
 		RegisterDimensionDependent<Functionality>(*reg,grp);
 		RegisterDomainDependent<Functionality>(*reg,grp);
-		RegisterAlgebraDependent<Functionality>(*reg,grp);
+//		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		RegisterDomainAlgebraDependent<Functionality>(*reg,grp);
+
+		Init___NavierStokes___FV1(reg, grp);
+		Init___NavierStokes___FVCR(reg, grp);
+		Init___NavierStokes___FV(reg, grp);
+		Init___NavierStokes___FE(reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }

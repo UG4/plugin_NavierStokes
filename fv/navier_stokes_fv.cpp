@@ -1,11 +1,11 @@
 /*
- * navier_stokes_fvho.h
+ * navier_stokes_fv.cpp
  *
  *  Created on: 20.09.2010
  *      Author: andreasvogel
  */
 
-#include "navier_stokes.h"
+#include "navier_stokes_fv.h"
 
 #include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fvho_geom.h"
@@ -13,10 +13,147 @@
 namespace ug{
 namespace NavierStokes{
 
+////////////////////////////////////////////////////////////////////////////////
+//	Constructor - set default values
+////////////////////////////////////////////////////////////////////////////////
+
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-prep_elem_loop_fvho(const ReferenceObjectID roid, const int si)
+NavierStokesFV<TDomain>::NavierStokesFV(const char* functions,
+                                          const char* subsets)
+: NavierStokesBase<TDomain>(functions, subsets)
+{
+	init();
+};
+
+template<typename TDomain>
+NavierStokesFV<TDomain>::NavierStokesFV(const std::vector<std::string>& vFct,
+                                          const std::vector<std::string>& vSubset)
+: NavierStokesBase<TDomain>(vFct, vSubset)
+{
+	init();
+};
+
+
+template<typename TDomain>
+void NavierStokesFV<TDomain>::init()
+{
+//	check number of functions
+	if(this->num_fct() != dim+1)
+		UG_THROW("Wrong number of functions: The ElemDisc 'NavierStokes'"
+					   " needs exactly "<<dim+1<<" symbolic function.");
+//	register imports
+	this->register_import(m_imSource);
+	this->register_import(m_imKinViscosity);
+	this->register_import(m_imDensitySCVF);
+	this->register_import(m_imDensitySCVFp);
+	this->register_import(m_imDensitySCV);
+
+	m_imSource.set_rhs_part();
+	m_imDensitySCV.set_mass_part();
+
+	//	default value for density
+	base_type::set_density(1.0);
+
+	//	update assemble functions
+	register_all_funcs(1, 1);
+}
+
+template<typename TDomain>
+bool NavierStokesFV<TDomain>::request_non_regular_grid(bool bNonRegular)
+{
+//	switch, which assemble functions to use.
+	if(bNonRegular)
+	{
+		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
+				" Non-regular grid not implemented.\n");
+		return false;
+	}
+
+//	this disc supports regular grids
+	return true;
+}
+
+template<typename TDomain>
+bool NavierStokesFV<TDomain>::
+request_finite_element_id(const std::vector<LFEID>& vLfeID)
+{
+//	check number
+	if(vLfeID.size() != dim+1)
+	{
+		UG_LOG("NavierStokes:"
+				" Wrong number of functions given. Need exactly "<<dim+1<<"\n");
+		return false;
+	}
+
+	for(int d = 1; d < dim; ++d)
+		if(vLfeID[0] != vLfeID[d])
+		{
+			UG_LOG("NavierStokes: trial spaces for velocity expected to be"
+					" identical for all velocity components.\n");
+			return false;
+		}
+
+	for(int d = 0; d <= dim; ++d)
+		if(vLfeID[d].type() != LFEID::LAGRANGE)
+		{
+			UG_LOG("NavierStokes: 'fv' expects Lagrange trial space "
+					"for velocity and pressure.\n");
+			return false;
+		}
+	for(int d = 0; d < dim; ++d)
+		if(vLfeID[d].order() != vLfeID[dim].order() + 1)
+		{
+			UG_LOG("NavierStokes: 'fv' expects Lagrange trial space "
+					"P_k for velocity and P_{k-1} pressure.\n");
+			return false;
+		}
+
+//	remember lfeID;
+	m_vLFEID = vLfeID[0];
+	m_pLFEID = vLfeID[dim];
+
+//	set order
+	m_vorder = vLfeID[0].order();
+	m_porder = vLfeID[dim].order();
+
+	//	update assemble functions
+	register_all_funcs(m_vorder, m_porder);
+
+	//	is supported
+	return true;
+}
+
+template<typename TDomain>
+void NavierStokesFV<TDomain>::
+set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
+{
+	m_imKinViscosity.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokesFV<TDomain>::
+set_density(SmartPtr<UserData<number, dim> > data)
+{
+	m_imDensitySCVF.set_data(data);
+	m_imDensitySCVFp.set_data(data);
+	m_imDensitySCV.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokesFV<TDomain>::
+set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
+{
+	m_imSource.set_data(data);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//	assembling functions
+////////////////////////////////////////////////////////////////////////////////
+
+template<typename TDomain>
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+prep_elem_loop(const ReferenceObjectID roid, const int si)
 {
 //	check, that kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
@@ -30,8 +167,8 @@ prep_elem_loop_fvho(const ReferenceObjectID roid, const int si)
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
 
-	static typename VGeomProvider::Type& vgeo = VGeomProvider::get();
-	static typename PGeomProvider::Type& pgeo = PGeomProvider::get();
+	VGeom& vgeo = Provider<VGeom>::get(m_vorder);
+	PGeom& pgeo = Provider<PGeom>::get(m_porder);
 	try{
 		vgeo.update_local(roid, m_vorder);
 		pgeo.update_local(roid, m_porder);
@@ -39,7 +176,7 @@ prep_elem_loop_fvho(const ReferenceObjectID roid, const int si)
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
 	static const int refDim = TElem::dim;
-	if(!VGeomProvider::Type::usesHangingNodes)
+	if(!VGeom::usesHangingNodes)
 	{
 		m_imKinViscosity.template set_local_ips<refDim>(vgeo.scvf_local_ips(),
 		                                                vgeo.num_scvf_ips());
@@ -51,7 +188,7 @@ prep_elem_loop_fvho(const ReferenceObjectID roid, const int si)
 		                                          vgeo.num_scv_ips());
 	}
 
-	if(!PGeomProvider::Type::usesHangingNodes)
+	if(!PGeom::usesHangingNodes)
 	{
 		m_imDensitySCVFp.template set_local_ips<refDim>(pgeo.scvf_local_ips(),
 		                                               pgeo.num_scvf_ips());
@@ -83,20 +220,20 @@ prep_elem_loop_fvho(const ReferenceObjectID roid, const int si)
 }
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-fsh_elem_loop_fvho()
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+fsh_elem_loop()
 {}
 
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-prep_elem_fvho(TElem* elem, const LocalVector& u)
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+prep_elem(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
-	static typename VGeomProvider::Type& vgeo = VGeomProvider::get();
-	static typename PGeomProvider::Type& pgeo = PGeomProvider::get();
+	VGeom& vgeo = Provider<VGeom>::get(m_vorder);
+	PGeom& pgeo = Provider<PGeom>::get(m_porder);
 	try{
 		vgeo.update(elem, this->template element_corners<TElem>(elem),
 	               &(this->subset_handler()));
@@ -106,7 +243,7 @@ prep_elem_fvho(TElem* elem, const LocalVector& u)
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
-	if(VGeomProvider::Type::usesHangingNodes)
+	if(VGeom::usesHangingNodes)
 	{
 		static const int refDim = TElem::dim;
 
@@ -122,7 +259,7 @@ prep_elem_fvho(TElem* elem, const LocalVector& u)
 	}
 
 //	set local positions for imports
-	if(PGeomProvider::Type::usesHangingNodes)
+	if(PGeom::usesHangingNodes)
 	{
 		static const int refDim = TElem::dim;
 
@@ -141,19 +278,19 @@ prep_elem_fvho(TElem* elem, const LocalVector& u)
 }
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-add_jac_A_elem_fvho(LocalMatrix& J, const LocalVector& u)
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 {
 //	request geometry
-	static const typename VGeomProvider::Type& vgeo = VGeomProvider::get();
-	static const typename PGeomProvider::Type& pgeo = PGeomProvider::get();
+	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
+	const PGeom& pgeo = Provider<PGeom>::get(m_porder);
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
 	{
 	// 	get current SCVF
-		const typename VGeomProvider::Type::SCVF& scvf = vgeo.scvf(i);
+		const typename VGeom::SCVF& scvf = vgeo.scvf(i);
 
 	//	loop integration points
 		for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
@@ -233,7 +370,7 @@ add_jac_A_elem_fvho(LocalMatrix& J, const LocalVector& u)
 	for(size_t i = 0, ipCnt = 0; i < pgeo.num_scvf(); ++i)
 	{
 // 	get current SCVF
-	const typename PGeomProvider::Type::SCVF& scvf = pgeo.scvf(i);
+	const typename PGeom::SCVF& scvf = pgeo.scvf(i);
 
 //	loop integration points
 	for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
@@ -258,19 +395,19 @@ add_jac_A_elem_fvho(LocalMatrix& J, const LocalVector& u)
 }
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-add_def_A_elem_fvho(LocalVector& d, const LocalVector& u)
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+add_def_A_elem(LocalVector& d, const LocalVector& u)
 {
 //	request geometry
-	static const typename VGeomProvider::Type& vgeo = VGeomProvider::get();
-	static const typename PGeomProvider::Type& pgeo = PGeomProvider::get();
+	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
+	const PGeom& pgeo = Provider<PGeom>::get(m_porder);
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
 	{
 // 	get current SCVF
-	const typename VGeomProvider::Type::SCVF& scvf = vgeo.scvf(i);
+	const typename VGeom::SCVF& scvf = vgeo.scvf(i);
 
 //	loop integration points
 	for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
@@ -357,7 +494,7 @@ add_def_A_elem_fvho(LocalVector& d, const LocalVector& u)
 	for(size_t i = 0, ipCnt = 0; i < pgeo.num_scvf(); ++i)
 	{
 		// 	get current SCVF
-		const typename PGeomProvider::Type::SCVF& scvf = pgeo.scvf(i);
+		const typename PGeom::SCVF& scvf = pgeo.scvf(i);
 
 		//	loop integration points
 		for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
@@ -382,18 +519,18 @@ add_def_A_elem_fvho(LocalVector& d, const LocalVector& u)
 
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-add_jac_M_elem_fvho(LocalMatrix& J, const LocalVector& u)
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 {
 //	request geometry
-	static const typename VGeomProvider::Type& vgeo = VGeomProvider::get();
+	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0, ipOffset = 0; ip < vgeo.num_scv(); ++ip)
 	{
 	// 	get current SCV
-		const typename VGeomProvider::Type::SCV& scv = vgeo.scv(ip);
+		const typename VGeom::SCV& scv = vgeo.scv(ip);
 
 	//	loop shapes
 		for(size_t sh = 0; sh < scv.num_sh(); ++sh)
@@ -422,18 +559,18 @@ add_jac_M_elem_fvho(LocalMatrix& J, const LocalVector& u)
 
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-add_def_M_elem_fvho(LocalVector& d, const LocalVector& u)
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+add_def_M_elem(LocalVector& d, const LocalVector& u)
 {
 //	request geometry
-	static const typename VGeomProvider::Type& vgeo = VGeomProvider::get();
+	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scv(); ++i)
 	{
 	// 	get current SCV
-		const typename VGeomProvider::Type::SCV& scv = vgeo.scv(i);
+		const typename VGeom::SCV& scv = vgeo.scv(i);
 
 	// 	get associated node
 		const int co = scv.node_id();
@@ -459,9 +596,9 @@ add_def_M_elem_fvho(LocalVector& d, const LocalVector& u)
 
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::
-add_rhs_elem_fvho(LocalVector& d)
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::
+add_rhs_elem(LocalVector& d)
 {
 //	if zero data given, return
 	if(!m_imSource.data_given()) return;
@@ -475,50 +612,64 @@ add_rhs_elem_fvho(LocalVector& d)
 
 // register for all dim
 template<>
-void NavierStokes<Domain1d>::
-register_all_fvho_funcs(int order)
+void NavierStokesFV<Domain1d>::
+register_all_funcs(int vorder, int porder)
 {
 	UG_THROW("Not implemented.");
 }
 
 // register for all dim
 template<>
-void NavierStokes<Domain2d>::
-register_all_fvho_funcs(int order)
+void NavierStokesFV<Domain2d>::
+register_all_funcs(int vorder, int porder)
 {
 	typedef DimFVGeometry<2, dim> FVGeom;
-	register_fvho_func<Triangle, VFlexGeomProvider<FVGeom>, PFlexGeomProvider<FVGeom> >();
-	register_fvho_func<Quadrilateral, VFlexGeomProvider<FVGeom>, PFlexGeomProvider<FVGeom> >();
+	register_func<Triangle, FVGeom, FVGeom >();
+	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
 
 // register for all dim
 template<>
-void NavierStokes<Domain3d>::
-register_all_fvho_funcs(int order)
+void NavierStokesFV<Domain3d>::
+register_all_funcs(int vorder, int porder)
 {
 	typedef DimFVGeometry<3, dim> FVGeom;
-	register_fvho_func<Tetrahedron, VFlexGeomProvider<FVGeom>, PFlexGeomProvider<FVGeom> >();
-	register_fvho_func<Prism, VFlexGeomProvider<FVGeom>, PFlexGeomProvider<FVGeom> >();
-	register_fvho_func<Hexahedron, VFlexGeomProvider<FVGeom>, PFlexGeomProvider<FVGeom> >();
+	register_func<Tetrahedron, FVGeom, FVGeom >();
+	register_func<Prism, FVGeom, FVGeom >();
+	register_func<Hexahedron, FVGeom, FVGeom >();
 }
 
 template<typename TDomain>
-template<typename TElem, typename VGeomProvider, typename PGeomProvider>
-void NavierStokes<TDomain>::register_fvho_func()
+template<typename TElem, typename VGeom, typename PGeom>
+void NavierStokesFV<TDomain>::register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fvho<TElem, VGeomProvider, PGeomProvider>);
-	this->set_prep_elem_fct(	 	id, &T::template prep_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fvho<TElem, VGeomProvider, PGeomProvider>);
-	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
-	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fvho<TElem, VGeomProvider, PGeomProvider>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, VGeom, PGeom>);
+	this->set_prep_elem_fct(	 	id, &T::template prep_elem<TElem, VGeom, PGeom>);
+	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop<TElem, VGeom, PGeom>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem<TElem, VGeom, PGeom>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem<TElem, VGeom, PGeom>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem<TElem, VGeom, PGeom>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem<TElem, VGeom, PGeom>);
+	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, VGeom, PGeom>);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//	explicit template instantiations
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef UG_DIM_1
+template class NavierStokesFV<Domain1d>;
+#endif
+#ifdef UG_DIM_2
+template class NavierStokesFV<Domain2d>;
+#endif
+#ifdef UG_DIM_3
+template class NavierStokesFV<Domain3d>;
+#endif
 
 } // namespace NavierStokes
 } // namespace ug

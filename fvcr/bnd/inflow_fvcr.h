@@ -1,14 +1,15 @@
 /*
- * wall.h
+ * inflow_fvcr.h
  *
  *  Created on: 01.09.2011
  *      Author: andreasvogel
  */
 
-#ifndef __H__UG__NAVIER_STOKES__BND__WALL__
-#define __H__UG__NAVIER_STOKES__BND__WALL__
+#ifndef __H__UG__NAVIER_STOKES__BND__INFLOW_FVCR__
+#define __H__UG__NAVIER_STOKES__BND__INFLOW_FVCR__
 
-#include "lib_disc/spatial_disc/disc_item.h"
+#include "../../bnd/inflow_base.h"
+#include "../navier_stokes_fvcr.h"
 
 #include "lib_disc/spatial_disc/constraints/dirichlet_boundary/lagrange_dirichlet_boundary.h"
 
@@ -16,9 +17,12 @@ namespace ug{
 namespace NavierStokes{
 
 template <	typename TDomain, typename TAlgebra>
-class NavierStokesWall
-	: public IDiscretizationItem<TDomain,TAlgebra>
+class NavierStokesInflowFVCR
+	: public NavierStokesInflowBase<TDomain, TAlgebra>
 {
+	private:
+		const static int dim = TDomain::dim;
+
 	public:
 	///	returns the number of element discs
 		virtual size_t num_elem_disc() const {return 0;}
@@ -34,25 +38,22 @@ class NavierStokesWall
 
 	public:
 	///	Constructor
-		NavierStokesWall(SmartPtr< NavierStokesBase<TDomain> > spMaster);
+		NavierStokesInflowFVCR(SmartPtr< NavierStokesFVCR<TDomain> > spMaster);
 
 	///	sets the velocity to a given value
-		void add(const char* subsetsBND);
+		void add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND);
 
 	protected:
 	///	dirichlet disc for velocity components
 		SmartPtr<DirichletBoundary<TDomain,TAlgebra> > m_spDirichletConstraint;
 
-	///	name of velocity+pressure components
-		std::vector<std::string> m_vFctName;
-
 	/// The master discretization:
-		SmartPtr< NavierStokesBase<TDomain> > m_spMaster;
+		SmartPtr< NavierStokesFVCR<TDomain> > m_spMaster;
 };
 
 } // namespace NavierStokes
 } // end namespace ug
 
-#include "wall_impl.h"
+#include "inflow_fvcr_impl.h"
 
-#endif /* __H__UG__NAVIER_STOKES__BND__WALL__ */
+#endif /* __H__UG__NAVIER_STOKES__BND__INFLOW_FVCR__ */

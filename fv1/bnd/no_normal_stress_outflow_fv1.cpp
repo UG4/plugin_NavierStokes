@@ -1,43 +1,104 @@
 /*
- * no_normal_stress_outflow_cr.h
+ * no_normal_stress_outflow.cpp
  *
- *  Created on: 23.07.2012
- *      Author: Christian Wehner
+ *  Created on: 27.03.2012
+ *  D. Logashenko, A. Vogel
  */
 
-#ifndef __H__UG__NAVIER_STOKES__BND__NO_NORMAL_STRESS_OUTFLOW_CR__
-#define __H__UG__NAVIER_STOKES__BND__NO_NORMAL_STRESS_OUTFLOW_CR__
+#include "no_normal_stress_outflow_fv1.h"
 
-#include "no_normal_stress_outflow.h"
+#include "common/util/provider.h"
+#include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
 
 namespace ug{
 namespace NavierStokes{
+
+////////////////////////////////////////////////////////////////////////////////
+//	Constructor - set default values
+////////////////////////////////////////////////////////////////////////////////
+
+template<typename TDomain>
+NavierStokesNoNormalStressOutflowFV1<TDomain>::
+NavierStokesNoNormalStressOutflowFV1(SmartPtr< NavierStokesBase<TDomain> > spMaster)
+: NavierStokesNoNormalStressOutflowBase<TDomain>(spMaster)
+{
+	//	update assemble functions
+	register_all_funcs(false);
+};
+
+
+template<typename TDomain>
+bool NavierStokesNoNormalStressOutflowFV1<TDomain>::
+request_non_regular_grid(bool bNonRegular)
+{
+//	switch, which assemble functions to use.
+	if(bNonRegular)
+	{
+		UG_LOG("NavierStokes::request_non_regular_grid':"
+				" Non-regular grid not implemented.");
+		return false;
+	}
+
+//	this disc supports regular grids
+	return true;
+}
+
+template<typename TDomain>
+bool NavierStokesNoNormalStressOutflowFV1<TDomain>::
+request_finite_element_id(const std::vector<LFEID>& vLfeID)
+{
+//	check number
+	if(vLfeID.size() != dim+1)
+	{
+		UG_LOG("NavierStokes:"
+				" Wrong number of functions given. Need exactly "<<dim+1<<"\n");
+		return false;
+	}
+
+	for(int d = 0; d <= dim; ++d)
+		if(vLfeID[d].type() != LFEID::LAGRANGE || vLfeID[d].order() != 1)
+		{
+			UG_LOG("NavierStokes: 'fv1' expects Lagrange P1 trial space "
+					"for velocity and pressure.\n");
+			return false;
+		}
+
+	//	update assemble functions
+	register_all_funcs(false);
+
+	//	is supported
+	return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//	assembling functions
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Prepares the element loop for a given element type: computes the FV-geo, ...
  * Note that there are separate loops for every type of the grid elements.
  */
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
+template<typename TElem, typename TFVGeom>
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+prep_elem_loop(const ReferenceObjectID roid, const int si)
 {
 //	register subsetIndex at Geometry
-	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom& geo = Provider<TFVGeom>::get();
 
 // 	Only first order implementation
-	if(!(TFVGeom<TElem, dim>::order == 1))
+	if(!(TFVGeom::order == 1))
 		UG_THROW("Only first order implementation, but other Finite Volume"
 						" Geometry set.");
 
 //	check if kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW("NavierStokesNoNormalStressOutflow::prep_elem_loop_cr:"
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1::prep_elem_loop:"
 						" Kinematic Viscosity has not been set, but is required.\n");
 
 //	check if Density has been set
 	if(!m_imDensity.data_given())
-		UG_THROW("NavierStokesNoNormalStressOutflow::prep_elem_loop_cr:"
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1::prep_elem_loop:"
 						" Density has not been set, but is required.\n");
 
 //	request the subset indices as boundary subset. This will force the
@@ -52,11 +113,11 @@ prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
  * Finalizes the element loop for a given element type.
  */
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-fsh_elem_loop_cr()
+template<typename TElem, typename TFVGeom>
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+fsh_elem_loop()
 {
-	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom& geo = Provider<TFVGeom>::get();
 
 //	remove the bnd subsets
 	typename std::vector<int>::const_iterator subsetIter;
@@ -70,24 +131,24 @@ fsh_elem_loop_cr()
  * General initializations of a given grid element for the assembling.
  */
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-prep_elem_cr(TElem* elem, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+prep_elem(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
-	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	TFVGeom& geo = Provider<TFVGeom>::get();
 	try{
 		geo.update(elem,
 	               this->template element_corners<TElem>(elem),
 	               &(this->subset_handler()));
 	}
-	UG_CATCH_THROW("NavierStokesNoNormalStressOutflow::prep_elem_cr:"
+	UG_CATCH_THROW("NavierStokesNoNormalStressOutflowFV1::prep_elem:"
 						" Cannot update Finite Volume Geometry.");
 
 //	find and set the local and the global positions of the IPs for imports
-	typedef typename TFVGeom<TElem, dim>::BF BF;
+	typedef typename TFVGeom::BF BF;
 	typename std::vector<int>::const_iterator subsetIter;
-
+	
 	m_vLocIP.clear(); m_vGloIP.clear();
 	for(subsetIter = m_vBndSubSetIndex.begin();
 			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
@@ -108,7 +169,7 @@ prep_elem_cr(TElem* elem, const LocalVector& u)
 
 	m_imKinViscosity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imKinViscosity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
-
+	
 	m_imDensity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imDensity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 }
@@ -116,8 +177,8 @@ prep_elem_cr(TElem* elem, const LocalVector& u)
 /// Assembling of the diffusive flux (due to the viscosity) in the Jacobian of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-diffusive_flux_Jac_cr
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+diffusive_flux_Jac
 (
 	const size_t ip, // index of the integration point (for the viscosity)
 	const BF& bf, // boundary face to assemble
@@ -127,30 +188,30 @@ diffusive_flux_Jac_cr
 {
 	MathMatrix<dim,dim> diffFlux, tang_diffFlux;
 	MathVector<dim> normalStress;
-
+	
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh) // loop shape functions
 	{
 	//	1. Compute the total flux
 	//	- add \nabla u
 		MatSet (diffFlux, 0);
 		MatDiagSet (diffFlux, VecDot (bf.global_grad(sh), bf.normal()));
-
+	
 	//	- add (\nabla u)^T
 		if(!m_spMaster->get_laplace())
 			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					diffFlux(d1,d2) += bf.global_grad(sh)[d1] * bf.normal()[d2];
-
+	
 	//	2. Subtract the normal part:
 		tang_diffFlux = diffFlux;
 		TransposedMatVecMult(normalStress, diffFlux, bf.normal ());
 		for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
-
+	
 	//	3. Scale by viscosity
 		tang_diffFlux *= - m_imKinViscosity[ip];
-
+	
 	//	4. Add flux to local Jacobian
 		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 			for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
@@ -161,8 +222,8 @@ diffusive_flux_Jac_cr
 /// Assembling of the diffusive flux (due to the viscosity) in the defect of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-diffusive_flux_defect_cr
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+diffusive_flux_defect
 (
 	const size_t ip, // index of the integration point (for the viscosity)
 	const BF& bf, // boundary face to assemble
@@ -172,7 +233,7 @@ diffusive_flux_defect_cr
 {
 	MathMatrix<dim, dim> gradVel;
 	MathVector<dim> diffFlux;
-
+	
 // 	1. Get the gradient of the velocity at ip
 	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 		for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
@@ -206,8 +267,8 @@ diffusive_flux_defect_cr
 /// Assembling of the convective flux (due to the quadratic inertial term) in the Jacobian of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-convective_flux_Jac_cr
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+convective_flux_Jac
 (
 	const size_t ip, // index of the integration point (for the density)
 	const BF& bf, // boundary face to assemble
@@ -217,17 +278,17 @@ convective_flux_Jac_cr
 {
 	MathVector<dim> StdVel;
 	number old_momentum_flux, t;
-
+	
 // The convection velocity according to the current approximation:
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 			StdVel[d1] += u(d1, sh) * bf.shape(sh);
 	old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
-
+	
 // We assume that there should be no inflow through the outflow boundary:
 	if (old_momentum_flux < 0)
 		old_momentum_flux = 0;
-
+	
 //	Add flux to local Jacobian
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 	{
@@ -240,8 +301,8 @@ convective_flux_Jac_cr
 /// Assembling of the convective flux (due to the quadratic inertial term) in the defect of the momentum eq.
 template<typename TDomain>
 template<typename BF>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-convective_flux_defect_cr
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+convective_flux_defect
 (
 	const size_t ip, // index of the integration point (for the density)
 	const BF& bf, // boundary face to assemble
@@ -251,33 +312,33 @@ convective_flux_defect_cr
 {
 	MathVector<dim> StdVel;
 	number old_momentum_flux;
-
+	
 // The convection velocity according to the current approximation:
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 			StdVel[d1] += u(d1, sh) * bf.shape(sh);
 	old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
-
+	
 // We assume that there should be no inflow through the outflow boundary:
 	if (old_momentum_flux < 0)
 		old_momentum_flux = 0;
-
+	
 // Add the flux to the defect:
 	for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 		d(d1, bf.node_id()) += old_momentum_flux * StdVel[d1];
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
-	typedef typename TFVGeom<TElem, dim>::BF BF;
+	static const TFVGeom& geo = Provider<TFVGeom>::get();
+	typedef typename TFVGeom::BF BF;
 
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
@@ -287,7 +348,7 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 	{
 	//	get subset index corresponding to boundary
 		const int bndSubset = *subsetIter;
-
+		
 	//	get the list of the ip's:
 		if(geo.num_bf(bndSubset) == 0) continue;
 		const std::vector<BF>& vBF = geo.bf(bndSubset);
@@ -297,16 +358,16 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
 		{
 		//	A. The momentum equation:
-			diffusive_flux_Jac_cr<BF> (ip, *bf, J, u);
+			diffusive_flux_Jac<BF> (ip, *bf, J, u);
 			if (!m_spMaster->get_stokes ())
-				convective_flux_Jac_cr<BF> (ip, *bf, J, u);
-
+				convective_flux_Jac<BF> (ip, *bf, J, u);
+			
 		//	B. The continuity equation
-		//	for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
-		//		for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-		//			J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2]
-		//				* m_imDensity [ip];
-
+			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
+				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
+					J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2]
+						* m_imDensity [ip];
+		
 		// Next IP:
 			ip++;
 		}
@@ -314,16 +375,16 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokesNoNormalStressOutflow<TDomain>::
-add_dA_elem_cr(LocalVector& d, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesNoNormalStressOutflowFV1<TDomain>::
+add_def_A_elem(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
-	typedef typename TFVGeom<TElem, dim>::BF BF;
+	static const TFVGeom& geo = Provider<TFVGeom>::get();
+	typedef typename TFVGeom::BF BF;
 
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
@@ -333,7 +394,7 @@ add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 	{
 	//	get subset index corresponding to boundary
 		const int bndSubset = *subsetIter;
-
+		
 	//	get the list of the ip's:
 		if(geo.num_bf(bndSubset) == 0) continue;
 		const std::vector<BF>& vBF = geo.bf(bndSubset);
@@ -343,57 +404,114 @@ add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
 		{
 		// A. Momentum equation:
-			diffusive_flux_defect_cr<BF> (ip, *bf, d, u);
+			diffusive_flux_defect<BF> (ip, *bf, d, u);
 			if (!m_spMaster->get_stokes ())
-				convective_flux_defect_cr<BF> (ip, *bf, d, u);
-
+				convective_flux_defect<BF> (ip, *bf, d, u);
+		
+		// B. Continuity equation:
+			{
+				MathVector<dim> stdVel;
+				VecSet (stdVel, 0);
+				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						stdVel[d1] += u(d1, sh) * bf->shape(sh);
+				d(_P_, bf->node_id()) += VecDot (stdVel, bf->normal()) * m_imDensity[ip];
+			}
+		
 		// Next IP:
 			ip++;
 		}
 	}
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
-// register for 1D
-template<typename TDomain>
-void
-NavierStokesNoNormalStressOutflow<TDomain>::
-register_all_cr_funcs(bool bHang)
+template<>
+void NavierStokesNoNormalStressOutflowFV1<Domain1d>::
+register_all_funcs(bool bHang)
 {
-//	get all grid element types in this dimension and below
-	typedef typename domain_traits<dim>::DimElemList ElemList;
-	// REMARK: Note that we register this boundary condition only
-	// for the full-dimensional elements (DimElemList instead of AllElemList).
-
 //	switch assemble functions
-	if(!bHang) boost::mpl::for_each<ElemList>( RegisterCR<CRFVGeometry>(this) );
-	else UG_THROW("Not implemented.");
+	if(!bHang)
+	{
+		register_func<Edge, FV1Geometry<Edge, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
+	}
+}
+
+template<>
+void NavierStokesNoNormalStressOutflowFV1<Domain2d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Triangle, FV1Geometry<Triangle, dim> >();
+		register_func<Quadrilateral, FV1Geometry<Quadrilateral, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
+	}
+}
+
+template<>
+void NavierStokesNoNormalStressOutflowFV1<Domain3d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Tetrahedron, FV1Geometry<Tetrahedron, dim> >();
+		register_func<Prism, FV1Geometry<Prism, dim> >();
+		register_func<Pyramid, FV1Geometry<Pyramid, dim> >();
+		register_func<Hexahedron, FV1Geometry<Hexahedron, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
+	}
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void
-NavierStokesNoNormalStressOutflow<TDomain>::
-register_cr_func()
+NavierStokesNoNormalStressOutflowFV1<TDomain>::
+register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_cr<TElem, TFVGeom>);
-	this->set_prep_elem_fct(	 	id, &T::template prep_elem_cr<TElem, TFVGeom>);
-	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_cr<TElem, TFVGeom>);
-	this->set_add_jac_A_elem_fct(		id, &T::template add_JA_elem_cr<TElem, TFVGeom>);
-	this->set_add_jac_M_elem_fct(		id, &T::template add_JM_elem<TElem, TFVGeom>);
-	this->set_add_def_A_elem_fct(		id, &T::template add_dA_elem_cr<TElem, TFVGeom>);
-	this->set_add_def_M_elem_fct(		id, &T::template add_dM_elem<TElem, TFVGeom>);
-	this->set_add_rhs_elem_fct(		id, &T::template add_rhs_elem<TElem, TFVGeom>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);
+	this->set_prep_elem_fct(	 	id, &T::template prep_elem<TElem, TFVGeom>);
+	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop<TElem, TFVGeom>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem<TElem, TFVGeom>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem<TElem, TFVGeom>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem<TElem, TFVGeom>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem<TElem, TFVGeom>);
+	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }
 
-} // namespace NavierStokes
-} // end namespace ug
 
-#endif /* __H__UG__NAVIER_STOKES__BND__NO_NORMAL_STRESS_OUTFLOW_CR__ */
+////////////////////////////////////////////////////////////////////////////////
+//	explicit template instantiations
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef UG_DIM_1
+template class NavierStokesNoNormalStressOutflowFV1<Domain1d>;
+#endif
+#ifdef UG_DIM_2
+template class NavierStokesNoNormalStressOutflowFV1<Domain2d>;
+#endif
+#ifdef UG_DIM_3
+template class NavierStokesNoNormalStressOutflowFV1<Domain3d>;
+#endif
+
+} // namespace NavierStokes
+} // namespace ug

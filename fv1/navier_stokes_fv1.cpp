@@ -1,11 +1,11 @@
 /*
- * navier_stokes_fv1.h
+ * navier_stokes_fv1.cpp
  *
  *  Created on: 20.09.2010
  *      Author: andreasvogel
  */
 
-#include "navier_stokes.h"
+#include "navier_stokes_fv1.h"
 
 #include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
@@ -14,19 +14,127 @@ namespace ug{
 namespace NavierStokes{
 
 ////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-//  Provide a generic implementation for all elements
-//  (since this discretization can be implemented in a generic way)
-////////////////////////////////////////////////////////////////////////////////
+//	Constructor - set default values
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-prep_elem_loop_fv1(const ReferenceObjectID roid, const int si)
+NavierStokesFV1<TDomain>::NavierStokesFV1(const char* functions,
+                                          const char* subsets)
+: NavierStokesBase<TDomain>(functions, subsets)
+{
+	init();
+};
+
+template<typename TDomain>
+NavierStokesFV1<TDomain>::NavierStokesFV1(const std::vector<std::string>& vFct,
+                                          const std::vector<std::string>& vSubset)
+: NavierStokesBase<TDomain>(vFct, vSubset)
+{
+	init();
+};
+
+
+template<typename TDomain>
+void NavierStokesFV1<TDomain>::init()
+{
+//	check number of functions
+	if(this->num_fct() != dim+1)
+		UG_THROW("Wrong number of functions: The ElemDisc 'NavierStokes'"
+					   " needs exactly "<<dim+1<<" symbolic function.");
+
+//	register imports
+	this->register_import(m_imSource);
+	this->register_import(m_imKinViscosity);
+	this->register_import(m_imDensitySCVF);
+	this->register_import(m_imDensitySCV);
+
+	m_imSource.set_rhs_part();
+	m_imDensitySCV.set_mass_part();
+
+	//	default value for density
+	base_type::set_density(1.0);
+
+	//	update assemble functions
+	register_all_funcs(false);
+}
+
+template<typename TDomain>
+bool NavierStokesFV1<TDomain>::request_non_regular_grid(bool bNonRegular)
+{
+//	switch, which assemble functions to use.
+	if(bNonRegular)
+	{
+		UG_LOG("NavierStokes::request_non_regular_grid':"
+				" Non-regular grid not implemented.");
+		return false;
+	}
+
+//	this disc supports regular grids
+	return true;
+}
+
+template<typename TDomain>
+bool NavierStokesFV1<TDomain>::
+request_finite_element_id(const std::vector<LFEID>& vLfeID)
+{
+//	check number
+	if(vLfeID.size() != dim+1)
+	{
+		UG_LOG("NavierStokes:"
+				" Wrong number of functions given. Need exactly "<<dim+1<<"\n");
+		return false;
+	}
+
+	for(int d = 0; d <= dim; ++d)
+		if(vLfeID[d].type() != LFEID::LAGRANGE || vLfeID[d].order() != 1)
+		{
+			UG_LOG("NavierStokes: 'fv1' expects Lagrange P1 trial space "
+					"for velocity and pressure.\n");
+			return false;
+		}
+
+	//	update assemble functions
+	register_all_funcs(false);
+
+	//	is supported
+	return true;
+}
+
+template<typename TDomain>
+void NavierStokesFV1<TDomain>::
+set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
+{
+	m_imKinViscosity.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokesFV1<TDomain>::
+set_density(SmartPtr<UserData<number, dim> > data)
+{
+	m_imDensitySCVF.set_data(data);
+	m_imDensitySCV.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokesFV1<TDomain>::
+set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
+{
+	m_imSource.set_data(data);
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//	assembling functions
+////////////////////////////////////////////////////////////////////////////////
+
+template<typename TDomain>
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+prep_elem_loop(const ReferenceObjectID roid, const int si)
 {
 // 	Only first order implementation
-	if(!(TFVGeom<TElem, dim>::order == 1))
+	if(!(TFVGeom::order == 1))
 		UG_THROW("Only first order implementation, but other Finite Volume"
 						" Geometry set.");
 
@@ -35,7 +143,7 @@ prep_elem_loop_fv1(const ReferenceObjectID roid, const int si)
 		UG_THROW("Stabilization has not been set.");
 
 //	init stabilization for element type
-	m_spStab->template set_geometry_type<TFVGeom<TElem, dim> >();
+	m_spStab->template set_geometry_type<TFVGeom >();
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
@@ -45,11 +153,11 @@ prep_elem_loop_fv1(const ReferenceObjectID roid, const int si)
 	
 	//	init convection stabilization for element type
 		if(m_spConvStab.valid())
-			m_spConvStab->template set_geometry_type<TFVGeom<TElem, dim> >();
+			m_spConvStab->template set_geometry_type<TFVGeom >();
 	
 	//	init convection stabilization for element type
 		if(m_spConvUpwind.valid())
-			m_spConvUpwind->template set_geometry_type<TFVGeom<TElem, dim> >();
+			m_spConvUpwind->template set_geometry_type<TFVGeom >();
 	}
 
 //	check, that kinematic Viscosity has been set
@@ -72,9 +180,9 @@ prep_elem_loop_fv1(const ReferenceObjectID roid, const int si)
 																ref_elem_type;
 	static const int refDim = ref_elem_type::dim;
 
-	if(!TFVGeom<TElem, dim>::usesHangingNodes)
+	if(!TFVGeom::usesHangingNodes)
 	{
-		TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+		TFVGeom& geo = Provider<TFVGeom>::get();
 		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
 		                                                geo.num_scvf_ips());
 		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
@@ -87,22 +195,22 @@ prep_elem_loop_fv1(const ReferenceObjectID roid, const int si)
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-fsh_elem_loop_fv1()
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+fsh_elem_loop()
 {}
 
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-prep_elem_fv1(TElem* elem, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+prep_elem(TElem* elem, const LocalVector& u)
 {
 //	get corners
 	m_vCornerCoords = this->template element_corners<TElem>(elem);
 
 // 	Update Geometry for this element
-	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	TFVGeom& geo = Provider<TFVGeom>::get();
 	try{
 		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
 	}
@@ -110,7 +218,7 @@ prep_elem_fv1(TElem* elem, const LocalVector& u)
 						" Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
-	if(TFVGeom<TElem, dim>::usesHangingNodes)
+	if(TFVGeom::usesHangingNodes)
 	{
 	//	set local positions for imports
 		typedef typename reference_element_traits<TElem>::reference_element_type
@@ -136,15 +244,15 @@ prep_elem_fv1(TElem* elem, const LocalVector& u)
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static const TFVGeom& geo = Provider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -168,11 +276,11 @@ add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u)
 	}
 
 //	interpolate velocity at ip with standard lagrange interpolation
-	static const size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
+	static const size_t numSCVF = TFVGeom::numSCVF;
 	MathVector<dim> StdVel[numSCVF];
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
-		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
+		const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
 		VecSet(StdVel[ip], 0.0);
 
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
@@ -205,7 +313,7 @@ add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u)
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
 	// 	get current SCVF
-		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
+		const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
 
 	// 	loop shape functions
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
@@ -272,7 +380,7 @@ add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u)
 			//	peclet blend
 				number w = 1.0;
 				if(m_bPecletBlend)
-					w = peclet_blend_fv1(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
+					w = peclet_blend(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 
 			//	compute product of stabilized vel and normal
 				const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
@@ -327,7 +435,7 @@ add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u)
 					{
 						for(size_t ip2 = 0; ip2 < geo.num_scvf(); ++ip2)
 						{
-							const typename TFVGeom<TElem, dim>::SCVF& scvf2 = geo.scvf(ip2);
+							const typename TFVGeom::SCVF& scvf2 = geo.scvf(ip2);
 							convFlux_vel += scvf2.shape(sh) * upwind.upwind_shape_ip(ip, ip2);
 						}
 					}
@@ -480,15 +588,15 @@ add_jac_A_elem_fv1(LocalMatrix& J, const LocalVector& u)
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-add_def_A_elem_fv1(LocalVector& d, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+add_def_A_elem(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implemented
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static const TFVGeom& geo = Provider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -512,11 +620,11 @@ add_def_A_elem_fv1(LocalVector& d, const LocalVector& u)
 	}
 
 //	interpolate velocity at ip with standard lagrange interpolation
-	static const size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
+	static const size_t numSCVF = TFVGeom::numSCVF;
 	MathVector<dim> StdVel[numSCVF];
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
-		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
+		const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
 		VecSet(StdVel[ip], 0.0);
 
 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
@@ -550,7 +658,7 @@ add_def_A_elem_fv1(LocalVector& d, const LocalVector& u)
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
 	// 	get current SCVF
-		const typename TFVGeom<TElem, dim>::SCVF& scvf = geo.scvf(ip);
+		const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
 
 		////////////////////////////////////////////////////
 		////////////////////////////////////////////////////
@@ -613,7 +721,7 @@ add_def_A_elem_fv1(LocalVector& d, const LocalVector& u)
 	
 		//	Peclet Blend
 			if(m_bPecletBlend)
-				peclet_blend_fv1(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
+				peclet_blend(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 	
 		//	compute product of standard velocity and normal
 			const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
@@ -659,21 +767,21 @@ add_def_A_elem_fv1(LocalVector& d, const LocalVector& u)
 
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-add_jac_M_elem_fv1(LocalMatrix& J, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 {
 // 	Only first order implementation
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	const static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	const static TFVGeom& geo = Provider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
 	{
 	// 	get SCV
-		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(ip);
+		const typename TFVGeom::SCV& scv = geo.scv(ip);
 
 	// 	get associated node
 		const int sh = scv.node_id();
@@ -689,21 +797,21 @@ add_jac_M_elem_fv1(LocalMatrix& J, const LocalVector& u)
 
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-add_def_M_elem_fv1(LocalVector& d, const LocalVector& u)
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+add_def_M_elem(LocalVector& d, const LocalVector& u)
 {
 // 	Only first order implementation
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	const static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	const static TFVGeom& geo = Provider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
 	{
 	// 	get current SCV
-		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(ip);
+		const typename TFVGeom::SCV& scv = geo.scv(ip);
 
 	// 	get associated node
 		const int sh = scv.node_id();
@@ -719,24 +827,24 @@ add_def_M_elem_fv1(LocalVector& d, const LocalVector& u)
 
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-void NavierStokes<TDomain>::
-add_rhs_elem_fv1(LocalVector& d)
+template<typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+add_rhs_elem(LocalVector& d)
 {
 // 	Only first order implementation
-	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 //	if zero data given, return
 	if(!m_imSource.data_given()) return;
 
 // 	get finite volume geometry
-	const static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	const static TFVGeom& geo = Provider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
 	{
 	// 	get current SCV
-		const typename TFVGeom<TElem, dim>::SCV& scv = geo.scv(ip);
+		const typename TFVGeom::SCV& scv = geo.scv(ip);
 
 	// 	get associated node
 		const int sh = scv.node_id();
@@ -751,8 +859,8 @@ template<typename TDomain>
 template<typename TFVGeom>
 inline
 number
-NavierStokes<TDomain>::
-peclet_blend_fv1(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
+NavierStokesFV1<TDomain>::
+peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
              const MathVector<dim>& StdVel, number kinVisco)
 {
 	const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
@@ -775,39 +883,88 @@ peclet_blend_fv1(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
-// register for 1D
-template<typename TDomain>
-void
-NavierStokes<TDomain>::
-register_all_fv1_funcs(bool bHang)
+template<>
+void NavierStokesFV1<Domain1d>::
+register_all_funcs(bool bHang)
 {
-//	get all grid element types in this dimension and below
-	typedef typename domain_traits<dim>::AllElemList ElemList;
-
 //	switch assemble functions
-	if(!bHang) boost::mpl::for_each<ElemList>( RegisterFV1<FV1Geometry>(this) );
-	else UG_THROW("Not implemented.");
+	if(!bHang)
+	{
+		register_func<Edge, FV1Geometry<Edge, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
+	}
+}
+
+template<>
+void NavierStokesFV1<Domain2d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Triangle, FV1Geometry<Triangle, dim> >();
+		register_func<Quadrilateral, FV1Geometry<Quadrilateral, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
+	}
+}
+
+template<>
+void NavierStokesFV1<Domain3d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Tetrahedron, FV1Geometry<Tetrahedron, dim> >();
+		register_func<Prism, FV1Geometry<Prism, dim> >();
+		register_func<Pyramid, FV1Geometry<Pyramid, dim> >();
+		register_func<Hexahedron, FV1Geometry<Hexahedron, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
+	}
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void
-NavierStokes<TDomain>::
-register_fv1_func()
+NavierStokesFV1<TDomain>::
+register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_fv1<TElem, TFVGeom>);
-	this->set_prep_elem_fct(	 	id, &T::template prep_elem_fv1<TElem, TFVGeom>);
-	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop_fv1<TElem, TFVGeom>);
-	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem_fv1<TElem, TFVGeom>);
-	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem_fv1<TElem, TFVGeom>);
-	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem_fv1<TElem, TFVGeom>);
-	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem_fv1<TElem, TFVGeom>);
-	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem_fv1<TElem, TFVGeom>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);
+	this->set_prep_elem_fct(	 	id, &T::template prep_elem<TElem, TFVGeom>);
+	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop<TElem, TFVGeom>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem<TElem, TFVGeom>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem<TElem, TFVGeom>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem<TElem, TFVGeom>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem<TElem, TFVGeom>);
+	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//	explicit template instantiations
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef UG_DIM_1
+template class NavierStokesFV1<Domain1d>;
+#endif
+#ifdef UG_DIM_2
+template class NavierStokesFV1<Domain2d>;
+#endif
+#ifdef UG_DIM_3
+template class NavierStokesFV1<Domain3d>;
+#endif
 
 } // namespace NavierStokes
 } // namespace ug

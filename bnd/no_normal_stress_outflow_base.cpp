@@ -1,11 +1,11 @@
 /*
- * no_normal_stress_outflow_common.h
+ * no_normal_stress_outflow_base.cpp
  *
  *  Created on: 27.03.2012
  *  D. Logashenko, A. Vogel
  */
 
-#include "no_normal_stress_outflow.h"
+#include "no_normal_stress_outflow_base.h"
 
 #include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
@@ -13,49 +13,12 @@
 namespace ug{
 namespace NavierStokes{
 
-template<typename TDomain>
-bool NavierStokesNoNormalStressOutflow<TDomain>::
-request_finite_element_id(const std::vector<LFEID>& vLfeID)
-{
-//	check number
-	if(vLfeID.size() != dim+1) return false;
-
-//	check trial spaces
-	if(m_spMaster->disc_scheme() == "fv1"){
-		for(size_t i = 0; i < vLfeID.size(); ++i)
-			if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
-	}
-	else if(m_spMaster->disc_scheme() == "staggered"){
-		for(int i = 0; i < dim; ++i)
-			if(vLfeID[i] != LFEID(LFEID::CROUZEIX_RAVIART, 1)) return false;
-
-		if(vLfeID[dim] != LFEID(LFEID::PIECEWISE_CONSTANT, 0)) return false;
-	}
-	return true;
-}
-
-template<typename TDomain>
-bool NavierStokesNoNormalStressOutflow<TDomain>::
-request_non_regular_grid(bool bNonRegular)
-{
-//	switch, which assemble functions to use.
-	if(bNonRegular)
-	{
-		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
-				" Non-regular grid not implemented.\n");
-		return false;
-	}
-
-//	this disc supports regular grids
-	return true;
-}
-
 /**
  * converts the subset names where the BC is imposed to the corresponding subset
  * indices (i.e. m_vScheduledBndSubSets -> m_vBndSubSetIndex):
  */
 template<typename TDomain>
-void NavierStokesNoNormalStressOutflow<TDomain>::extract_scheduled_data()
+void NavierStokesNoNormalStressOutflowBase<TDomain>::extract_scheduled_data()
 {
 //	clear all extracted data
 	m_vBndSubSetIndex.clear();
@@ -101,7 +64,7 @@ void NavierStokesNoNormalStressOutflow<TDomain>::extract_scheduled_data()
  * The add method for the boundary subsets:
  */
 template<typename TDomain>
-void NavierStokesNoNormalStressOutflow<TDomain>::add
+void NavierStokesNoNormalStressOutflowBase<TDomain>::add
 (
 	const char* subsets // string with the ','-separated names of the subsets
 )
@@ -116,9 +79,10 @@ void NavierStokesNoNormalStressOutflow<TDomain>::add
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename TDomain>
-NavierStokesNoNormalStressOutflow<TDomain>::
-NavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
-: IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
+NavierStokesNoNormalStressOutflowBase<TDomain>::
+NavierStokesNoNormalStressOutflowBase(SmartPtr< NavierStokesBase<TDomain> > spMaster)
+	: IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()),
+	  m_spMaster (spMaster)
 {
 //	check number of functions
 	if(this->num_fct() != dim+1)
@@ -133,14 +97,23 @@ NavierStokesNoNormalStressOutflow(SmartPtr< NavierStokes<TDomain> > spMaster)
 	this->register_import(m_imDensity);
 
 //	initialize the imports from the master discretization
-	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity_data ());
+	m_imKinViscosity.set_data(spMaster->get_kinematic_viscosity ());
 	m_imDensity.set_data(spMaster->get_density ());
-
-//	register assemble functions
-	if(spMaster->disc_scheme() == "fv1") this->register_all_fv1_funcs(false);
-	else if(spMaster->disc_scheme() == "staggered") this->register_all_cr_funcs(false);
-	else UG_THROW("NavierStokesNoNormalStressOutflow: Disc scheme not supported.");
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//	explicit template instantiations
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef UG_DIM_1
+template class NavierStokesNoNormalStressOutflowBase<Domain1d>;
+#endif
+#ifdef UG_DIM_2
+template class NavierStokesNoNormalStressOutflowBase<Domain2d>;
+#endif
+#ifdef UG_DIM_3
+template class NavierStokesNoNormalStressOutflowBase<Domain3d>;
+#endif
 
 } // namespace NavierStokes
 } // namespace ug
