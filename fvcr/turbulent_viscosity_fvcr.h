@@ -471,6 +471,7 @@ class CRDynamicTurbViscData
 			m_imKinViscosity = user;
 		}
 		void set_kinematic_viscosity(number val){
+			m_viscosityNumber = val;
 			set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
 		}
 	#ifdef UG_FOR_LUA
@@ -483,6 +484,10 @@ class CRDynamicTurbViscData
 	private:
 		///	Data import for kinematic viscosity
 		SmartPtr<UserData<number,dim> > m_imKinViscosity;
+
+		number m_viscosityNumber;
+
+		static const number m_small = 1e-8;
 
 	private:
 	// grid function
@@ -562,6 +567,10 @@ class CRDynamicTurbViscData
 			m_acDeformationHat.access(grid,m_aDeformationHat);
 			m_acLij.access(grid,m_aLij);
 			m_acMij.access(grid,m_aMij);
+			// default setting for filtering of model constant c
+			m_spaceFilter=true;
+			m_timeFilter=false;
+			m_timeFilterEps=1;
 		}
 		
 		virtual ~CRDynamicTurbViscData() {
@@ -643,7 +652,26 @@ class CRDynamicTurbViscData
 		
 		static const size_t max_number_of_ips = 20;
 
+		bool m_spaceFilter;
+		bool m_timeFilter;
+		number m_timeFilterEps;
+
 		void update();
+
+		void set_space_filter(bool b){
+			m_spaceFilter=b;
+		}
+		void set_time_filter(bool b){
+			m_timeFilter=b;
+			m_timeFilterEps=0.001;
+		}
+		void set_time_filter_eps(number eps){
+			if (eps!=1)
+				m_timeFilter=true;
+			else
+				m_timeFilter=false;
+			m_timeFilterEps=eps;
+		}
 };
 
 
@@ -651,6 +679,6 @@ class CRDynamicTurbViscData
 } // end namespace ug
 
 // include implementation
-#include "turbulent_viscosity_data_impl.h"
+#include "turbulent_viscosity_fvcr_impl.h"
 
 #endif /* __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA__ */

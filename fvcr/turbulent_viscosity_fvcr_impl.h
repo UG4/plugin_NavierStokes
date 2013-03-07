@@ -8,7 +8,7 @@
 #ifndef __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA_IMPL_H_
 #define __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA_IMPL_H_
 
-#include "turbulent_viscosity_data.h"
+#include "turbulent_viscosity_fvcr.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -1018,23 +1018,27 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 				c/=(number)denom;
 			else c=0;
 
-			if (use_filter==false){
-				m_acTurbulentViscosity[side] = c * delta*delta * this->FNorm(m_acDeformation[side]);
-				if (m_acTurbulentViscosity[side]+(number)1.0/140000<1e-8) m_acTurbulentViscosity[side] = (number)1.0/140000 + 1e-8;
-				// for debug
-				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << c << " delta = " << delta << " deformNorm = " << FNorm(m_acDeformation[side]) << " denom = " << denom << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
-			}
+			if (m_spaceFilter==false){
+				if (m_timeFilter==false){
+					m_acTurbulentViscosity[side] = c * delta*delta * this->FNorm(m_acDeformation[side]);
+				} else {
+					m_acTurbulentC[side]= (m_timeFilterEps * c + (1-m_timeFilterEps)*m_acTurbulentC[side]);
+					m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * this->FNorm(m_acDeformation[side]);
+				}
+				if (m_acTurbulentViscosity[side]+m_viscosityNumber<m_small) m_acTurbulentViscosity[side] = m_viscosityNumber + m_small;			}
 			else{
 				// store c in viscosity array
 				m_acTurbulentViscosity[side] = c;
 			}
 		}
 	}
-	number maxnu=-1e+8;
-	number minnu=1e+8;
-	if (use_filter==true){
+	if (m_spaceFilter==true){
 		// filter c
-		this->elementFilter(m_acTurbulentC,m_acVolumeHat,m_acTurbulentViscosity);
+		if (m_timeFilter==false)
+			this->elementFilter(m_acTurbulentC,m_acVolumeHat,m_acTurbulentViscosity);
+		else
+			// store c in volumeHat array
+			this->elementFilter(m_acVolumeHat,m_acVolumeHat,m_acTurbulentViscosity);
 		// compute turbulent viscosity
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 		{
@@ -1047,21 +1051,15 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 				if (m_pbm && m_pbm->is_slave(side)) continue;
 				number delta = m_acVolume[side];
 				delta = pow(delta,(number)1.0/(number)dim);
+				if (m_timeFilter==true)
+					// time averaging, note that c has been stored in m_acVolumeHat
+					m_acTurbulentC[side]= (m_timeFilterEps * m_acVolumeHat[side] + (1-m_timeFilterEps)*m_acTurbulentC[side]);
 				m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * this->FNorm(m_acDeformation[side]);
-				if (m_acTurbulentViscosity[side]<minnu){
-					//for debug UG_LOG("**************\n");
-					minnu=m_acTurbulentViscosity[side];
-				}
-				if (m_acTurbulentViscosity[side]>maxnu){
-					//for debug UG_LOG("##############\n");
-					maxnu=m_acTurbulentViscosity[side];
-				}
-				if (m_acTurbulentViscosity[side]+(number)1.0/140000<1e-8) m_acTurbulentViscosity[side] = (number)1.0/140000 + 1e-8;
+				if (m_acTurbulentViscosity[side]+m_viscosityNumber<m_small) m_acTurbulentViscosity[side] = m_viscosityNumber+m_small;
 				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << m_acTurbulentC[side] << " delta = " << delta << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
 			}
 		}
 	}
-//	UG_THROW("Debug");
 }
 
 } // namespace NavierStokes

@@ -17,9 +17,6 @@
 #include "bnd/wall.h"
 #include "bnd/no_normal_stress_outflow_base.h"
 
-#include "turbulent_viscosity_data.h"
-#include "pressure_separation.h"
-
 #include "fv1/register_fv1.h"
 #include "fv/register_fv.h"
 #include "fvcr/register_fvcr.h"
@@ -83,66 +80,6 @@ static void DomainAlgebra(Registry& reg, string grp)
 			.add_method("add", &T::add)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWall", tag);
-	}
-	
-	typedef ug::GridFunction<TDomain, TAlgebra> TFct;
-	
-	// SeparatedPressureSource
-	{
-		string name = string("SeparatedPressureSource").append(suffix);
-		typedef SeparatedPressureSource<TFct> T;
-		typedef UserData<MathVector<dim>, dim> TBase;
-		typedef INewtonUpdate TBase2;
-		reg.add_class_<T, TBase,TBase2>(name, grp)
-			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
-				.add_method("set_source", static_cast<void (T::*)(SmartPtr<UserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
-				.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
-				.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
-				.add_method("set_source", static_cast<void (T::*)(number,number,number)>(&T::set_source), "", "F_x, F_y, F_z")
-			#ifdef UG_FOR_LUA
-				.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Source Vector")
-			#endif
-				.add_method("update", &T::update)
-		.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "SeparatedPressureSource", tag);
-	}
-
-	// Turbulent viscosity data
-	// Smagorinsky model
-	{
-		string name = string("CRSmagorinskyTurbViscData").append(suffix);
-		typedef CRSmagorinskyTurbViscData<TFct> T;
-		typedef UserData<number, dim> TBase;
-		typedef INewtonUpdate TBase2;
-		reg.add_class_<T, TBase,TBase2>(name, grp)
-			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>,number)>("Approximation space, grid function, model parameter")
-			.add_method("set_model_parameter", &T::set_model_parameter)
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
-		#ifdef UG_FOR_LUA
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
-		#endif
-			.add_method("set_turbulence_zero_bnd", &T::setTurbulenceZeroBoundaries)
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "CRSmagorinskyTurbViscData", tag);
-	}
-
-	// Dynamic model
-	{
-		string name = string("CRDynamicTurbViscData").append(suffix);
-		typedef CRDynamicTurbViscData<TFct> T;
-		typedef UserData<number, dim> TBase;
-		typedef INewtonUpdate TBase2;
-		reg.add_class_<T, TBase,TBase2>(name, grp)
-			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
-		#ifdef UG_FOR_LUA
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
-		#endif
-			.add_method("set_turbulence_zero_bnd", &T::setTurbulenceZeroBoundaries)
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "CRDynamicTurbViscData", tag);
 	}
 	
 	// CFL number computation

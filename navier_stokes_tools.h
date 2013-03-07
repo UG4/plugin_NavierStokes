@@ -10,7 +10,6 @@
 
 #include <vector>
 #include "lib_disc/function_spaces/approximation_space.h"
-#include "turbulent_viscosity_data.h"
 #include "lib_grid/lg_base.h"
 #include "lib_grid/tools/periodic_boundary_manager.h"
 #include "common/profiler/profiler.h"
