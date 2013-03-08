@@ -5,8 +5,8 @@
  *      Author: Christian Wehner
  */
 
-#include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
+#include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
 #include "symmetric_boundary.h"
 #ifdef UG_FOR_LUA
@@ -120,7 +120,7 @@ void CRNavierStokesSymBC<TDomain>::
 prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
 {
 //	register subsetIndex at Geometry
-	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 
 // 	Only first order implementation
 	if(!(TFVGeom<TElem, dim>::order == 1))
@@ -153,7 +153,7 @@ template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
 fsh_elem_loop_cr()
 {
-	static TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 
 //	remove the bnd subsets
 	typename std::vector<int>::const_iterator subsetIter;
@@ -175,7 +175,7 @@ prep_elem_cr(TElem* elem, const LocalVector& u)
 	m_vCornerCoords = this->template element_corners<TElem>(elem);
 
 // 	Update Geometry for this element
-	TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 	try{
 		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
 	}
@@ -308,7 +308,7 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static const TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 	typedef typename TFVGeom<TElem, dim>::BF BF;
 
 // 	loop registered boundary segments
@@ -380,7 +380,7 @@ add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom<TElem, dim>& geo = Provider<TFVGeom<TElem,dim> >::get();
+	static const TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 	typedef typename TFVGeom<TElem, dim>::BF BF;
 
 // 	loop registered boundary segments

@@ -7,8 +7,8 @@
 
 #include "navier_stokes_fv1.h"
 
-#include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
+#include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -176,13 +176,11 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 						" Density has not been set, but is required.");
 
 //	set local positions for imports
-	typedef typename reference_element_traits<TElem>::reference_element_type
-																ref_elem_type;
-	static const int refDim = ref_elem_type::dim;
 
 	if(!TFVGeom::usesHangingNodes)
 	{
-		TFVGeom& geo = Provider<TFVGeom>::get();
+		static const int refDim = TElem::dim;
+		TFVGeom& geo = GeomProvider<TFVGeom>::get();
 		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
 		                                                geo.num_scvf_ips());
 		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
@@ -210,7 +208,7 @@ prep_elem(TElem* elem, const LocalVector& u)
 	m_vCornerCoords = this->template element_corners<TElem>(elem);
 
 // 	Update Geometry for this element
-	TFVGeom& geo = Provider<TFVGeom>::get();
+	TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	try{
 		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
 	}
@@ -220,12 +218,8 @@ prep_elem(TElem* elem, const LocalVector& u)
 //	set local positions for imports
 	if(TFVGeom::usesHangingNodes)
 	{
-	//	set local positions for imports
-		typedef typename reference_element_traits<TElem>::reference_element_type
-																	ref_elem_type;
-		static const int refDim = ref_elem_type::dim;
-
 	//	request ip series
+		static const int refDim = TElem::dim;
 		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
 		                                                geo.num_scvf_ips());
 		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
@@ -252,7 +246,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -596,7 +590,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -775,7 +769,7 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	const static TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
@@ -805,7 +799,7 @@ add_def_M_elem(LocalVector& d, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	const static TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
@@ -838,7 +832,7 @@ add_rhs_elem(LocalVector& d)
 	if(!m_imSource.data_given()) return;
 
 // 	get finite volume geometry
-	const static TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)

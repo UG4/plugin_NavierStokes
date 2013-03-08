@@ -7,8 +7,8 @@
 
 #include "no_normal_stress_outflow_fv1.h"
 
-#include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
+#include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -84,7 +84,7 @@ void NavierStokesNoNormalStressOutflowFV1<TDomain>::
 prep_elem_loop(const ReferenceObjectID roid, const int si)
 {
 //	register subsetIndex at Geometry
-	static TFVGeom& geo = Provider<TFVGeom>::get();
+	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	Only first order implementation
 	if(!(TFVGeom::order == 1))
@@ -117,7 +117,7 @@ template<typename TElem, typename TFVGeom>
 void NavierStokesNoNormalStressOutflowFV1<TDomain>::
 fsh_elem_loop()
 {
-	static TFVGeom& geo = Provider<TFVGeom>::get();
+	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	remove the bnd subsets
 	typename std::vector<int>::const_iterator subsetIter;
@@ -136,7 +136,7 @@ void NavierStokesNoNormalStressOutflowFV1<TDomain>::
 prep_elem(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
-	TFVGeom& geo = Provider<TFVGeom>::get();
+	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	try{
 		geo.update(elem,
 	               this->template element_corners<TElem>(elem),
@@ -337,7 +337,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	typedef typename TFVGeom::BF BF;
 
 // 	loop registered boundary segments
@@ -383,7 +383,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	typedef typename TFVGeom::BF BF;
 
 // 	loop registered boundary segments

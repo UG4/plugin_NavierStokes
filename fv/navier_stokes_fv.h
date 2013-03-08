@@ -73,16 +73,9 @@ class NavierStokesFV
 		virtual std::string disc_type() const {return "fv";};
 
 	protected:
-	///	current order of disc scheme
-		int m_vorder;
-		int m_porder;
-
 	///	current shape function set
 		LFEID m_vLFEID;
 		LFEID m_pLFEID;
-
-	///	current integration order
-		int m_quadOrder;
 
 		void init();
 
@@ -142,7 +135,7 @@ class NavierStokesFV
 
 	protected:
 	///	register util
-		void register_all_funcs(int vorder, int porder);
+		void register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID);
 		template<typename TElem, typename VGeom, typename PGeom>
 		void register_func();
 

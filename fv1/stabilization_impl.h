@@ -13,6 +13,7 @@
 
 #include "common/math/math_vector_matrix/math_vector_functions.h"
 #include "common/math/math_vector_matrix/math_matrix_functions.h"
+#include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -59,7 +60,7 @@ set_geometry_type()
 	m_id = id;
 
 //	set sizes
-	TFVGeom& geo = Provider<TFVGeom>::get();
+	TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	m_numScvf = geo.num_scvf();
 	m_numSh = geo.num_sh();
 

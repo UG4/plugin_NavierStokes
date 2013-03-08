@@ -7,8 +7,8 @@
 
 #include "navier_stokes_fvcr.h"
 
-#include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
+#include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -172,7 +172,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 
 	if(!TFVGeom::usesHangingNodes)
 	{
-		TFVGeom& geo = Provider<TFVGeom>::get();
+		static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
 		                                                geo.num_scvf_ips());
 		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
@@ -200,7 +200,7 @@ prep_elem(TElem* elem, LocalVector& u)
 	m_vCornerCoords = this->template element_corners<TElem>(elem);
 
 // 	Update Geometry for this element
-	TFVGeom& geo = Provider<TFVGeom>::get();
+	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	try{
 		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
 	}
@@ -266,7 +266,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 		UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 	// 	get finite volume geometry
-		static const TFVGeom& geo = Provider<TFVGeom>::get();
+		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 	//	interpolate velocity at ip with standard lagrange interpolation
 		static const size_t numSCVF = TFVGeom::numSCVF;
@@ -468,7 +468,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 		UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 	// 	get finite volume geometry
-		static const TFVGeom& geo = Provider<TFVGeom>::get();
+		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 	//	interpolate velocity at ip with standard lagrange interpolation
 		static const size_t numSCVF = TFVGeom::numSCVF;
@@ -613,7 +613,7 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	const static TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
@@ -643,7 +643,7 @@ add_def_M_elem(LocalVector& d, const LocalVector& u)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	const static TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
@@ -676,7 +676,7 @@ add_rhs_elem(LocalVector& d)
 	if(!m_imSource.data_given()) return;
 
 // 	get finite volume geometry
-	const static TFVGeom& geo = Provider<TFVGeom>::get();
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)

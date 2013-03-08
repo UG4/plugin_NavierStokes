@@ -74,9 +74,8 @@ class NavierStokesFE
 		virtual std::string disc_type() const {return "fe";};
 
 	protected:
-	///	current order of disc scheme
-		int m_vorder;
-		int m_porder;
+	///	quadrature order
+		int m_quadOrder;
 
 	///	current shape function set
 		LFEID m_vLFEID;
@@ -137,7 +136,7 @@ class NavierStokesFE
 		void add_rhs_elem(LocalVector& d);
 
 	// 	FVHO Assemblings
-		void register_all_funcs(int vorder, int porder);
+		void register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID);
 		template<typename TElem, typename VGeom, typename PGeom> void register_func();
 
 };

@@ -9,6 +9,7 @@
 
 #include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fvho_geom.h"
+#include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -55,7 +56,7 @@ void NavierStokesFV<TDomain>::init()
 	base_type::set_density(1.0);
 
 	//	update assemble functions
-	register_all_funcs(1, 1);
+	this->enable_fast_add_elem(true);
 }
 
 template<typename TDomain>
@@ -112,12 +113,8 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 	m_vLFEID = vLfeID[0];
 	m_pLFEID = vLfeID[dim];
 
-//	set order
-	m_vorder = vLfeID[0].order();
-	m_porder = vLfeID[dim].order();
-
 	//	update assemble functions
-	register_all_funcs(m_vorder, m_porder);
+	register_all_funcs(m_vLFEID, m_pLFEID);
 
 	//	is supported
 	return true;
@@ -167,11 +164,11 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
 
-	VGeom& vgeo = Provider<VGeom>::get(m_vorder);
-	PGeom& pgeo = Provider<PGeom>::get(m_porder);
+	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
+	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
 	try{
-		vgeo.update_local(roid, m_vorder);
-		pgeo.update_local(roid, m_porder);
+		vgeo.update_local(roid, m_vLFEID.order());
+		pgeo.update_local(roid, m_pLFEID.order());
 	}
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
@@ -194,7 +191,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		                                               pgeo.num_scvf_ips());
 
 		const LocalShapeFunctionSet<dim>& rVTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_vorder));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_vLFEID.order()));
 		const MathVector<dim>* PLocIP = pgeo.scvf_local_ips();
 
 		m_vvVShape.resize(pgeo.num_scvf_ips());
@@ -206,7 +203,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		}
 
 		const LocalShapeFunctionSet<dim>& rPTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_porder));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_pLFEID.order()));
 		const MathVector<dim>* VLocIP = vgeo.scv_local_ips();
 
 		m_vvPShape.resize(vgeo.num_scvf_ips());
@@ -232,8 +229,8 @@ void NavierStokesFV<TDomain>::
 prep_elem(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
-	VGeom& vgeo = Provider<VGeom>::get(m_vorder);
-	PGeom& pgeo = Provider<PGeom>::get(m_porder);
+	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
+	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
 	try{
 		vgeo.update(elem, this->template element_corners<TElem>(elem),
 	               &(this->subset_handler()));
@@ -283,8 +280,8 @@ void NavierStokesFV<TDomain>::
 add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
-	const PGeom& pgeo = Provider<PGeom>::get(m_porder);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
+	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
@@ -400,8 +397,8 @@ void NavierStokesFV<TDomain>::
 add_def_A_elem(LocalVector& d, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
-	const PGeom& pgeo = Provider<PGeom>::get(m_porder);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
+	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
@@ -524,7 +521,7 @@ void NavierStokesFV<TDomain>::
 add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0, ipOffset = 0; ip < vgeo.num_scv(); ++ip)
@@ -564,7 +561,7 @@ void NavierStokesFV<TDomain>::
 add_def_M_elem(LocalVector& d, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = Provider<VGeom>::get(m_vorder);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scv(); ++i)
@@ -613,7 +610,7 @@ add_rhs_elem(LocalVector& d)
 // register for all dim
 template<>
 void NavierStokesFV<Domain1d>::
-register_all_funcs(int vorder, int porder)
+register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
 	UG_THROW("Not implemented.");
 }
@@ -621,7 +618,7 @@ register_all_funcs(int vorder, int porder)
 // register for all dim
 template<>
 void NavierStokesFV<Domain2d>::
-register_all_funcs(int vorder, int porder)
+register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
 	typedef DimFVGeometry<2, dim> FVGeom;
 	register_func<Triangle, FVGeom, FVGeom >();
@@ -631,7 +628,7 @@ register_all_funcs(int vorder, int porder)
 // register for all dim
 template<>
 void NavierStokesFV<Domain3d>::
-register_all_funcs(int vorder, int porder)
+register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
 	typedef DimFVGeometry<3, dim> FVGeom;
 	register_func<Tetrahedron, FVGeom, FVGeom >();
