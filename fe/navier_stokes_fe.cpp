@@ -7,7 +7,6 @@
 
 #include "navier_stokes_fe.h"
 
-#include "common/util/provider.h"
 #include "lib_disc/spatial_disc/disc_util/fe_geom.h"
 #include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
@@ -196,22 +195,93 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 
 	for (size_t ip = 0; ip < vgeo.num_ip(); ++ip){
 
-		for (int j = 0; j < dim; ++j){
+		////////////////////////////////////////////////////
+		// Diffusive Term (Momentum Equation)
+		////////////////////////////////////////////////////
+
+		const number scale = m_imKinViscosity[ip] * m_imDensity[ip] * vgeo.weight(ip);
+		for (int vdim = 0; vdim < dim; ++vdim){
 			for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
 
 				for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
-					for (int i = 0; i < dim; ++i) {
+					for (int udim = 0; udim < dim; ++udim) {
 
-						J(j, vsh, j, ush) +=  m_imKinViscosity[ip]
-						               * vgeo.global_grad(ip, ush)[i]
-						               * vgeo.global_grad(ip, vsh)[i]
-						               * vgeo.weight(ip);
+						J(vdim, vsh, vdim, ush) +=  scale
+											       * vgeo.global_grad(ip, ush)[udim]
+											       * vgeo.global_grad(ip, vsh)[udim];
 
-						if(!m_bLaplace) UG_THROW("Not implemented.");
+						if(!m_bLaplace) {
+							J(vdim, vsh, udim, ush) +=  scale
+												       * vgeo.global_grad(ip, ush)[udim]
+												       * vgeo.global_grad(ip, vsh)[udim];
+						}
 					}
 				}
 			}
 		}
+
+		////////////////////////////////////////////////////
+		// Convective Term (Momentum Equation)
+		////////////////////////////////////////////////////
+
+		if (!m_bStokes) {
+			// 	Interpolate Velocity at ip
+			MathVector<dim> Vel;
+			for(int d = 0; d < dim; ++d){
+				Vel[d] = 0.0;
+				for(size_t sh = 0; sh < vgeo.num_sh(); ++sh)
+					Vel[d] += u(d, sh) * vgeo.shape(ip, sh);
+			}
+
+			// linearization of u \nabla u w.r.t second u (i.e. keeping first as old iterate)
+			for (int vdim = 0; vdim < dim; ++vdim){
+				for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+
+					for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
+						for (int udim = 0; udim < dim; ++udim) {
+
+							J(vdim, vsh, vdim, ush) += m_imDensity[ip]
+							                           * Vel[udim]
+													   * vgeo.global_grad(ip, ush)[udim]
+							                   		   * vgeo.shape(ip, vsh);
+						}
+					}
+				}
+			}
+
+			if(m_bExactJacobian){
+
+				// 	Interpolate Functional Matrix of velocity at ip
+				MathMatrix<dim, dim> gradVel;
+				for(int d1 = 0; d1 < dim; ++d1){
+					for(int d2 = 0; d2 <dim; ++d2){
+						gradVel(d1, d2) = 0.0;
+						for(size_t sh = 0; sh < vgeo.num_sh(); ++sh)
+							gradVel(d1, d2) += u(d1, sh) * vgeo.global_grad(ip, sh)[d2];
+					}
+				}
+
+				// linearization of u \nabla u w.r.t first u (i.e. keeping second as old iterate)
+				for (int vdim = 0; vdim < dim; ++vdim){
+					for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+
+						for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
+							for (int udim = 0; udim < dim; ++udim) {
+
+								J(vdim, vsh, udim, ush) += m_imDensity[ip]
+								                           * gradVel(vdim, udim)
+								                   		   * vgeo.shape(ip, ush)
+														   * vgeo.shape(ip, vsh);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		////////////////////////////////////////////////////
+		// Pressure Term (Momentum Equation)
+		////////////////////////////////////////////////////
 
 		for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
 			for (int vdim = 0; vdim < dim; ++vdim){
@@ -222,10 +292,16 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 			}
 		}
 
+		////////////////////////////////////////////////////
+		// Continuity Equation (conservation of mass)
+		////////////////////////////////////////////////////
+
 		for (size_t psh = 0; psh < pgeo.num_sh(); ++psh){
 			for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
 				for (int udim = 0; udim < dim; ++udim) {
-						J(_P_, psh, udim, ush) +=   vgeo.global_grad(ip, ush)[udim]
+						J(_P_, psh, udim, ush) +=
+										m_imDensity[ip]
+								       * vgeo.global_grad(ip, ush)[udim]
 						               * pgeo.shape(ip, psh)
 						               * vgeo.weight(ip);
 				}
@@ -244,49 +320,103 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 	const DimFEGeometry<dim, dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 
-	for (size_t vip = 0; vip < vgeo.num_ip(); ++vip){
+	// loop integration points, note: pgeo and vgeo have same ip
+	for (size_t ip = 0; ip < vgeo.num_ip(); ++ip){
 
-		for (int vdim = 0; vdim < dim; ++vdim){
-			for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
-
-				for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
-					for (int udim = 0; udim < dim; ++udim) {
-
-						d(vdim, vsh) +=  m_imKinViscosity[vip]
-						               * u(vdim, ush)
-						               * vgeo.global_grad(vip, ush)[udim]
-						               * vgeo.global_grad(vip, vsh)[udim]
-						               * vgeo.weight(vip);
-
-						if(!m_bLaplace) UG_THROW("Not implemented.");
-					}
-				}
-			}
-		}
-
-		number pressure = 0.0;
-		for (size_t psh = 0; psh < pgeo.num_sh(); ++psh)
-			pressure += u(_P_, psh) * pgeo.shape(vip, psh);
-
-		for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
-			for (int vdim = 0; vdim < dim; ++vdim){
-				d(vdim, vsh) -= pressure
-							   * vgeo.global_grad(vip, vsh)[vdim]
-							   * vgeo.weight(vip);
+		// 	Interpolate Functional Matrix of velocity at ip
+		MathMatrix<dim, dim> gradVel;
+		for(int d1 = 0; d1 < dim; ++d1){
+			for(int d2 = 0; d2 <dim; ++d2){
+				gradVel(d1, d2) = 0.0;
+				for(size_t sh = 0; sh < vgeo.num_sh(); ++sh)
+					gradVel(d1, d2) += u(d1, sh) * vgeo.global_grad(ip, sh)[d2];
 			}
 		}
 
 		number divu = 0.0;
 		for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
 			for (int udim = 0; udim < dim; ++udim) {
-				divu += u(udim, ush) * vgeo.global_grad(vip, ush)[udim];
+				divu += u(udim, ush) * vgeo.global_grad(ip, ush)[udim];
 			}
 		}
 
+		////////////////////////////////////////////////////
+		// Diffusive Term (Momentum Equation)
+		////////////////////////////////////////////////////
+
+		const number scale = m_imKinViscosity[ip] * m_imDensity[ip] * vgeo.weight(ip);
+		for (int vdim = 0; vdim < dim; ++vdim){
+			for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+				for (int udim = 0; udim < dim; ++udim) {
+
+					d(vdim, vsh) +=  scale * gradVel(vdim, udim)
+								   * vgeo.global_grad(ip, vsh)[udim];
+
+					if(!m_bLaplace) {
+						d(vdim, vsh) +=  scale * gradVel(udim, vdim)
+									   * vgeo.global_grad(ip, vsh)[udim];
+					}
+				}
+			}
+		}
+
+		////////////////////////////////////////////////////
+		// Convective Term (Momentum Equation)
+		////////////////////////////////////////////////////
+
+		if (!m_bStokes) {
+			// 	Interpolate Velocity at ip
+			MathVector<dim> Vel;
+			for(int d1 = 0; d1 < dim; ++d1){
+				Vel[d1] = 0.0;
+				for(size_t sh = 0; sh < vgeo.num_sh(); ++sh)
+					Vel[d1] += u(d1, sh) * vgeo.shape(ip, sh);
+			}
+
+			MathVector<dim> convFlux;
+			MatVecMult(convFlux, gradVel, Vel);
+
+			for (int vdim = 0; vdim < dim; ++vdim){
+				for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+					d(vdim, vsh) +=  m_imDensity[ip] * convFlux[vdim]
+								   * vgeo.shape(ip, vsh);
+				}
+			}
+
+			// \todo: if density == constant, this will always be zero
+			//		  therefore it is excluded
+			if(false){
+				for (int vdim = 0; vdim < dim; ++vdim){
+					for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+						d(vdim, vsh) +=  m_imDensity[ip] * Vel[vdim] * divu
+									   * vgeo.shape(ip, vsh);
+					}
+				}
+			}
+		}
+
+		////////////////////////////////////////////////////
+		// Pressure Term (Momentum Equation)
+		////////////////////////////////////////////////////
+
+		number pressure = 0.0;
+		for (size_t psh = 0; psh < pgeo.num_sh(); ++psh)
+			pressure += u(_P_, psh) * pgeo.shape(ip, psh);
+
+		for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+			for (int vdim = 0; vdim < dim; ++vdim){
+				d(vdim, vsh) -= pressure
+							   * vgeo.global_grad(ip, vsh)[vdim]
+							   * vgeo.weight(ip);
+			}
+		}
+
+		////////////////////////////////////////////////////
+		// Continuity Equation (conservation of mass)
+		////////////////////////////////////////////////////
+
 		for (size_t psh = 0; psh < pgeo.num_sh(); ++psh){
-						d(_P_, psh) += divu
-						               * pgeo.shape(vip, psh)
-						               * vgeo.weight(vip);
+			d(_P_, psh) += divu * m_imDensity[ip] * pgeo.shape(ip, psh)* vgeo.weight(ip);
 		}
 	}
 
@@ -298,10 +428,23 @@ template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
 add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 {
-//	request geometry
-//	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	//	request geometry
+	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
-	UG_THROW("Not implemented.");
+	//	loop integration points
+	for(size_t ip = 0; ip < vgeo.num_ip(); ++ip){
+		for(size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+			for(size_t ush= 0; ush < vgeo.num_sh(); ++ush){
+
+				number val = m_imDensity[ip]
+				             * vgeo.shape(ip, vsh) *vgeo.shape(ip, ush)
+				             * vgeo.weight(ip);
+
+				for (int vdim = 0; vdim < dim; ++vdim)
+					J(vdim, vsh, vdim, ush) += val;
+			}
+		}
+	}
 }
 
 
@@ -310,10 +453,27 @@ template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
 add_def_M_elem(LocalVector& d, const LocalVector& u)
 {
-//	request geometry
-//	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	//	request geometry
+	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
-	UG_THROW("Not implemented.");
+	//	loop integration points
+	for(size_t ip = 0; ip < vgeo.num_ip(); ++ip){
+		for (int vdim = 0; vdim < dim; ++vdim){
+
+			//	compute value of current solution at ip
+			number u_dim_ip = 0.0;
+			for(size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh)
+				u_dim_ip += u(vdim,vsh) * vgeo.shape(ip, vsh);
+
+			//	add density
+			u_dim_ip *= m_imDensity[ip];
+
+			//	loop test spaces
+			for(size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+				d(vdim, vsh) +=  u_dim_ip * vgeo.shape(ip, vsh) * vgeo.weight(ip);
+			}
+		}
+	}
 }
 
 
@@ -322,10 +482,18 @@ template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
 add_rhs_elem(LocalVector& d)
 {
-//	if zero data given, return
+	//	if zero data given, return
 	if(!m_imSource.data_given()) return;
 
-	UG_THROW("Not implemented.")
+	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+
+	for(size_t ip = 0; ip < vgeo.num_ip(); ++ip){
+		for(size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
+			for (int vdim = 0; vdim < dim; ++vdim){
+				d(vdim, vsh) += m_imSource[ip][vdim] * vgeo.shape(ip, vsh) * vgeo.weight(ip);
+			}
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

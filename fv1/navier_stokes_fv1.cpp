@@ -361,6 +361,9 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 			// Convective Term (Momentum Equation)
 			////////////////////////////////////////////////////
 
+			// note: StdVel will be the advecting velocity (not upwinded)
+			//       UpwindVel/StabVel will be the transported velocity
+
 			if (! m_bStokes) // no convective terms in the Stokes equation
 			{
 			//	compute upwind velocity
@@ -702,6 +705,9 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 		////////////////////////////////////////////////////
 		// Convective Term (Momentum Equation)
 		////////////////////////////////////////////////////
+
+		// note: StdVel will be the advecting velocity (not upwinded)
+		//       UpwindVel/StabVel will be the transported velocity
 
 		if (! m_bStokes) // no convective terms in the Stokes equation
 		{
