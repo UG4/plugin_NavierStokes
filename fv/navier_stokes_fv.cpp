@@ -620,7 +620,7 @@ template<>
 void NavierStokesFV<Domain2d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<2, dim> FVGeom;
+	typedef DimFVGeometry<dim, 2> FVGeom;
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
@@ -630,7 +630,7 @@ template<>
 void NavierStokesFV<Domain3d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<3, dim> FVGeom;
+	typedef DimFVGeometry<dim, 3> FVGeom;
 	register_func<Tetrahedron, FVGeom, FVGeom >();
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
