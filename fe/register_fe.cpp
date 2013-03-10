@@ -3,6 +3,7 @@
 #include "bridge/util_domain_algebra_dependent.h"
 
 #include "navier_stokes_fe.h"
+#include "bnd/inflow_fe.h"
 
 using namespace std;
 using namespace ug::bridge;
@@ -33,6 +34,16 @@ static void DomainAlgebra(Registry& reg, string grp)
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
 
+	//	NavierStokesInflow FE
+	{
+		typedef NavierStokesInflowFE<TDomain, TAlgebra> T;
+		typedef NavierStokesInflowBase<TDomain, TAlgebra> TBase;
+		string name = string("NavierStokesInflowFE").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)(SmartPtr< NavierStokesFE<TDomain> >)>("MasterElemDisc")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesInflowFE", tag);
+	}
 }
 
 /**
@@ -115,7 +126,7 @@ void Init___NavierStokes___FE(Registry* reg, string grp)
 //		RegisterDimensionDependent<Functionality>(*reg,grp);
 		RegisterDomainDependent<Functionality>(*reg,grp);
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
-//		RegisterDomainAlgebraDependent<Functionality>(*reg,grp);
+		RegisterDomainAlgebraDependent<Functionality>(*reg,grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
