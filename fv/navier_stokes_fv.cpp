@@ -260,20 +260,16 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 
-// 	loop Sub Control Volume Faces (SCVF)
-	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
-	{
-	// 	get current SCVF
-		const typename VGeom::SCVF& scvf = vgeo.scvf(i);
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+	// Momentum Equation (conservation of momentum)
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
 
-	//	loop integration points
-		for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
-		{
-			////////////////////////////////////////////////////
-			////////////////////////////////////////////////////
-			// Momentum Equation (conservation of momentum)
-			////////////////////////////////////////////////////
-			////////////////////////////////////////////////////
+// 	loop Sub Control Volume Faces (SCVF)
+	for(size_t s = 0, ip = 0; s < vgeo.num_scvf(); ++s){
+		const typename VGeom::SCVF& scvf = vgeo.scvf(s);
+		for(size_t i = 0; i < scvf.num_ip(); ++i, ++ip){
 
 			////////////////////////////////////////////////////
 			// Diffusive Term (Momentum Equation)
@@ -283,10 +279,10 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 			{
 
 			// 	Compute flux derivative at IP
-				const number flux_sh =  -1.0 * m_imKinViscosity[ipCnt]
-				                        * m_imDensitySCVF[ipCnt]
-										* VecDot(scvf.global_grad(ip, sh), scvf.normal())
-										* scvf.weight(ip);
+				const number flux_sh =  -1.0 * m_imKinViscosity[ip]
+				                        * m_imDensitySCVF[ip]
+										* VecDot(scvf.global_grad(i, sh), scvf.normal())
+										* scvf.weight(i);
 
 			// 	Add flux derivative  to local matrix
 				for(int d1 = 0; d1 < dim; ++d1)
@@ -300,11 +296,11 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 					for(int d1 = 0; d1 < dim; ++d1)
 						for(int d2 = 0; d2 < dim; ++d2)
 						{
-							const number flux2_sh = -1.0 * m_imKinViscosity[ipCnt]
-							                        * m_imDensitySCVF[ipCnt]
-													* scvf.global_grad(ip, sh)[d1]
+							const number flux2_sh = -1.0 * m_imKinViscosity[ip]
+							                        * m_imDensitySCVF[ip]
+													* scvf.global_grad(i, sh)[d1]
 													* scvf.normal()[d2]
-									                * scvf.weight(ip);
+									                * scvf.weight(i);
 							J(d1, scvf.from(), d2, sh) += flux2_sh;
 							J(d1, scvf.to()  , d2, sh) -= flux2_sh;
 						}
@@ -316,20 +312,18 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 			////////////////////////////////////////////////////
 
 		//	Add flux derivative for local matrix
-			for(size_t sh = 0; sh < m_vvPShape[ipCnt].size(); ++sh)
+			for(size_t sh = 0; sh < m_vvPShape[ip].size(); ++sh)
 				for(int d1 = 0; d1 < dim; ++d1)
 				{
-					const number flux_sh = m_vvPShape[ipCnt][sh]
+					const number flux_sh = m_vvPShape[ip][sh]
 					                       * scvf.normal()[d1]
-	                                       * scvf.weight(ip);
+	                                       * scvf.weight(i);
 					J(d1, scvf.from(), _P_, sh) += flux_sh;
 					J(d1, scvf.to()  , _P_, sh) -= flux_sh;
 				}
 
 			if(!m_bStokes)
 				UG_THROW("Only Stokes implemented");
-
-			ipCnt++;
 		} // end ip
 	} // end scvf
 
@@ -341,30 +335,23 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 	////////////////////////////////////////////////////
 
 // 	loop Sub Control Volume Faces (SCVF)
-	for(size_t i = 0, ipCnt = 0; i < pgeo.num_scvf(); ++i)
-	{
-// 	get current SCVF
-	const typename PGeom::SCVF& scvf = pgeo.scvf(i);
+	for(size_t s = 0, ip = 0; s < pgeo.num_scvf(); ++s){
+		const typename PGeom::SCVF& scvf = pgeo.scvf(s);
+		for(size_t i = 0; i < scvf.num_ip(); ++i, ++ip){
+			for(size_t sh = 0; sh < m_vvVShape[ip].size(); ++sh)
+			{
+			//	compute flux at ip
+				const number contFlux = m_vvVShape[ip][sh]
+										* m_imDensitySCVFp[ip]
+										* scvf.weight(i);
 
-//	loop integration points
-	for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
-	{
-		for(size_t sh = 0; sh < m_vvVShape[ipCnt].size(); ++sh)
-		{
-		//	compute flux at ip
-			const number contFlux = m_vvVShape[ipCnt][sh]
-			                        * m_imDensitySCVFp[ipCnt]
-			                        * scvf.weight(ip);
-
-		//	Add contributions to local defect
-			for(int d1 = 0; d1 < dim; ++d1){
-				J(_P_, scvf.from(), d1, sh) += contFlux * scvf.normal()[d1];
-				J(_P_, scvf.to()  , d1, sh) -= contFlux * scvf.normal()[d1];
+			//	Add contributions to local defect
+				for(int d1 = 0; d1 < dim; ++d1){
+					J(_P_, scvf.from(), d1, sh) += contFlux * scvf.normal()[d1];
+					J(_P_, scvf.to()  , d1, sh) -= contFlux * scvf.normal()[d1];
+				}
 			}
 		}
-
-		ipCnt++;
-	}
 	}
 }
 
@@ -377,82 +364,77 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 
+
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+	// Momentum Equation (conservation of momentum)
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+
 // 	loop Sub Control Volume Faces (SCVF)
-	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
-	{
-// 	get current SCVF
-	const typename VGeom::SCVF& scvf = vgeo.scvf(i);
+	for(size_t s = 0, ip = 0; s < vgeo.num_scvf(); ++s){
+		const typename VGeom::SCVF& scvf = vgeo.scvf(s);
+		for(size_t i = 0; i < scvf.num_ip(); ++i, ++ip){
 
-//	loop integration points
-	for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
-	{
+			////////////////////////////////////////////////////
+			// Diffusive Term (Momentum Equation)
+			////////////////////////////////////////////////////
 
-		////////////////////////////////////////////////////
-		////////////////////////////////////////////////////
-		// Momentum Equation (conservation of momentum)
-		////////////////////////////////////////////////////
-		////////////////////////////////////////////////////
+		// 	1. Interpolate Functional Matrix of velocity at ip
+			MathMatrix<dim, dim> gradVel;
+			for(int d1 = 0; d1 < dim; ++d1)
+				for(int d2 = 0; d2 <dim; ++d2)
+				{
+				//	sum up contributions of each shape
+					gradVel(d1, d2) = 0.0;
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+						gradVel(d1, d2) += scvf.global_grad(i, sh)[d2]
+											* u(d1, sh);
+				}
 
-		////////////////////////////////////////////////////
-		// Diffusive Term (Momentum Equation)
-		////////////////////////////////////////////////////
+		//	2. Compute flux
+			MathVector<dim> diffFlux;
 
-	// 	1. Interpolate Functional Matrix of velocity at ip
-		MathMatrix<dim, dim> gradVel;
-		for(int d1 = 0; d1 < dim; ++d1)
-			for(int d2 = 0; d2 <dim; ++d2)
+		//	Add (\nabla u) \cdot \vec{n}
+			MatVecMult(diffFlux, gradVel, scvf.normal());
+
+		//	Add (\nabla u)^T \cdot \vec{n}
+			if(!m_bLaplace)
+				TransposedMatVecMultAdd(diffFlux, gradVel, scvf.normal());
+
+		//	scale by viscosity
+			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip] * m_imDensitySCVF[ip]);
+
+		//	3. Add flux to local defect
+			for(int d1 = 0; d1 < dim; ++d1)
 			{
-			//	sum up contributions of each shape
-				gradVel(d1, d2) = 0.0;
-				for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					gradVel(d1, d2) += scvf.global_grad(ip, sh)[d2]
-					                    * u(d1, sh);
+				d(d1, scvf.from()) += diffFlux[d1] * scvf.weight(i);
+				d(d1, scvf.to()  ) -= diffFlux[d1] * scvf.weight(i);
 			}
 
-	//	2. Compute flux
-		MathVector<dim> diffFlux;
+			////////////////////////////////////////////////////
+			// Convective Term (Momentum Equation)
+			////////////////////////////////////////////////////
 
-	//	Add (\nabla u) \cdot \vec{n}
-		MatVecMult(diffFlux, gradVel, scvf.normal());
+			if (! m_bStokes) // no convective terms in the Stokes equation
+				UG_THROW("Only Stokes implemented");
 
-	//	Add (\nabla u)^T \cdot \vec{n}
-		if(!m_bLaplace)
-			TransposedMatVecMultAdd(diffFlux, gradVel, scvf.normal());
+			////////////////////////////////////////////////////
+			// Pressure Term (Momentum Equation)
+			////////////////////////////////////////////////////
 
-	//	scale by viscosity
-		VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ipCnt] * m_imDensitySCVF[ipCnt]);
+		//	1. Interpolate pressure at ip
+			number pressure = 0.0;
+			for(size_t sh = 0; sh < m_vvPShape[ip].size(); ++sh)
+				pressure += m_vvPShape[ip][sh] * u(_P_, sh);
 
-	//	3. Add flux to local defect
-		for(int d1 = 0; d1 < dim; ++d1)
-		{
-			d(d1, scvf.from()) += diffFlux[d1] * scvf.weight(ip);
-			d(d1, scvf.to()  ) -= diffFlux[d1] * scvf.weight(ip);
+		//	2. Add contributions to local defect
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				d(d1, scvf.from()) += pressure * scvf.normal()[d1] * scvf.weight(i);
+				d(d1, scvf.to()  ) -= pressure * scvf.normal()[d1] * scvf.weight(i);
+			}
 		}
-
-		////////////////////////////////////////////////////
-		// Convective Term (Momentum Equation)
-		////////////////////////////////////////////////////
-
-		if (! m_bStokes) // no convective terms in the Stokes equation
-			UG_THROW("Only Stokes implemented");
-
-		////////////////////////////////////////////////////
-		// Pressure Term (Momentum Equation)
-		////////////////////////////////////////////////////
-
-	//	1. Interpolate pressure at ip
-		number pressure = 0.0;
-		for(size_t sh = 0; sh < m_vvPShape[ipCnt].size(); ++sh)
-			pressure += m_vvPShape[ipCnt][sh] * u(_P_, sh);
-
-	//	2. Add contributions to local defect
-		for(int d1 = 0; d1 < dim; ++d1)
-		{
-			d(d1, scvf.from()) += pressure * scvf.normal()[d1] * scvf.weight(ip);
-			d(d1, scvf.to()  ) -= pressure * scvf.normal()[d1] * scvf.weight(ip);
-		}
-		ipCnt++;
-	}
 	}
 
 //	interpolate velocity at ip with standard lagrange interpolation
@@ -464,29 +446,23 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 				PStdVel[ip][d1] += u(d1, sh) * m_vvVShape[ip][sh];
 	}
 
-// 	loop Sub Control Volume Faces (SCVF)
-	for(size_t i = 0, ipCnt = 0; i < pgeo.num_scvf(); ++i)
-	{
-		// 	get current SCVF
-		const typename PGeom::SCVF& scvf = pgeo.scvf(i);
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+	// Continuity Equation (conservation of mass)
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
 
-		//	loop integration points
-		for(size_t ip = 0; ip < scvf.num_ip(); ++ip)
-		{
-			////////////////////////////////////////////////////
-			////////////////////////////////////////////////////
-			// Continuity Equation (conservation of mass)
-			////////////////////////////////////////////////////
-			////////////////////////////////////////////////////
+// 	loop Sub Control Volume Faces (SCVF)
+	for(size_t s = 0, ip = 0; s < pgeo.num_scvf(); ++s){
+		const typename PGeom::SCVF& scvf = pgeo.scvf(s);
+		for(size_t i = 0; i < scvf.num_ip(); ++i, ++ip){
 
 			//	compute flux at ip
-			const number contFlux = VecProd(PStdVel[ipCnt], scvf.normal()) * m_imDensitySCVFp[ipCnt];
+			const number contFlux = VecProd(PStdVel[ip], scvf.normal()) * m_imDensitySCVFp[ip];
 
 			//	Add contributions to local defect
-			d(_P_, scvf.from()) += contFlux * scvf.weight(ip);
-			d(_P_, scvf.to()  ) -= contFlux * scvf.weight(ip);
-
-			ipCnt++;
+			d(_P_, scvf.from()) += contFlux * scvf.weight(i);
+			d(_P_, scvf.to()  ) -= contFlux * scvf.weight(i);
 		}
 	}
 }
@@ -501,10 +477,13 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 // 	loop Sub Control Volumes (SCV)
-	for(size_t ip = 0, ipOffset = 0; ip < vgeo.num_scv(); ++ip)
+	for(size_t s = 0, ip = 0; s < vgeo.num_scv(); ++s)
 	{
 	// 	get current SCV
-		const typename VGeom::SCV& scv = vgeo.scv(ip);
+		const typename VGeom::SCV& scv = vgeo.scv(s);
+
+	// 	get associated node
+		const int co = scv.node_id();
 
 	//	loop shapes
 		for(size_t sh = 0; sh < scv.num_sh(); ++sh)
@@ -513,21 +492,19 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 			number integral = 0;
 
 		//	loop integration points
-			for(size_t ip = 0; ip < scv.num_ip(); ++ip)
+			for(size_t i = 0; i < scv.num_ip(); ++i, ++ip)
 			{
-				integral += scv.shape(ip, sh) * scv.weight(ip) * m_imDensitySCV[ipOffset+ip];
+				integral += scv.shape(i, sh) * scv.weight(i)
+							* m_imDensitySCV[ip];
 			}
 
 		// 	loop velocity components
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
 			// 	Add to local matrix
-				J(d1, sh, d1, sh) += integral;
+				J(d1, co, d1, sh) += integral;
 			}
 		}
-
-	//	increase ip offset
-		ipOffset += scv.num_ip();
 	}
 }
 
@@ -541,29 +518,26 @@ add_def_M_elem(LocalVector& d, const LocalVector& u)
 	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 // 	loop Sub Control Volumes (SCV)
-	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scv(); ++i)
+	for(size_t s = 0, ip = 0; s < vgeo.num_scv(); ++s)
 	{
 	// 	get current SCV
-		const typename VGeom::SCV& scv = vgeo.scv(i);
+		const typename VGeom::SCV& scv = vgeo.scv(s);
 
 	// 	get associated node
 		const int co = scv.node_id();
 
 	//	loop integration points
-		for(size_t ip = 0; ip < scv.num_ip(); ++ip)
+		for(size_t i = 0; i < scv.num_ip(); ++i, ++ip)
 		{
 			MathVector<dim> Vel; VecSet(Vel, 0.0);
 			for(size_t sh = 0; sh < scv.num_sh(); ++sh)
 				for(int d1 = 0; d1 < dim; ++d1)
-					Vel[d1] += u(d1, sh) * scv.shape(ip, sh);
+					Vel[d1] += u(d1, sh) * scv.shape(i, sh);
 
 		// 	Add to local defect
 			for(int d1 = 0; d1 < dim; ++d1)
-				d(d1, co) +=  Vel[d1] * m_imDensitySCV[ipCnt]
-                              * scv.weight(ip);
-
-		//	next ip
-			ipCnt++;
+				d(d1, co) +=  Vel[d1] * m_imDensitySCV[ip]
+                              * scv.weight(i);
 		}
 	}
 }
@@ -597,7 +571,7 @@ template<>
 void NavierStokesFV<Domain2d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<dim, 2> FVGeom;
+	typedef DimFVGeometry<dim> FVGeom;
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
@@ -607,7 +581,7 @@ template<>
 void NavierStokesFV<Domain3d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<dim, 3> FVGeom;
+	typedef DimFVGeometry<dim> FVGeom;
 	register_func<Tetrahedron, FVGeom, FVGeom >();
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
