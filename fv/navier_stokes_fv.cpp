@@ -167,8 +167,8 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
 	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
 	try{
-		vgeo.update_local(roid, m_vLFEID.order());
-		pgeo.update_local(roid, m_pLFEID.order());
+		vgeo.update_local(roid, m_vLFEID);
+		pgeo.update_local(roid, m_pLFEID);
 	}
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
