@@ -136,7 +136,7 @@ class NavierStokesFE
 		void add_rhs_elem(LocalVector& d);
 
 	// 	FVHO Assemblings
-		void register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID);
+		void register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder);
 		template<typename TElem, typename VGeom, typename PGeom> void register_func();
 
 };

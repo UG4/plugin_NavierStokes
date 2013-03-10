@@ -99,7 +99,7 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 	m_quadOrder = 2*m_vLFEID.order()+1;
 
 	//	update assemble functions
-	register_all_funcs(m_vLFEID, m_pLFEID);
+	register_all_funcs(m_vLFEID, m_pLFEID, m_quadOrder);
 
 	//	is supported
 	return true;
@@ -143,8 +143,8 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	if(!m_imDensity.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
 
-	DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
-	DimFEGeometry<dim, dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
+	DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	DimFEGeometry<dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 	try{
 		vgeo.update_local(roid, m_vLFEID, m_quadOrder);
 		pgeo.update_local(roid, m_pLFEID, m_quadOrder);
@@ -170,8 +170,8 @@ void NavierStokesFE<TDomain>::
 prep_elem(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
-	DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
-	DimFEGeometry<dim, dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
+	DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	DimFEGeometry<dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 	try{
 		vgeo.update(elem, this->template element_corners<TElem>(elem), m_vLFEID, m_quadOrder);
 	    pgeo.update(elem, this->template element_corners<TElem>(elem), m_pLFEID, m_quadOrder);
@@ -190,8 +190,8 @@ void NavierStokesFE<TDomain>::
 add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 {
 //	request geometry
-	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
-	const DimFEGeometry<dim, dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
+	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	const DimFEGeometry<dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 
 	for (size_t ip = 0; ip < vgeo.num_ip(); ++ip){
 
@@ -317,8 +317,8 @@ void NavierStokesFE<TDomain>::
 add_def_A_elem(LocalVector& d, const LocalVector& u)
 {
 //	request geometry
-	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
-	const DimFEGeometry<dim, dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
+	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	const DimFEGeometry<dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 
 	// loop integration points, note: pgeo and vgeo have same ip
 	for (size_t ip = 0; ip < vgeo.num_ip(); ++ip){
@@ -429,7 +429,7 @@ void NavierStokesFE<TDomain>::
 add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 {
 	//	request geometry
-	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 	//	loop integration points
 	for(size_t ip = 0; ip < vgeo.num_ip(); ++ip){
@@ -454,7 +454,7 @@ void NavierStokesFE<TDomain>::
 add_def_M_elem(LocalVector& d, const LocalVector& u)
 {
 	//	request geometry
-	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 	//	loop integration points
 	for(size_t ip = 0; ip < vgeo.num_ip(); ++ip){
@@ -485,7 +485,7 @@ add_rhs_elem(LocalVector& d)
 	//	if zero data given, return
 	if(!m_imSource.data_given()) return;
 
-	const DimFEGeometry<dim, dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 	for(size_t ip = 0; ip < vgeo.num_ip(); ++ip){
 		for(size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
@@ -503,7 +503,7 @@ add_rhs_elem(LocalVector& d)
 // register for all dim
 template<>
 void NavierStokesFE<Domain1d>::
-register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
+register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
 {
 	UG_THROW("Not implemented.");
 }
@@ -511,9 +511,9 @@ register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 // register for all dim
 template<>
 void NavierStokesFE<Domain2d>::
-register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
+register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
 {
-	typedef DimFEGeometry<dim, dim> FVGeom;
+	typedef DimFEGeometry<dim> FVGeom;
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
@@ -521,9 +521,9 @@ register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 // register for all dim
 template<>
 void NavierStokesFE<Domain3d>::
-register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
+register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
 {
-	typedef DimFEGeometry<dim, dim> FVGeom;
+	typedef DimFEGeometry<dim> FVGeom;
 	register_func<Tetrahedron, FVGeom, FVGeom >();
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
