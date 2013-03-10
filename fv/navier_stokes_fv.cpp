@@ -112,6 +112,7 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 //	remember lfeID;
 	m_vLFEID = vLfeID[0];
 	m_pLFEID = vLfeID[dim];
+	m_quadOrder = std::max(m_vLFEID.order(), m_pLFEID.order()) + 1;
 
 	//	update assemble functions
 	register_all_funcs(m_vLFEID, m_pLFEID);
@@ -164,8 +165,8 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
 
-	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
-	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
+	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 	try{
 		vgeo.update_local(roid, m_vLFEID);
 		pgeo.update_local(roid, m_pLFEID);
@@ -173,25 +174,24 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
 	static const int refDim = TElem::dim;
-	if(!VGeom::usesHangingNodes)
 	{
-		m_imKinViscosity.template set_local_ips<refDim>(vgeo.scvf_local_ips(),
-		                                                vgeo.num_scvf_ips());
-		m_imDensitySCVF.template set_local_ips<refDim>(vgeo.scvf_local_ips(),
-		                                               vgeo.num_scvf_ips());
-		m_imDensitySCV.template set_local_ips<refDim>(vgeo.scv_local_ips(),
-		                                              vgeo.num_scv_ips());
-		m_imSource.template set_local_ips<refDim>(vgeo.scv_local_ips(),
-		                                          vgeo.num_scv_ips());
+		const MathVector<dim>* vSCVFip = vgeo.scvf_global_ips();
+		const size_t numSCVFip = vgeo.num_scvf_ips();
+		const MathVector<dim>* vSCVip = vgeo.scv_global_ips();
+		const size_t numSCVip = vgeo.num_scv_ips();
+
+		m_imKinViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imDensitySCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
+		m_imSource.template set_local_ips<refDim>(vSCVip,numSCVip);
 	}
 
-	if(!PGeom::usesHangingNodes)
 	{
 		m_imDensitySCVFp.template set_local_ips<refDim>(pgeo.scvf_local_ips(),
 		                                               pgeo.num_scvf_ips());
 
 		const LocalShapeFunctionSet<dim>& rVTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_vLFEID.order()));
+			LocalShapeFunctionSetProvider::get<dim>(roid,m_vLFEID);
 		const MathVector<dim>* PLocIP = pgeo.scvf_local_ips();
 
 		m_vvVShape.resize(pgeo.num_scvf_ips());
@@ -203,7 +203,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		}
 
 		const LocalShapeFunctionSet<dim>& rPTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, m_pLFEID.order()));
+			LocalShapeFunctionSetProvider::get<dim>(roid, m_pLFEID);
 		const MathVector<dim>* VLocIP = vgeo.scv_local_ips();
 
 		m_vvPShape.resize(vgeo.num_scvf_ips());
@@ -229,8 +229,8 @@ void NavierStokesFV<TDomain>::
 prep_elem(TElem* elem, const LocalVector& u)
 {
 // 	Update Geometry for this element
-	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
-	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
+	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 	try{
 		vgeo.update(elem, this->template element_corners<TElem>(elem),
 	               &(this->subset_handler()));
@@ -239,39 +239,16 @@ prep_elem(TElem* elem, const LocalVector& u)
 	}
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
-//	set local positions for imports
-	if(VGeom::usesHangingNodes)
-	{
-		static const int refDim = TElem::dim;
-
-	//	request ip series
-		m_imKinViscosity.template set_local_ips<refDim>(vgeo.scvf_local_ips(),
-		                                                vgeo.num_scvf_ips());
-		m_imDensitySCVF.template set_local_ips<refDim>(vgeo.scvf_local_ips(),
-		                                                vgeo.num_scvf_ips());
-		m_imDensitySCV.template set_local_ips<refDim>(vgeo.scv_local_ips(),
-		                                          vgeo.num_scv_ips());
-		m_imSource.template set_local_ips<refDim>(vgeo.scv_local_ips(),
-		                                          vgeo.num_scv_ips());
-	}
-
-//	set local positions for imports
-	if(PGeom::usesHangingNodes)
-	{
-		static const int refDim = TElem::dim;
-
-	//	request ip series
-		m_imDensitySCVFp.template set_local_ips<refDim>(pgeo.scvf_local_ips(),
-														pgeo.num_scvf_ips());
-	}
-
 //	set global positions for imports
-	m_imKinViscosity.set_global_ips(vgeo.scvf_global_ips(), vgeo.num_scvf_ips());
-	m_imDensitySCVF.set_global_ips(vgeo.scvf_global_ips(), vgeo.num_scvf_ips());
-	m_imDensitySCV.set_global_ips(vgeo.scv_global_ips(), vgeo.num_scv_ips());
-	m_imSource.set_global_ips(vgeo.scv_global_ips(), vgeo.num_scv_ips());
-
-	m_imDensitySCVFp.set_global_ips(pgeo.scvf_global_ips(), pgeo.num_scvf_ips());
+	const MathVector<dim>* vSCVFip = vgeo.scvf_global_ips();
+	const size_t numSCVFip = vgeo.num_scvf_ips();
+	const MathVector<dim>* vSCVip = vgeo.scv_global_ips();
+	const size_t numSCVip = vgeo.num_scv_ips();
+	m_imKinViscosity.	set_global_ips(vSCVFip, numSCVFip);
+	m_imDensitySCVF.	set_global_ips(vSCVFip, numSCVFip);
+	m_imDensitySCV.		set_global_ips(vSCVip, numSCVip);
+	m_imSource.			set_global_ips(vSCVip, numSCVip);
+	m_imDensitySCVFp.	set_global_ips(pgeo.scvf_global_ips(), pgeo.num_scvf_ips());
 }
 
 template<typename TDomain>
@@ -280,8 +257,8 @@ void NavierStokesFV<TDomain>::
 add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
-	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
@@ -397,8 +374,8 @@ void NavierStokesFV<TDomain>::
 add_def_A_elem(LocalVector& d, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
-	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_pLFEID.order()+1);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
+	const PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
 
 // 	loop Sub Control Volume Faces (SCVF)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scvf(); ++i)
@@ -521,7 +498,7 @@ void NavierStokesFV<TDomain>::
 add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0, ipOffset = 0; ip < vgeo.num_scv(); ++ip)
@@ -561,7 +538,7 @@ void NavierStokesFV<TDomain>::
 add_def_M_elem(LocalVector& d, const LocalVector& u)
 {
 //	request geometry
-	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_vLFEID.order()+1);
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t i = 0, ipCnt = 0; i < vgeo.num_scv(); ++i)

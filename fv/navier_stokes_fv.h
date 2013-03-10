@@ -77,6 +77,9 @@ class NavierStokesFV
 		LFEID m_vLFEID;
 		LFEID m_pLFEID;
 
+	///	quadrature order
+		int m_quadOrder;
+
 		void init();
 
 	private:

@@ -181,14 +181,15 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	{
 		static const int refDim = TElem::dim;
 		TFVGeom& geo = GeomProvider<TFVGeom>::get();
-		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
-		                                                geo.num_scvf_ips());
-		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
-		                                                geo.num_scvf_ips());
-		m_imDensitySCV.template set_local_ips<refDim>(geo.scv_local_ips(),
-		                                          geo.num_scv_ips());
-		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
-		                                          geo.num_scv_ips());
+		const MathVector<refDim>* vSCVFip = geo.scvf_local_ips();
+		const size_t numSCVFip = geo.num_scvf_ips();
+		const MathVector<refDim>* vSCVip = geo.scv_local_ips();
+		const size_t numSCVip = geo.num_scv_ips();
+
+		m_imKinViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imDensitySCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
+		m_imSource.template set_local_ips<refDim>(vSCVip,numSCVip);
 	}
 }
 
@@ -220,21 +221,25 @@ prep_elem(TElem* elem, const LocalVector& u)
 	{
 	//	request ip series
 		static const int refDim = TElem::dim;
-		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
-		                                                geo.num_scvf_ips());
-		m_imDensitySCVF.template set_local_ips<refDim>(geo.scvf_local_ips(),
-		                                                geo.num_scvf_ips());
-		m_imDensitySCV.template set_local_ips<refDim>(geo.scv_local_ips(),
-		                                          geo.num_scv_ips());
-		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
-		                                          geo.num_scv_ips());
+		const MathVector<refDim>* vSCVFip = geo.scvf_local_ips();
+		const size_t numSCVFip = geo.num_scvf_ips();
+		const MathVector<refDim>* vSCVip = geo.scv_local_ips();
+		const size_t numSCVip = geo.num_scv_ips();
+		m_imKinViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imDensitySCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
+		m_imSource.template set_local_ips<refDim>(vSCVip,numSCVip);
 	}
 
 //	set global positions for imports
-	m_imKinViscosity.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
-	m_imDensitySCVF.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
-	m_imDensitySCV.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
-	m_imSource.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
+	const MathVector<dim>* vSCVFip = geo.scvf_global_ips();
+	const size_t numSCVFip = geo.num_scvf_ips();
+	const MathVector<dim>* vSCVip = geo.scv_global_ips();
+	const size_t numSCVip = geo.num_scv_ips();
+	m_imKinViscosity.set_global_ips(vSCVFip, numSCVFip);
+	m_imDensitySCVF.set_global_ips(vSCVFip, numSCVFip);
+	m_imDensitySCV.set_global_ips(vSCVip, numSCVip);
+	m_imSource.set_global_ips(vSCVip, numSCVip);
 }
 
 template<typename TDomain>
