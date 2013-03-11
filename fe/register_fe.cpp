@@ -30,7 +30,6 @@ struct FunctionalityFE
 template <typename TDomain, typename TAlgebra>
 static void DomainAlgebra(Registry& reg, string grp)
 {
-	static const int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
 
