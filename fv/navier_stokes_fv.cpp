@@ -94,21 +94,6 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 			return false;
 		}
 
-	for(int d = 0; d <= dim; ++d)
-		if(vLfeID[d].type() != LFEID::LAGRANGE)
-		{
-			UG_LOG("NavierStokes: 'fv' expects Lagrange trial space "
-					"for velocity and pressure.\n");
-			return false;
-		}
-	for(int d = 0; d < dim; ++d)
-		if(vLfeID[d].order() != vLfeID[dim].order() + 1)
-		{
-			UG_LOG("NavierStokes: 'fv' expects Lagrange trial space "
-					"P_k for velocity and P_{k-1} pressure.\n");
-			return false;
-		}
-
 //	remember lfeID;
 	m_vLFEID = vLfeID[0];
 	m_pLFEID = vLfeID[dim];
@@ -382,15 +367,13 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 
 		// 	1. Interpolate Functional Matrix of velocity at ip
 			MathMatrix<dim, dim> gradVel;
-			for(int d1 = 0; d1 < dim; ++d1)
-				for(int d2 = 0; d2 <dim; ++d2)
-				{
-				//	sum up contributions of each shape
+			for(int d1 = 0; d1 < dim; ++d1){
+				for(int d2 = 0; d2 <dim; ++d2){
 					gradVel(d1, d2) = 0.0;
 					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-						gradVel(d1, d2) += scvf.global_grad(i, sh)[d2]
-											* u(d1, sh);
+						gradVel(d1, d2) += u(d1, sh) * scvf.global_grad(i, sh)[d2];
 				}
+			}
 
 		//	2. Compute flux
 			MathVector<dim> diffFlux;
