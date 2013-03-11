@@ -25,9 +25,8 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::transferToLowe
 			coarseLevelVertexIter clvIter, clvIterEnd;
 			clvIter = lDD.template begin<VertexBase>(si);
 			clvIterEnd = lDD.template end<VertexBase>(si);
-			for (;clsIter != clsIterEnd;clsIter++){
-				VertexBase* vertex = *clsIter;
-				size_t numChildren = grid.num_children<VertexBase>(vertex);
+			for (;clvIter != clvIterEnd;clvIter++){
+				VertexBase* vertex = *clvIter;
 				aaData[vertex] += aaData[grid.get_child<VertexBase>(vertex, 0)];
 			}
 			if (lev==0) break;
@@ -710,7 +709,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 						const size_t nodeID = bf.node_id();
 						for (int i=0;i<dim;i++)
 							for (int j=0;j<dim;j++){
-								aaDefTensor[elem->corner(nodeID)][i][j] += 0.5 * (uValue[nodeID][i] * bf.normal()[j] + uValue[nodeID][j] * bf.normal()[i]);
+								aaDefTensor[elem->vertex(nodeID)][i][j] += 0.5 * (uValue[nodeID][i] * bf.normal()[j] + uValue[nodeID][j] * bf.normal()[i]);
 							}
 					}
 				}
