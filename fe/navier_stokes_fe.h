@@ -63,6 +63,9 @@ class NavierStokesFE
 	///	sets the source function
 		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);
 
+	///	sets the stabilization parameter
+		void set_stabilization(number alpha) {m_stabParam = alpha;}
+
 	public:
 	///	type of trial space for each function used
 		bool request_finite_element_id(const std::vector<LFEID>& vLfeID);
@@ -74,12 +77,18 @@ class NavierStokesFE
 		virtual std::string disc_type() const {return "fe";};
 
 	protected:
+	///	stabilization parameter
+		number m_stabParam;
+
 	///	quadrature order
 		int m_quadOrder;
 
 	///	current shape function set
 		LFEID m_vLFEID;
 		LFEID m_pLFEID;
+
+	///	current element
+		GeometricObject* m_pElem;
 
 		void init();
 

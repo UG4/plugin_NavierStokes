@@ -42,6 +42,8 @@ void NavierStokesFE<TDomain>::init()
 		UG_THROW("Wrong number of functions: The ElemDisc 'NavierStokes'"
 					   " needs exactly "<<dim+1<<" symbolic function.");
 
+	m_stabParam = 0.0;
+
 //	register imports
 	this->register_import(m_imSource);
 	this->register_import(m_imKinViscosity);
@@ -169,6 +171,8 @@ template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
 prep_elem(TElem* elem, const LocalVector& u)
 {
+	m_pElem = elem;
+
 // 	Update Geometry for this element
 	DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 	DimFEGeometry<dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
@@ -309,6 +313,21 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 		}
 	}
 
+	// stabilization
+	if(m_stabParam != 0)
+	{
+		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, this->domain());
+		for (size_t ip = 0; ip < pgeo.num_ip(); ++ip){
+			for (size_t psh = 0; psh < pgeo.num_sh(); ++psh){
+				for (size_t psh2 = 0; psh2 < pgeo.num_sh(); ++psh2){
+					J(_P_, psh,_P_, psh2) += scale
+								   * VecDot(pgeo.global_grad(ip, psh), pgeo.global_grad(ip, psh2))
+								   * pgeo.weight(ip);
+				}
+			}
+		}
+	}
+
 }
 
 template<typename TDomain>
@@ -420,6 +439,26 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 		}
 	}
 
+	// stabilization
+	if(m_stabParam != 0)
+	{
+		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, this->domain());
+		for (size_t ip = 0; ip < pgeo.num_ip(); ++ip){
+
+			MathVector<dim> pressGrad; VecSet(pressGrad, 0.0);
+			for (size_t psh = 0; psh < pgeo.num_sh(); ++psh)
+				VecScaleAppend(pressGrad, u(_P_, psh), pgeo.global_grad(ip, psh));
+
+			for (size_t psh = 0; psh < pgeo.num_sh(); ++psh){
+				d(_P_, psh) += scale
+							   * VecDot(pgeo.global_grad(ip, psh), pressGrad)
+							   * pgeo.weight(ip);
+			}
+		}
+
+		// \todo: only 2nd order accurate. For higher order the laplace of the
+		//			velocity test space is needed.
+	}
 }
 
 
