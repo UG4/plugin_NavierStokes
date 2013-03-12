@@ -473,7 +473,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	number maxdiff = 0;
 	number diffsum = 0;
 	for (size_t i=0;i<17;i++){
-		number localdiff=abs(xLineReferenceValue[i]-xLineValue[i]);
+		number localdiff=std::abs(xLineReferenceValue[i]-xLineValue[i]);
 		UG_LOG("y(" << i+1 << ") = " << yco[i] << "; u(" << i+1 << ") = " << xLineValue[i] << "; u_ghia(" << i+1 << ") = " << xLineReferenceValue[i] << "; udiff(" << i+1 << ") = " << localdiff << ";\n");
 		if (localdiff>maxdiff) maxdiff = localdiff;
 		diffsum += localdiff;
@@ -483,8 +483,8 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	maxdiff = 0;
 	diffsum = 0;
 	for (size_t i=0;i<17;i++){
-		number localdiff=abs(yLineReferenceValue[i]-yLineValue[i]);
-		UG_LOG("x(" << i+1 << ") = " << xco[i] << "; v(" << i+1 << ") = " << yLineValue[i] << "; v_ghia(" << i+1 << ") = " << yLineReferenceValue[i] << "; vdiff(" << i+1 << ") = " << abs(yLineReferenceValue[i]-yLineValue[i]) << ";\n");
+		number localdiff=std::abs(yLineReferenceValue[i]-yLineValue[i]);
+		UG_LOG("x(" << i+1 << ") = " << xco[i] << "; v(" << i+1 << ") = " << yLineValue[i] << "; v_ghia(" << i+1 << ") = " << yLineReferenceValue[i] << "; vdiff(" << i+1 << ") = " << std::abs(yLineReferenceValue[i]-yLineValue[i]) << ";\n");
 		if (localdiff>maxdiff) maxdiff = localdiff;
 		diffsum += localdiff;
 	}
@@ -612,7 +612,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 					MathVector<dim> jCoord = scvj.global_ip();
 					MathVector<dim> subVec;
 					VecSubtract(subVec,iCoord,jCoord);
-					number localCfl=deltaT*(number)1.0/VecTwoNormSq(subVec)*abs(subVec*baryV);
+					number localCfl=deltaT*(number)1.0/VecTwoNormSq(subVec)*std::abs(subVec*baryV);
 					if (localCfl>maxCfl) maxCfl=localCfl;
 				}
 			}
