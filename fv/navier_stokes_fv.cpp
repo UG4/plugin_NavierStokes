@@ -189,7 +189,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 
 		const LocalShapeFunctionSet<dim>& rPTrialSpace =
 			LocalShapeFunctionSetProvider::get<dim>(roid, m_pLFEID);
-		const MathVector<dim>* VLocIP = vgeo.scv_local_ips();
+		const MathVector<dim>* VLocIP = vgeo.scvf_local_ips();
 
 		m_vvPShape.resize(vgeo.num_scvf_ips());
 		for(size_t ip = 0; ip < m_vvPShape.size(); ++ip){
