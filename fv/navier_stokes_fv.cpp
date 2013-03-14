@@ -293,6 +293,13 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 			}
 
 			////////////////////////////////////////////////////
+			// Convective Term (Momentum Equation)
+			////////////////////////////////////////////////////
+
+			if (! m_bStokes) // no convective terms in the Stokes equation
+				UG_THROW("Only Stokes implemented");
+
+			////////////////////////////////////////////////////
 			// Pressure Term (Momentum Equation)
 			////////////////////////////////////////////////////
 
@@ -306,9 +313,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 					J(d1, scvf.from(), _P_, sh) += flux_sh;
 					J(d1, scvf.to()  , _P_, sh) -= flux_sh;
 				}
-
-			if(!m_bStokes)
-				UG_THROW("Only Stokes implemented");
 		} // end ip
 	} // end scvf
 
@@ -533,8 +537,20 @@ add_rhs_elem(LocalVector& d)
 {
 //	if zero data given, return
 	if(!m_imSource.data_given()) return;
+	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
-//	UG_THROW("Not implemented.")
+// 	loop Sub Control Volume Faces (SCVF)
+	for(size_t s = 0, ip = 0; s < vgeo.num_scvf(); ++s){
+		const typename VGeom::SCV& scv = vgeo.scv(s);
+		for(size_t i = 0; i < scv.num_ip(); ++i, ++ip){
+			const int co = scv.node_id();
+
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				d(d1, co) += m_imSource[ip][d1] * scv.weight(i);
+			}
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
