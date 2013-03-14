@@ -247,7 +247,8 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 							J(vdim, vsh, vdim, ush) += m_imDensity[ip]
 							                           * Vel[udim]
 													   * vgeo.global_grad(ip, ush)[udim]
-							                   		   * vgeo.shape(ip, vsh);
+							                   		   * vgeo.shape(ip, vsh)
+							                   		   * vgeo.weight(ip);
 						}
 					}
 				}
@@ -275,7 +276,8 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 								J(vdim, vsh, udim, ush) += m_imDensity[ip]
 								                           * gradVel(vdim, udim)
 								                   		   * vgeo.shape(ip, ush)
-														   * vgeo.shape(ip, vsh);
+														   * vgeo.shape(ip, vsh)
+														   * vgeo.weight(ip);
 							}
 						}
 					}
@@ -398,7 +400,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 			for (int vdim = 0; vdim < dim; ++vdim){
 				for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
 					d(vdim, vsh) +=  m_imDensity[ip] * convFlux[vdim]
-								   * vgeo.shape(ip, vsh);
+								   * vgeo.shape(ip, vsh) * vgeo.weight(ip);
 				}
 			}
 
@@ -408,7 +410,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 				for (int vdim = 0; vdim < dim; ++vdim){
 					for (size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
 						d(vdim, vsh) +=  m_imDensity[ip] * Vel[vdim] * divu
-									   * vgeo.shape(ip, vsh);
+									   * vgeo.shape(ip, vsh) * vgeo.weight(ip);
 					}
 				}
 			}
