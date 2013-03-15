@@ -276,14 +276,12 @@ convective_flux_Jac
 	const LocalVector& u // local solution
 )
 {
-	MathVector<dim> StdVel;
-	number old_momentum_flux, t;
-	
 // The convection velocity according to the current approximation:
+	MathVector<dim> StdVel(0.0);
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 			StdVel[d1] += u(d1, sh) * bf.shape(sh);
-	old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
+	number old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
 	
 // We assume that there should be no inflow through the outflow boundary:
 	if (old_momentum_flux < 0)
@@ -292,7 +290,7 @@ convective_flux_Jac
 //	Add flux to local Jacobian
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 	{
-		t = old_momentum_flux * bf.shape(sh);
+		number t = old_momentum_flux * bf.shape(sh);
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 			J(d1, bf.node_id(), d1, sh) += t;
 	}
@@ -307,17 +305,12 @@ convective_flux_defect
 	const size_t ip, // index of the integration point (for the density)
 	const BF& bf, // boundary face to assemble
 	LocalVector& d, // local defect to update
-	const LocalVector& u // local solution
+	const LocalVector& u, // local solution
+	const MathVector<dim>& StdVel // velocity at ip
 )
 {
-	MathVector<dim> StdVel;
-	number old_momentum_flux;
-	
 // The convection velocity according to the current approximation:
-	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
-		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
-			StdVel[d1] += u(d1, sh) * bf.shape(sh);
-	old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
+	number old_momentum_flux = VecDot (StdVel, bf.normal ()) * m_imDensity [ip];
 	
 // We assume that there should be no inflow through the outflow boundary:
 	if (old_momentum_flux < 0)
@@ -355,7 +348,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 
 	// 	loop the boundary faces
 		typename std::vector<BF>::const_iterator bf;
-		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
+		for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
 		{
 		//	A. The momentum equation:
 			diffusive_flux_Jac<BF> (ip, *bf, J, u);
@@ -367,9 +360,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					J(_P_, bf->node_id (), d2, sh) += bf->shape(sh) * bf->normal()[d2]
 						* m_imDensity [ip];
-		
-		// Next IP:
-			ip++;
 		}
 	}
 }
@@ -401,25 +391,21 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 
 	// 	loop the boundary faces
 		typename std::vector<BF>::const_iterator bf;
-		for(bf = vBF.begin(); bf != vBF.end(); ++bf)
+		for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
 		{
-		// A. Momentum equation:
+		// A. Compute Velocity at ip
+			MathVector<dim> stdVel(0.0);
+			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+					stdVel[d1] += u(d1, sh) * bf->shape(sh);
+
+		// B. Momentum equation:
 			diffusive_flux_defect<BF> (ip, *bf, d, u);
 			if (!m_spMaster->stokes ())
-				convective_flux_defect<BF> (ip, *bf, d, u);
+				convective_flux_defect<BF> (ip, *bf, d, u, stdVel);
 		
-		// B. Continuity equation:
-			{
-				MathVector<dim> stdVel;
-				VecSet (stdVel, 0);
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						stdVel[d1] += u(d1, sh) * bf->shape(sh);
-				d(_P_, bf->node_id()) += VecDot (stdVel, bf->normal()) * m_imDensity[ip];
-			}
-		
-		// Next IP:
-			ip++;
+		// c. Continuity equation:
+			d(_P_, bf->node_id()) += VecDot (stdVel, bf->normal()) * m_imDensity[ip];
 		}
 	}
 }
