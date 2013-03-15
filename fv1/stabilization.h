@@ -14,6 +14,8 @@
 
 #include "../upwind_interface.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
+#include "lib_disc/spatial_disc/user_data/data_import.h"
+
 
 namespace ug{
 namespace NavierStokes{
@@ -274,7 +276,27 @@ class INavierStokesFV1Stabilization
 
 	///	set the Geometry type to use for next updates
 		template <typename TFVGeom>
-		void set_geometry_type();
+		void set_geometry_type()
+		{
+		//	get unique geometry id
+			size_t id = GetUniqueFVGeomID<TFVGeom>();
+
+		//	check that function exists
+			if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == NULL)
+				UG_THROW("No update function registered for Geometry "<<id);
+
+		//	set current geometry
+			m_id = id;
+
+		//	set sizes
+			TFVGeom& geo = GeomProvider<TFVGeom>::get();
+			m_numScvf = geo.num_scvf();
+			m_numSh = geo.num_sh();
+
+		//	set sizes in upwind
+			if(m_spUpwind.valid()) m_spUpwind->template set_geometry_type<TFVGeom>();
+			else UG_THROW("Upwind missing.");
+		}
 
 	protected:
 	///	Vector holding all update functions
@@ -284,6 +306,9 @@ class INavierStokesFV1Stabilization
 		int m_id;
 };
 
+/// creates upwind based on a string identifier
+template <int dim>
+SmartPtr<INavierStokesFV1Stabilization<dim> > CreateNavierStokesStabilization(const std::string& name);
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -330,7 +355,7 @@ class NavierStokesFIELDSStabilization
 			set_vel_comp_connected(false);
 
 		//	register evaluation function
-			register_func(Int2Type<dim>());
+			register_func();
 		}
 
 	///	update of values for FV1Geometry
@@ -344,20 +369,7 @@ class NavierStokesFIELDSStabilization
 		            const LocalVector* pvCornerValueOldTime, number dt);
 
 	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
+		void register_func();
 
 		template <typename TElem>
 		void register_func()
@@ -420,7 +432,7 @@ class NavierStokesFLOWStabilization
 			set_vel_comp_connected(true);
 
 		//	register evaluation function
-			register_func(Int2Type<dim>());
+			register_func();
 		}
 
 	///	update of values for FV1Geometry
@@ -434,20 +446,7 @@ class NavierStokesFLOWStabilization
 					const LocalVector* pvCornerValueOldTime, number dt);
 
 	private:
-		void register_func(Int2Type<1>)
-		{register_func<Edge>();}
-
-		void register_func(Int2Type<2>)
-		{	register_func(Int2Type<1>());
-			register_func<Triangle>();
-			register_func<Quadrilateral>();}
-
-		void register_func(Int2Type<3>)
-		{	register_func(Int2Type<2>());
-			register_func<Tetrahedron>();
-			register_func<Pyramid>();
-			register_func<Prism>();
-			register_func<Hexahedron>();}
+		void register_func();
 
 		template <typename TElem>
 		void register_func()
@@ -467,8 +466,5 @@ class NavierStokesFLOWStabilization
 
 } // namespace NavierStokes
 } // end namespace ug
-
-// include implementation
-#include "stabilization_impl.h"
 
 #endif /* __H__UG__PLUGINS__NAVIER_STOKES__FV__STABILIZATION__ */

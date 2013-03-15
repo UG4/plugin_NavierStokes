@@ -8,6 +8,7 @@
 // for minimum
 #include <limits>
 #include <algorithm>
+#include <locale>
 
 // function space, reference element
 #include "lib_disc/common/geometry_util.h"

@@ -26,7 +26,10 @@ set(SOURCES	navier_stokes_base.cpp
 			fvcr/bnd/symmetric_boundary.cpp
 			fvcr/cr_reorder.cpp
 			
+			upwind_interface.cpp
 			upwind.cpp
+
+			fv1/stabilization.cpp
 			
 			fv1/register_fv1.cpp
 			fv/register_fv.cpp

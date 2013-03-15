@@ -155,19 +155,32 @@ class NavierStokesFV1
 		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);
 
 	///	sets the stabilization used to compute the stabilized velocities
-	/**
-	 * \param[in]	stab		Stabilization
-	 */
 		void set_stabilization(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
 			{m_spStab = spStab;}
 
+	///	sets stabilization based on string identifier
+		void set_stabilization(const std::string& name)
+			{m_spStab = CreateNavierStokesStabilization<dim>(name);
+			 if(m_spConvUpwind.valid()) m_spStab->set_upwind(m_spConvUpwind);}
+
+	///	sets stabilization and diff length method based on string identifier
+		void set_stabilization(const std::string& name, const std::string& diffLength)
+			{m_spStab = CreateNavierStokesStabilization<dim>(name);
+			 m_spStab->set_diffusion_length(diffLength);
+			 if(m_spConvUpwind.valid()) m_spStab->set_upwind(m_spConvUpwind);}
+
 	///	sets a stabilization for upwinding (Physical Advection Correction)
-        void set_conv_upwind(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
+        void set_upwind(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
         	{m_spConvStab = spStab; m_spConvUpwind = NULL;}
 
 	///	sets an upwinding for the convective term of momentum equation
-		void set_conv_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
+		void set_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
 			{m_spConvStab = NULL; m_spConvUpwind = spUpwind;}
+
+	///	sets the upwind based on a string identifier
+		void set_upwind(const std::string& name)
+			{m_spConvStab = NULL; m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);
+			if(m_spStab.valid() && m_spStab->upwind().invalid()) m_spStab->set_upwind(m_spConvUpwind);}
 
 	public:
 	///	type of trial space for each function used

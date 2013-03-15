@@ -1,12 +1,12 @@
 /*
- *stabilization_impl.h
+ * stabilization.cpp
  *
  *  Created on: 11.03.2011
  *      Author: andreasvogel
  */
 
-#ifndef NEW_STABILIZATION_IMPL_H___H__UG__PLUGINS__NAVIER_STOKES__FV__STABILIZATION_IMPL__
-#define NEW_STABILIZATION_IMPL_H___H__UG__PLUGINS__NAVIER_STOKES__FV__STABILIZATION_IMPL__
+#include <string>
+#include <locale>
 
 #include "stabilization.h"
 #include "diffusion_length.h"
@@ -18,6 +18,18 @@
 namespace ug{
 namespace NavierStokes{
 
+template <int dim>
+SmartPtr<INavierStokesFV1Stabilization<dim> > CreateNavierStokesStabilization(const std::string& name)
+{
+	std::string n = TrimString(name);
+	std::transform(n.begin(), n.end(), n.begin(), ::tolower);
+
+	if(n == "fields") return SmartPtr<NavierStokesFIELDSStabilization<dim> >(new NavierStokesFIELDSStabilization<dim>());
+	if(n == "flow") return SmartPtr<NavierStokesFLOWStabilization<dim> >(new NavierStokesFLOWStabilization<dim>());
+
+	UG_THROW("NavierStokes: stabilization type '"<<name<<"' not found. Options are: "
+	         "fields, flow");
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // Interface for Stabilization
@@ -42,44 +54,20 @@ register_update_func(TAssFunc func)
 	m_vUpdateFunc[id] = (UpdateFunc)func;
 }
 
-//	set the Geometry type to use for next updates
-template <int dim>
-template <typename TFVGeom>
-void
-INavierStokesFV1Stabilization<dim>::
-set_geometry_type()
-{
-//	get unique geometry id
-	size_t id = GetUniqueFVGeomID<TFVGeom>();
-
-//	check that function exists
-	if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == NULL)
-		UG_THROW("No update function registered for Geometry "<<id);
-
-//	set current geometry
-	m_id = id;
-
-//	set sizes
-	TFVGeom& geo = GeomProvider<TFVGeom>::get();
-	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_sh();
-
-//	set sizes in upwind
-	if(m_spUpwind.valid()) m_spUpwind->template set_geometry_type<TFVGeom>();
-	else UG_THROW("Upwind missing.");
-}
-
 template <int dim>
 void
 INavierStokesFV1Stabilization<dim>::
 set_diffusion_length(std::string diffLength)
 {
-	if      (diffLength == "RAW")        m_diffLengthType = RAW;
-	else if (diffLength == "FIVEPOINT")  m_diffLengthType = FIVEPOINT;
-	else if (diffLength == "COR")        m_diffLengthType = COR;
+	std::string n = TrimString(diffLength);
+	std::transform(n.begin(), n.end(), n.begin(), ::tolower);
+
+	if      (n == "raw")        m_diffLengthType = RAW;
+	else if (n == "fivepoint")  m_diffLengthType = FIVEPOINT;
+	else if (n == "cor")        m_diffLengthType = COR;
 	else
 		UG_THROW("Diffusion Length calculation method not found."
-						" Use one of [RAW, FIVEPOINT, COR].");
+						" Use one of [Raw, Fivepoint, Cor].");
 }
 
 template <int dim>
@@ -415,6 +403,31 @@ update(const FV1Geometry<TElem, dim>* geo,
 	} // end switch for non-diag
 }
 
+template <>
+void NavierStokesFIELDSStabilization<1>::register_func()
+{
+	register_func<Edge>();
+}
+
+template <>
+void NavierStokesFIELDSStabilization<2>::register_func()
+{
+	register_func<Edge>();
+	register_func<Triangle>();
+	register_func<Quadrilateral>();
+}
+
+template <>
+void NavierStokesFIELDSStabilization<3>::register_func()
+{
+	register_func<Edge>();
+	register_func<Triangle>();
+	register_func<Quadrilateral>();
+	register_func<Tetrahedron>();
+	register_func<Pyramid>();
+	register_func<Prism>();
+	register_func<Hexahedron>();
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // FLOW
@@ -757,7 +770,57 @@ update(const FV1Geometry<TElem, dim>* geo,
 	} // end switch for non-diag
 }
 
+
+template <>
+void NavierStokesFLOWStabilization<1>::register_func()
+{
+	register_func<Edge>();
+}
+
+template <>
+void NavierStokesFLOWStabilization<2>::register_func()
+{
+	register_func<Edge>();
+	register_func<Triangle>();
+	register_func<Quadrilateral>();
+}
+
+template <>
+void NavierStokesFLOWStabilization<3>::register_func()
+{
+	register_func<Edge>();
+	register_func<Triangle>();
+	register_func<Quadrilateral>();
+	register_func<Tetrahedron>();
+	register_func<Pyramid>();
+	register_func<Prism>();
+	register_func<Hexahedron>();
+}
+////////////////////////////////////////////////////////////////////////////////
+//	explicit instantiations
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef UG_DIM_1
+template class INavierStokesFV1Stabilization<1>;
+template class NavierStokesFIELDSStabilization<1>;
+template class NavierStokesFLOWStabilization<1>;
+
+template SmartPtr<INavierStokesFV1Stabilization<1> >CreateNavierStokesStabilization<1>(const std::string& name);
+#endif
+#ifdef UG_DIM_2
+template class INavierStokesFV1Stabilization<2>;
+template class NavierStokesFIELDSStabilization<2>;
+template class NavierStokesFLOWStabilization<2>;
+
+template SmartPtr<INavierStokesFV1Stabilization<2> >CreateNavierStokesStabilization<2>(const std::string& name);
+#endif
+#ifdef UG_DIM_3
+template class INavierStokesFV1Stabilization<3>;
+template class NavierStokesFIELDSStabilization<3>;
+template class NavierStokesFLOWStabilization<3>;
+
+template SmartPtr<INavierStokesFV1Stabilization<3> >CreateNavierStokesStabilization<3>(const std::string& name);
+#endif
+
 } // namespace NavierStokes
 } // end namespace ug
-
-#endif /* NEW_STABILIZATION_IMPL_H___H__UG__PLUGINS__NAVIER_STOKES__FV__STABILIZATION_IMPL__ */

@@ -383,6 +383,9 @@ class NavierStokesUpwindRegister
 		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
 };
 
+/// creates upwind based on a string identifier
+template <int dim>
+SmartPtr<INavierStokesUpwind<dim> > CreateNavierStokesUpwind(const std::string& name);
 
 } // namespace NavierStokes
 } // end namespace ug

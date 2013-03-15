@@ -67,8 +67,12 @@ class NavierStokesFVCR
 		bool get_defect_upwind() {return m_bDefectUpwind; }
 
 	///	sets an upwinding for the convective term of momentum equation
-		void set_conv_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
+		void set_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
 			{m_spConvUpwind = spUpwind;}
+
+	///	sets the upwind based on a string identifier
+		void set_upwind(const std::string& name)
+			{m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);}
 
 	public:
 	///	type of trial space for each function used

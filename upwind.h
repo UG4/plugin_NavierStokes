@@ -13,6 +13,7 @@
 #define UG_NSUPWIND_ASSERT(cond, exp) UG_ASSERT((cond), exp)
 
 #include <vector>
+#include <string>
 
 #include "upwind_interface.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
@@ -112,7 +113,7 @@ class NavierStokesWeightedUpwind
 
 	public:
 	///	constructor
-		NavierStokesWeightedUpwind(number weight) : m_weight(weight)
+		NavierStokesWeightedUpwind(number weight = 0.5) : m_weight(weight)
 		{
 			this->set_shape_ip_flag(false);
 		}
