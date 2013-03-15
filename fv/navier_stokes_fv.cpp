@@ -259,15 +259,15 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 			////////////////////////////////////////////////////
 			// Diffusive Term (Momentum Equation)
 			////////////////////////////////////////////////////
+			const number scale = -1.0 * m_imKinViscosity[ip]
+								 * m_imDensitySCVF[ip] * scvf.weight(i);
+
 		// 	loop shape functions
 			for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 			{
 
 			// 	Compute flux derivative at IP
-				const number flux_sh =  -1.0 * m_imKinViscosity[ip]
-				                        * m_imDensitySCVF[ip]
-										* VecDot(scvf.global_grad(i, sh), scvf.normal())
-										* scvf.weight(i);
+				const number flux_sh =  scale * VecDot(scvf.global_grad(i, sh), scvf.normal());
 
 			// 	Add flux derivative  to local matrix
 				for(int d1 = 0; d1 < dim; ++d1)
@@ -281,11 +281,8 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 					for(int d1 = 0; d1 < dim; ++d1)
 						for(int d2 = 0; d2 < dim; ++d2)
 						{
-							const number flux2_sh = -1.0 * m_imKinViscosity[ip]
-							                        * m_imDensitySCVF[ip]
-													* scvf.global_grad(i, sh)[d1]
-													* scvf.normal()[d2]
-									                * scvf.weight(i);
+							const number flux2_sh = scale * scvf.global_grad(i, sh)[d1]
+													* scvf.normal()[d2];
 							J(d1, scvf.from(), d2, sh) += flux2_sh;
 							J(d1, scvf.to()  , d2, sh) -= flux2_sh;
 						}
@@ -296,8 +293,38 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 			// Convective Term (Momentum Equation)
 			////////////////////////////////////////////////////
 
-			if (! m_bStokes) // no convective terms in the Stokes equation
-				UG_THROW("Only Stokes implemented");
+			if (!m_bStokes) {
+				// 	Interpolate Velocity at ip
+				MathVector<dim> Vel(0.0);
+				for(int d = 0; d < dim; ++d)
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+						Vel[d] += u(d, sh) * scvf.shape(i, sh);
+
+				//	compute product of stabilized vel and normal
+				const number prod = VecProd(Vel, scvf.normal())
+									* m_imDensitySCVF[ip] * scvf.weight(i);
+
+				// linearization of u^T n u w.r.t second u (i.e. keeping first as old iterate)
+				for (int d1 = 0; d1 < dim; ++d1){
+					for (size_t sh = 0; sh < scvf.num_sh(); ++sh){
+						J(d1, scvf.from(), d1, sh) += prod * scvf.shape(i, sh);
+					}
+				}
+
+				if(m_bExactJacobian){
+					// linearization of u^T n u w.r.t first u (i.e. keeping second as old iterate)
+					for (int d1 = 0; d1 < dim; ++d1){
+						for (size_t sh = 0; sh < scvf.num_sh(); ++sh){
+
+							const number prod =  scvf.shape(i, sh)
+												 * m_imDensitySCVF[ip] * scvf.weight(i);
+							for (int d2 = 0; d2 < dim; ++d2){
+							J(d1, scvf.from(), d2, sh) += Vel[d1] * scvf.normal()[d2] * prod;
+							}
+						}
+					}
+				}
+			}
 
 			////////////////////////////////////////////////////
 			// Pressure Term (Momentum Equation)
@@ -390,21 +417,38 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 				TransposedMatVecMultAdd(diffFlux, gradVel, scvf.normal());
 
 		//	scale by viscosity
-			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip] * m_imDensitySCVF[ip]);
+			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip]
+			                             * m_imDensitySCVF[ip] * scvf.weight(i));
 
 		//	3. Add flux to local defect
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
-				d(d1, scvf.from()) += diffFlux[d1] * scvf.weight(i);
-				d(d1, scvf.to()  ) -= diffFlux[d1] * scvf.weight(i);
+				d(d1, scvf.from()) += diffFlux[d1];
+				d(d1, scvf.to()  ) -= diffFlux[d1];
 			}
 
 			////////////////////////////////////////////////////
 			// Convective Term (Momentum Equation)
 			////////////////////////////////////////////////////
 
-			if (! m_bStokes) // no convective terms in the Stokes equation
-				UG_THROW("Only Stokes implemented");
+			if (! m_bStokes) {
+			//	compute ip velocity
+				MathVector<dim> Vel(0.0);
+				for(int d1 = 0; d1 < dim; ++d1)
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+						Vel[d1] += u(d1, sh) * scvf.shape(i, sh);
+
+			//	compute product of standard velocity and normal
+				const number prod = VecProd(Vel, scvf.normal())
+									* m_imDensitySCVF[ip] * scvf.weight(i);
+
+			//	Add contributions to local velocity components
+				for(int d1 = 0; d1 < dim; ++d1)
+				{
+					d(d1, scvf.from()) += Vel[d1] * prod;
+					d(d1, scvf.to()  ) -= Vel[d1] * prod;
+				}
+			}
 
 			////////////////////////////////////////////////////
 			// Pressure Term (Momentum Equation)
@@ -414,12 +458,13 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 			number pressure = 0.0;
 			for(size_t sh = 0; sh < m_vvPShape[ip].size(); ++sh)
 				pressure += m_vvPShape[ip][sh] * u(_P_, sh);
+			pressure *= scvf.weight(i);
 
 		//	2. Add contributions to local defect
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
-				d(d1, scvf.from()) += pressure * scvf.normal()[d1] * scvf.weight(i);
-				d(d1, scvf.to()  ) -= pressure * scvf.normal()[d1] * scvf.weight(i);
+				d(d1, scvf.from()) += pressure * scvf.normal()[d1];
+				d(d1, scvf.to()  ) -= pressure * scvf.normal()[d1];
 			}
 		}
 	}
@@ -445,11 +490,12 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 		for(size_t i = 0; i < scvf.num_ip(); ++i, ++ip){
 
 			//	compute flux at ip
-			const number contFlux = VecProd(PStdVel[ip], scvf.normal()) * m_imDensitySCVFp[ip];
+			const number contFlux = VecProd(PStdVel[ip], scvf.normal())
+									* m_imDensitySCVFp[ip] * scvf.weight(i);
 
 			//	Add contributions to local defect
-			d(_P_, scvf.from()) += contFlux * scvf.weight(i);
-			d(_P_, scvf.to()  ) -= contFlux * scvf.weight(i);
+			d(_P_, scvf.from()) += contFlux;
+			d(_P_, scvf.to()  ) -= contFlux;
 		}
 	}
 }
