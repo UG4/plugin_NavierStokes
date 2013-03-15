@@ -60,6 +60,15 @@ class NavierStokesNoNormalStressOutflowFVCR
 	///	Constructor (setting default values)
 		NavierStokesNoNormalStressOutflowFVCR(SmartPtr< NavierStokesBase<TDomain> > spMaster);
 
+	protected:
+	///	sets the kinematic viscosity
+		virtual void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
+			{m_imKinViscosity.set_data(data);}
+
+	///	sets the density
+		virtual void set_density(SmartPtr<UserData<number, dim> > data)
+			{m_imDensity.set_data(data);}
+
 	public:
 	///	type of trial space for each function used
 		virtual bool request_finite_element_id(const std::vector<LFEID>& vLfeID);
@@ -141,13 +150,18 @@ class NavierStokesNoNormalStressOutflowFVCR
 	/// abbreviation for pressure
 		static const size_t _P_ = dim;
 
-		using base_type::m_imDensity;
-		using base_type::m_imKinViscosity;
 		using base_type::m_spMaster;
-
-		using base_type::m_vLocIP;
-		using base_type::m_vGloIP;
 		using base_type::m_vBndSubSetIndex;
+
+	///	Data import for kinematic viscosity
+		DataImport<number, dim> m_imKinViscosity;
+
+	/// Data import for density
+		DataImport<number, dim> m_imDensity;
+
+	/// Boundary integration points of the viscosity and the density
+		std::vector<MathVector<dim> > m_vLocIP;
+		std::vector<MathVector<dim> > m_vGloIP;
 
 	protected:
 		void register_all_funcs(bool bHang);

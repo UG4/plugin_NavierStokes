@@ -63,23 +63,12 @@ class NavierStokesNoNormalStressOutflowBase
 	///	adds a boundary segment
 		void add(const char* subsets);
 	
+	protected:
 	///	sets the kinematic viscosity
-	/**
-	 * This method sets the kinematic viscosity parameter.
-	 *
-	 * \param[in]	data		kinematic Viscosity
-	 */
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
-			{m_imKinViscosity.set_data(data);}
+		virtual void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data) = 0;
 
 	///	sets the density
-	/**
-	 * This method sets the density parameter.
-	 *
-	 * \param[in]	data		Density
-	 */
-		void set_density(SmartPtr<UserData<number, dim> > data)
-			{m_imDensity.set_data(data);}
+		virtual void set_density(SmartPtr<UserData<number, dim> > data) = 0;
 
 	public:
 	///	returns if local time series is needed
@@ -95,16 +84,6 @@ class NavierStokesNoNormalStressOutflowBase
 	
 		void extract_scheduled_data(); // converst m_vScheduledBndSubSets -> m_vBndSubSetIndex
 		virtual void approximation_space_changed() {extract_scheduled_data();}
-		
-	///	Data import for kinematic viscosity
-		DataImport<number, dim> m_imKinViscosity;
-
-	/// Data import for density
-		DataImport<number, dim> m_imDensity;
-
-	/// Boundary integration points of the viscosity and the density
-		std::vector<MathVector<dim> > m_vLocIP;
-		std::vector<MathVector<dim> > m_vGloIP;
 };
 
 /// @}

@@ -22,6 +22,14 @@ NavierStokesNoNormalStressOutflowFV1<TDomain>::
 NavierStokesNoNormalStressOutflowFV1(SmartPtr< NavierStokesBase<TDomain> > spMaster)
 : NavierStokesNoNormalStressOutflowBase<TDomain>(spMaster)
 {
+//	register imports
+	this->register_import(m_imKinViscosity);
+	this->register_import(m_imDensity);
+
+//	initialize the imports from the master discretization
+	set_kinematic_viscosity(spMaster->kinematic_viscosity ());
+	set_density(spMaster->density ());
+
 	//	update assemble functions
 	register_all_funcs(false);
 };

@@ -91,14 +91,6 @@ NavierStokesNoNormalStressOutflowBase(SmartPtr< NavierStokesBase<TDomain> > spMa
 	
 //	yet no boundary subsets
 	m_vBndSubSetIndex.clear ();
-
-//	register imports
-	this->register_import(m_imKinViscosity);
-	this->register_import(m_imDensity);
-
-//	initialize the imports from the master discretization
-	m_imKinViscosity.set_data(spMaster->kinematic_viscosity ());
-	m_imDensity.set_data(spMaster->density ());
 }
 
 ////////////////////////////////////////////////////////////////////////////////

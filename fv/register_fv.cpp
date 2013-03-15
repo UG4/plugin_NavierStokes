@@ -4,6 +4,7 @@
 
 #include "navier_stokes_fv.h"
 #include "bnd/inflow_fv.h"
+#include "bnd/no_normal_stress_outflow_fv.h"
 
 using namespace std;
 using namespace ug::bridge;
@@ -92,6 +93,17 @@ static void Domain(Registry& reg, string grp)
 			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFV", tag);
+	}
+
+	//	NavierStokesNoNormalStressOutflow FV
+	{
+		typedef NavierStokesNoNormalStressOutflowFV<TDomain> T;
+		typedef NavierStokesNoNormalStressOutflowBase<TDomain> TBase;
+		string name = string("NavierStokesNoNormalStressOutflowFV").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)(SmartPtr< NavierStokesBase<TDomain> >)>("MasterDisc")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflowFV", tag);
 	}
 
 }

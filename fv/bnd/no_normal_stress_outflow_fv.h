@@ -1,12 +1,12 @@
 /*
- * no_normal_stress_outflow.h
+ * no_normal_stress_outflow_fv.h
  *
  *  Created on: 27.03.2012
  *  D. Logashenko, A. Vogel
  */
 
-#ifndef __H__UG__PLUGINS__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW_FV1_
-#define __H__UG__PLUGINS__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW_FV1_
+#ifndef __H__UG__PLUGINS__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW_FV_
+#define __H__UG__PLUGINS__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW_FV_
 
 // other ug4 modules
 #include "common/common.h"
@@ -42,7 +42,7 @@ namespace NavierStokes{
  * \f$ \sigma = \mu (\nabla \vec{u} + (\nabla \vec{u})^T) \f$ the stress tensor.
  */
 template<	typename TDomain>
-class NavierStokesNoNormalStressOutflowFV1
+class NavierStokesNoNormalStressOutflowFV
 	: public NavierStokesNoNormalStressOutflowBase<TDomain>
 {
 	private:
@@ -50,7 +50,7 @@ class NavierStokesNoNormalStressOutflowFV1
 		typedef NavierStokesNoNormalStressOutflowBase<TDomain> base_type;
 
 	///	own type
-		typedef NavierStokesNoNormalStressOutflowFV1<TDomain> this_type;
+		typedef NavierStokesNoNormalStressOutflowFV<TDomain> this_type;
 
 	public:
 	///	World dimension
@@ -58,7 +58,7 @@ class NavierStokesNoNormalStressOutflowFV1
 
 	public:
 	///	Constructor (setting default values)
-		NavierStokesNoNormalStressOutflowFV1(SmartPtr< NavierStokesBase<TDomain> > spMaster);
+		NavierStokesNoNormalStressOutflowFV(SmartPtr< NavierStokesBase<TDomain> > spMaster);
 
 	protected:
 	///	sets the kinematic viscosity
@@ -67,7 +67,7 @@ class NavierStokesNoNormalStressOutflowFV1
 
 	///	sets the density
 		virtual void set_density(SmartPtr<UserData<number, dim> > data)
-			{m_imDensity.set_data(data);}
+			{m_imDensity.set_data(data); m_imDensityP.set_data(data);}
 
 	public:
 	///	type of trial space for each function used
@@ -78,33 +78,33 @@ class NavierStokesNoNormalStressOutflowFV1
 
 	public:
 	///	prepares the element loop
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void prep_elem_loop(const ReferenceObjectID roid, const int si);
 
 	///	prepares the element for evaluation
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void prep_elem(TElem* elem, const LocalVector& u);
 
 	///	finishes the element loop
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void fsh_elem_loop();
 
 	///	adds the stiffness part to the local jacobian
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u);
 
 	///	adds the stiffness part to the local defect
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void add_def_A_elem(LocalVector& d, const LocalVector& u);
 
 	public:
 	///	dummy implementations
 	///	\{
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u){}
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void add_def_M_elem(LocalVector& d, const LocalVector& u){}
-		template <typename TElem, typename TFVGeom>
+		template<typename TElem, typename VGeom, typename PGeom>
 		void add_rhs_elem(LocalVector& d){}
 	/// \}
 
@@ -113,6 +113,7 @@ class NavierStokesNoNormalStressOutflowFV1
 		template <typename BF>
 		inline void diffusive_flux_Jac
 		(
+			const size_t i,
 			const size_t ip,
 			const BF& bf,
 			LocalMatrix& J,
@@ -122,6 +123,7 @@ class NavierStokesNoNormalStressOutflowFV1
 		template <typename BF>
 		inline void diffusive_flux_defect
 		(
+			const size_t i,
 			const size_t ip,
 			const BF& bf,
 			LocalVector& d,
@@ -131,6 +133,7 @@ class NavierStokesNoNormalStressOutflowFV1
 		template <typename BF>
 		inline void convective_flux_Jac
 		(
+			const size_t i,
 			const size_t ip,
 			const BF& bf,
 			LocalMatrix& J,
@@ -140,13 +143,13 @@ class NavierStokesNoNormalStressOutflowFV1
 		template <typename BF>
 		inline void convective_flux_defect
 		(
+			const size_t i,
 			const size_t ip,
 			const BF& bf,
 			LocalVector& d,
-			const LocalVector& u,
-			const MathVector<dim>& StdVel
+			const LocalVector& u
 		);
-	
+
 	protected:
 	/// abbreviation for pressure
 		static const size_t _P_ = dim;
@@ -159,16 +162,29 @@ class NavierStokesNoNormalStressOutflowFV1
 
 	/// Data import for density
 		DataImport<number, dim> m_imDensity;
+		DataImport<number, dim> m_imDensityP;
 
 	/// Boundary integration points of the viscosity and the density
-		std::vector<MathVector<dim> > m_vLocIP;
-		std::vector<MathVector<dim> > m_vGloIP;
+		std::vector<MathVector<dim> > m_vLocIPv;
+		std::vector<MathVector<dim> > m_vGloIPv;
+		std::vector<MathVector<dim> > m_vLocIPp;
+		std::vector<MathVector<dim> > m_vGloIPp;
 
 	protected:
-		void register_all_funcs(bool bHang);
-		template<typename TElem, typename TFVGeom>
+	///	current shape function set
+		LFEID m_vLFEID;
+		LFEID m_pLFEID;
+
+	///	quadrature order
+		int m_quadOrder;
+
+	protected:
+	///	register util
+		void register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID);
+		template<typename TElem, typename VGeom, typename PGeom>
 		void register_func();
 
+		std::vector<std::vector<number> > m_vvVShape;
 };
 
 /// @}
@@ -176,4 +192,4 @@ class NavierStokesNoNormalStressOutflowFV1
 } // namespace NavierStokes
 } // end namespace ug
 
-#endif /*__H__UG__PLUGINS__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW_FV1_*/
+#endif /*__H__UG__PLUGINS__NAVIER_STOKES__NO_NORMAL_STRESS_OUTFLOW_FV_*/
