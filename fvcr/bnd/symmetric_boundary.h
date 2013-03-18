@@ -109,43 +109,6 @@ class CRNavierStokesSymBC
 		void add_rhs_elem(LocalVector& d) {}
 
 	private:
-	/// adds the diffusive part of the local Jacobian of the momentum equation
-		template <typename BF>
-		inline void normal_flux_Jac_cr
-		(
-			const size_t ip,
-			const BF& bf,
-			LocalMatrix& J,
-			const LocalVector& u
-		);
-	/// adds the diffusive part of the local defect of the momentum equation
-		template <typename BF>
-		inline void normal_flux_defect_cr
-		(
-			const size_t ip,
-			const BF& bf,
-			LocalVector& d,
-			const LocalVector& u
-		);
-	/// adds the convective part of the local Jacobian of the momentum equation
-		template <typename BF>
-		inline void convective_flux_Jac_cr
-		(
-			const size_t ip,
-			const BF& bf,
-			LocalMatrix& J,
-			const LocalVector& u
-		);
-	/// adds the convective part of the local defect of the momentum equation
-		template <typename BF>
-		inline void convective_flux_defect_cr
-		(
-			const size_t ip,
-			const BF& bf,
-			LocalVector& d,
-			const LocalVector& u
-		);
-
 	/// The master discretization:
 		SmartPtr< NavierStokesBase<TDomain> > m_spMaster;
 
