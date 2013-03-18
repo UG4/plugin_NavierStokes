@@ -477,7 +477,8 @@ class NavierStokesFV1
 
 	protected:
 	///	Data import for source
-		DataImport<MathVector<dim>, dim> m_imSource;
+		DataImport<MathVector<dim>, dim> m_imSourceSCV;
+		DataImport<MathVector<dim>, dim> m_imSourceSCVF;
 
 	///	Data import for kinematic viscosity
 		DataImport<number, dim> m_imKinViscosity;

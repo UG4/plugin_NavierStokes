@@ -43,12 +43,14 @@ void NavierStokesFV1<TDomain>::init()
 					   " needs exactly "<<dim+1<<" symbolic function.");
 
 //	register imports
-	this->register_import(m_imSource);
+	this->register_import(m_imSourceSCV);
+	this->register_import(m_imSourceSCVF);
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
 
-	m_imSource.set_rhs_part();
+	m_imSourceSCV.set_rhs_part();
+	m_imSourceSCVF.set_rhs_part();
 	m_imDensitySCV.set_mass_part();
 
 	//	default value for density
@@ -119,7 +121,8 @@ template<typename TDomain>
 void NavierStokesFV1<TDomain>::
 set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
 {
-	m_imSource.set_data(data);
+	m_imSourceSCV.set_data(data);
+	m_imSourceSCVF.set_data(data);
 }
 
 
@@ -189,7 +192,8 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		m_imKinViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 		m_imDensitySCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
-		m_imSource.template set_local_ips<refDim>(vSCVip,numSCVip);
+		m_imSourceSCV.template set_local_ips<refDim>(vSCVip,numSCVip);
+		m_imSourceSCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 	}
 }
 
@@ -228,7 +232,8 @@ prep_elem(TElem* elem, const LocalVector& u)
 		m_imKinViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 		m_imDensitySCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
-		m_imSource.template set_local_ips<refDim>(vSCVip,numSCVip);
+		m_imSourceSCV.template set_local_ips<refDim>(vSCVip,numSCVip);
+		m_imSourceSCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 	}
 
 //	set global positions for imports
@@ -239,7 +244,8 @@ prep_elem(TElem* elem, const LocalVector& u)
 	m_imKinViscosity.set_global_ips(vSCVFip, numSCVFip);
 	m_imDensitySCVF.set_global_ips(vSCVFip, numSCVFip);
 	m_imDensitySCV.set_global_ips(vSCVip, numSCVip);
-	m_imSource.set_global_ips(vSCVip, numSCVip);
+	m_imSourceSCV.set_global_ips(vSCVip, numSCVip);
+	m_imSourceSCVF.set_global_ips(vSCVFip, numSCVFip);
 }
 
 template<typename TDomain>
@@ -255,7 +261,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
-	if(m_imSource.data_given())	pSource = &m_imSource;
+	if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
 
 //	check for solutions to pass to stabilization in time-dependent case
 	const LocalVector *pSol = &u, *pOldSol = NULL;
@@ -602,7 +608,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
-	if(m_imSource.data_given())	pSource = &m_imSource;
+	if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
 
 //	check for solutions to pass to stabilization in time-dependent case
 	const LocalVector *pSol = &u, *pOldSol = NULL;
@@ -840,7 +846,7 @@ add_rhs_elem(LocalVector& d)
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 //	if zero data given, return
-	if(!m_imSource.data_given()) return;
+	if(!m_imSourceSCV.data_given()) return;
 
 // 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
@@ -856,7 +862,7 @@ add_rhs_elem(LocalVector& d)
 
 	// 	Add to local rhs
 		for(int d1 = 0; d1 < dim; ++d1)
-			d(d1, sh) += m_imSource[ip][d1] * scv.volume();
+			d(d1, sh) += m_imSourceSCV[ip][d1] * scv.volume();
 	}
 }
 
