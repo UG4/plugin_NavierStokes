@@ -296,6 +296,11 @@ compute(const FV1Geometry<TElem, dim>* geo,
  		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
  			vUpShapeSh[ip][sh] = 0.0;
 
+ 	//	if the velocity is zero, there will be no possibility to find the
+ 	//	cutted side. In this case we have no velocity and therefore there is
+ 	//	no convection. We set all upwind shapes to zero.
+ 		if(VecTwoNorm(vIPVel[ip]) < 1e-14) continue;
+
 	// 	upwind corner
 		size_t sh = 0;
 
@@ -341,7 +346,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  	//	if the velocity is zero, there will be no possibility to find the
  	//	cutted side. In this case we have no velocity and therefore there is
  	//	no convection. We set all upwind shapes to zero.
- 		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
+ 		if(VecTwoNorm(vIPVel[ip]) < 1e-14) continue;
 
  	// 	side and intersection vectors
  		static const int refDim = CRFVGeometry<TElem, dim>::dim;
