@@ -23,7 +23,7 @@ namespace ug{
 namespace NavierStokes{
 	
 /// symmetric boundary condition
-/// description, Nägele p. 55
+/// description, Naegele p. 55
 template<	typename TDomain>
 class CRNavierStokesSymBC
 	: public IDomainElemDisc<TDomain>

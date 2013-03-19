@@ -10,7 +10,7 @@
 #include "bnd/inflow_fvcr.h"
 #include "bnd/no_normal_stress_outflow_fvcr.h"
 
-#include "bnd/symmetric_boundary.h"
+#include "bnd/symmetric_boundary_fvcr.h"
 #include "cr_reorder.h"
 #include "cr_ilut.h"
 

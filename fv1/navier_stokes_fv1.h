@@ -153,6 +153,9 @@ class NavierStokesFV1
 
 	///	sets the source function
 		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);
+		
+	/// returns scvf source
+		DataImport<MathVector<dim>, dim> sourceSCVF(){ return m_imSourceSCVF;}
 
 	///	sets the stabilization used to compute the stabilized velocities
 		void set_stabilization(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
@@ -168,6 +171,9 @@ class NavierStokesFV1
 			{m_spStab = CreateNavierStokesStabilization<dim>(name);
 			 m_spStab->set_diffusion_length(diffLength);
 			 if(m_spConvUpwind.valid()) m_spStab->set_upwind(m_spConvUpwind);}
+			 
+    /// returns stabilization	
+		SmartPtr<INavierStokesFV1Stabilization<dim> > stabilization(){ return m_spStab;}
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)
         void set_upwind(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
@@ -181,7 +187,7 @@ class NavierStokesFV1
 		void set_upwind(const std::string& name)
 			{m_spConvStab = NULL; m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);
 			if(m_spStab.valid() && m_spStab->upwind().invalid()) m_spStab->set_upwind(m_spConvUpwind);}
-
+			
 	public:
 	///	type of trial space for each function used
 		bool request_finite_element_id(const std::vector<LFEID>& vLfeID);

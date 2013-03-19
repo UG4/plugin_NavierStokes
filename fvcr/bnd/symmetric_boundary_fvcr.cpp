@@ -1,5 +1,5 @@
 /*
- * symmetric_boundary.cpp
+ * symmetric_boundary_fvcr.cpp
  *
  *  Created on: 23.07.2012
  *      Author: Christian Wehner
@@ -8,7 +8,7 @@
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
 #include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
-#include "symmetric_boundary.h"
+#include "symmetric_boundary_fvcr.h"
 #ifdef UG_FOR_LUA
 #include "bindings/lua/lua_user_data.h"
 #endif
@@ -247,7 +247,7 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 				////////////////////////////////////////////////////
 
 			// 	Compute flux derivative at IP
-				const number flux_sh =  -1.0 * m_imKinViscosity[ip] // * m_imDensitySCVF[ip]
+				const number flux_sh =  -1.0 * m_imKinViscosity[ip] * m_imDensity[ip]
 										* VecDot(bf.global_grad(sh), bf.normal());
 
 			// 	Add flux derivative  to local matrix
@@ -260,7 +260,7 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 					for(int d1 = 0; d1 < dim; ++d1)
 						for(int d2 = 0; d2 < dim; ++d2)
 						{
-							const number flux2_sh = -1.0 * m_imKinViscosity[ip] // * m_imDensitySCVF[ip]
+							const number flux2_sh = -1.0 * m_imKinViscosity[ip] * m_imDensity[ip]
 													* bf.global_grad(sh)[d1] * bf.normal()[d2];
 							J(d1, bf.node_id(), d2, sh) += flux2_sh*bf.normal()[d1];
 						}
@@ -274,7 +274,7 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 				// pressure is constant over element
 				J(d1, bf.node_id(), _P_, 0) += bf.normal()[d1];
 			}
-			// un = 0 in bip
+			// enforce un = 0 in bip by subtracting previously assembled flux
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				J(_P_, 0 , d1, bf.node_id()) -= bf.normal()[d1];
@@ -334,7 +334,7 @@ add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 				TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
 
 		//	scale by viscosity
-			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip]);// * m_imDensitySCVF[ip]);
+			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip]* m_imDensity[ip]);
 
 			for(int d1 = 0; d1 < dim; ++d1)
 			{

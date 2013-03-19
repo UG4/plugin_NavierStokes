@@ -24,7 +24,9 @@ set(SOURCES	navier_stokes_base.cpp
 			fv/bnd/no_normal_stress_outflow_fv.cpp
 			fvcr/bnd/no_normal_stress_outflow_fvcr.cpp
 
-			fvcr/bnd/symmetric_boundary.cpp
+			fvcr/bnd/symmetric_boundary_fvcr.cpp
+			fv1/bnd/symmetric_boundary_fv1.cpp
+
 			fvcr/cr_reorder.cpp
 			
 			upwind_interface.cpp

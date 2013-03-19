@@ -5,6 +5,7 @@
 #include "navier_stokes_fv1.h"
 #include "bnd/inflow_fv1.h"
 #include "bnd/no_normal_stress_outflow_fv1.h"
+#include "bnd/symmetric_boundary_fv1.h"
 #include "stabilization.h"
 
 #include "turbulent_viscosity_fv1.h"
@@ -157,6 +158,18 @@ static void Domain(Registry& reg, string grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesBase<TDomain> >)>("MasterDisc")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflowFV1", tag);
+	}
+
+	//	NavierStokesSymBCFV1
+	{
+		typedef NavierStokesSymBCFV1<TDomain> T;
+		typedef IDomainElemDisc<TDomain> TBase;
+		string name = string("NavierStokesSymBCFV1").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)(SmartPtr< NavierStokesBase<TDomain> >)>("MasterDisc")
+			.add_method("add", &T::add, "", "Subset(s)")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesSymBCFV1", tag);
 	}
 }
 
