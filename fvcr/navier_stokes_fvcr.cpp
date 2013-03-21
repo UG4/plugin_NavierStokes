@@ -53,6 +53,8 @@ void NavierStokesFVCR<TDomain>::init()
 	//	default value for density
 	base_type::set_density(1.0);
 
+	m_bDefectUpwind = true;
+
 	//	update assemble functions
 	register_all_funcs(false);
 }
