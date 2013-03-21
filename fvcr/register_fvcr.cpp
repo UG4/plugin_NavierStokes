@@ -123,7 +123,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 			.add_method("set_turbulence_zero_bnd", &T::setTurbulenceZeroBoundaries)
 			.add_method("set_time_filter", &T::set_time_filter)
 			.add_method("set_time_filter_eps", &T::set_time_filter_eps)
-			.add_method("set_space_filter", &T::set_time_filter)
+			.add_method("set_space_filter", &T::set_space_filter)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRDynamicTurbViscData", tag);
 	}
