@@ -60,6 +60,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::fillAttachment(aS
 }
 
 // go over all elements, interpolate data to barycenter, average by multiplying with corresponding element volume and deviding by complete adjacent element volume
+// parameters: filtered values, filter volume (computed in function), original values
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 template <typename VType>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU){
@@ -921,7 +922,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 //	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 //	SetAttachmentValues(m_acVolume,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
-	SetAttachmentValues(m_acTurbulentC,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
+	SetAttachmentValues(m_acTurbulentCNew,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 //	SetAttachmentValues(m_acVolumeHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 //	SetAttachmentValues(m_acUHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 //	SetAttachmentValues(m_acDeformationHat,m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
@@ -947,7 +948,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	this->scaleTensorByNorm(m_acDeformationHat);
 	// Mij second term \hat{|S|S}
 	// compute S
-	this->assembleDeformationTensor(m_acDeformation,m_acVolumeHat,m_u);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u);
 	// compute |S| S
 	this->scaleTensorByNorm(m_acDeformation);
 	// filter |S| S
@@ -1027,7 +1028,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 				}
 				if (m_acTurbulentViscosity[side]+m_viscosityNumber<m_small) m_acTurbulentViscosity[side] = m_viscosityNumber + m_small;			}
 			else{
-				// store c in viscosity array
+				// store c in viscosity attachment
 				m_acTurbulentViscosity[side] = c;
 			}
 		}
@@ -1035,10 +1036,10 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	if (m_spaceFilter==true){
 		// filter c
 		if (m_timeFilter==false)
+			// c has been stored in viscosity attachment
 			this->elementFilter(m_acTurbulentC,m_acVolumeHat,m_acTurbulentViscosity);
 		else
-			// store c in volumeHat array
-			this->elementFilter(m_acVolumeHat,m_acVolumeHat,m_acTurbulentViscosity);
+			this->elementFilter(m_acTurbulentCNew,m_acVolumeHat,m_acTurbulentViscosity);
 		// compute turbulent viscosity
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 		{
@@ -1053,7 +1054,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 				delta = pow(delta,(number)1.0/(number)dim);
 				if (m_timeFilter==true)
 					// time averaging, note that c has been stored in m_acVolumeHat
-					m_acTurbulentC[side]= (m_timeFilterEps * m_acVolumeHat[side] + (1-m_timeFilterEps)*m_acTurbulentC[side]);
+					m_acTurbulentC[side]= (m_timeFilterEps * m_acTurbulentCNew[side] + (1-m_timeFilterEps)*m_acTurbulentC[side]);
 				m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * this->FNorm(m_acDeformation[side]);
 				if (m_acTurbulentViscosity[side]+m_viscosityNumber<m_small) m_acTurbulentViscosity[side] = m_viscosityNumber+m_small;
 				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << m_acTurbulentC[side] << " delta = " << delta << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");

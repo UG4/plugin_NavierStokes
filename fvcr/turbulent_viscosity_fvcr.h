@@ -503,6 +503,10 @@ class CRDynamicTurbViscData
 		aSideNumber m_acTurbulentC;
 		ANumber m_aTurbulentC;
 
+	//  new turbulent model parameter attachment (needed in time filtering)
+		aSideNumber m_acTurbulentCNew;
+		ANumber m_aTurbulentCNew;
+
 	//  volume attachment
 		aSideNumber m_acVolume;
 		ANumber m_aVolume;
@@ -550,6 +554,7 @@ class CRDynamicTurbViscData
 			// attachments
 			grid.template attach_to<side_type>(m_aTurbulentViscosity);
 			grid.template attach_to<side_type>(m_aTurbulentC);
+			grid.template attach_to<side_type>(m_aTurbulentCNew);
 			grid.template attach_to<side_type>(m_aVolume);
 			grid.template attach_to<side_type>(m_aVolumeHat);
 			grid.template attach_to<side_type>(m_aUHat);
@@ -560,6 +565,7 @@ class CRDynamicTurbViscData
 			// accessors
 			m_acTurbulentViscosity.access(grid,m_aTurbulentViscosity);
 			m_acTurbulentC.access(grid,m_aTurbulentC);
+			m_acTurbulentCNew.access(grid,m_aTurbulentCNew);
 			m_acVolume.access(grid,m_aVolume);
 			m_acVolumeHat.access(grid,m_aVolumeHat);
 			m_acUHat.access(grid,m_aUHat);
