@@ -592,9 +592,6 @@ void NavierStokesFE<TDomain>::register_func()
 //	explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef UG_DIM_1
-template class NavierStokesFE<Domain1d>;
-#endif
 #ifdef UG_DIM_2
 template class NavierStokesFE<Domain2d>;
 #endif
