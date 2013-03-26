@@ -187,6 +187,16 @@ class NavierStokesFV1
 		void set_upwind(const std::string& name)
 			{m_spConvStab = NULL; m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);
 			if(m_spStab.valid() && m_spStab->upwind().invalid()) m_spStab->set_upwind(m_spConvUpwind);}
+
+		void set_pac_upwind(bool bPac)
+		{
+			if (bPac==true){
+				if (m_spConvUpwind.valid()) m_spStab->set_upwind(m_spConvUpwind);
+				else UG_THROW("Upwind must be specified previously.\n");
+				if (m_spStab.valid()) set_upwind(m_spStab);
+				else UG_THROW("Stabilization must be specified previously.\n");
+			}
+		}
 			
 	public:
 	///	type of trial space for each function used
