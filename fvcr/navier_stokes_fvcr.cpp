@@ -775,9 +775,6 @@ register_func()
 //	explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef UG_DIM_1
-template class NavierStokesFVCR<Domain1d>;
-#endif
 #ifdef UG_DIM_2
 template class NavierStokesFVCR<Domain2d>;
 #endif

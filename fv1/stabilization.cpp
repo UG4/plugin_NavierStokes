@@ -800,13 +800,13 @@ void NavierStokesFLOWStabilization<3>::register_func()
 //	explicit instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef UG_DIM_1
+/*#ifdef UG_DIM_1
 template class INavierStokesFV1Stabilization<1>;
 template class NavierStokesFIELDSStabilization<1>;
 template class NavierStokesFLOWStabilization<1>;
 
 template SmartPtr<INavierStokesFV1Stabilization<1> >CreateNavierStokesStabilization<1>(const std::string& name);
-#endif
+#endif*/
 #ifdef UG_DIM_2
 template class INavierStokesFV1Stabilization<2>;
 template class NavierStokesFIELDSStabilization<2>;

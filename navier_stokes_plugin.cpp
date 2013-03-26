@@ -301,10 +301,10 @@ InitUGPlugin_NavierStokes(Registry* reg, string grp)
 	typedef NavierStokes::Functionality Functionality;
 
 	try{
-		RegisterDimensionDependent<Functionality>(*reg,grp);
-		RegisterDomainDependent<Functionality>(*reg,grp);
+		RegisterDimension2d3dDependent<Functionality>(*reg,grp);
+		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
-		RegisterDomainAlgebraDependent<Functionality>(*reg,grp);
+		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 
 		Init___NavierStokes___FV1(reg, grp);
 		Init___NavierStokes___FVCR(reg, grp);

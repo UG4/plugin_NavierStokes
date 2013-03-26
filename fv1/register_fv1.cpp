@@ -235,10 +235,10 @@ void Init___NavierStokes___FV1(Registry* reg, string grp)
 	typedef NavierStokes::FunctionalityFV1 Functionality;
 
 	try{
-		RegisterDimensionDependent<Functionality>(*reg,grp);
-		RegisterDomainDependent<Functionality>(*reg,grp);
+		RegisterDimension2d3dDependent<Functionality>(*reg,grp);
+		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
-		RegisterDomainAlgebraDependent<Functionality>(*reg,grp);
+		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }

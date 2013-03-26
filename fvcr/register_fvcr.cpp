@@ -267,9 +267,9 @@ void Init___NavierStokes___FVCR(Registry* reg, string grp)
 
 	try{
 //		RegisterDimensionDependent<Functionality>(*reg,grp);
-		RegisterDomainDependent<Functionality>(*reg,grp);
+		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
 		RegisterAlgebraDependent<Functionality>(*reg,grp);
-		RegisterDomainAlgebraDependent<Functionality>(*reg,grp);
+		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
