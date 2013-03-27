@@ -91,6 +91,16 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 			m_info = false;
 		};
 
+		CRILUTPreconditioner(number threshvv,number threshvp,number threshpv,number threshpp)
+		{
+			m_eps_vv = threshvv;
+			m_eps_vp = threshvp;
+			m_eps_pv = threshpv;
+			m_eps_pp = threshpp;
+			m_eps = std::min(std::min(m_eps_vv,m_eps_vp),std::min(m_eps_pv,m_eps_pp));
+			m_info = false;
+		};
+
 	// 	Clone
 	
 	SmartPtr<ILinearIterator<vector_type> > clone()

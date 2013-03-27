@@ -171,6 +171,8 @@ static void Algebra(Registry& reg, string grp)
 		string name = string("CRILUT").append(suffix);
 		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
 		.add_constructor()
+		.template add_constructor<void (*)(number)>("threshold parameter")
+		.template add_constructor<void (*)(number,number,number,number)>("threshold parameters")
 		.add_method("set_threshold",static_cast<void (T::*)(number,number,number,number)>(&T::set_threshold),
 					"", "threshold", "sets threshold of incomplete LU factorisation")
 		.add_method("set_threshold",static_cast<void (T::*)(number)>(&T::set_threshold),
