@@ -16,6 +16,7 @@
 #include <boost/graph/properties.hpp>
 #include <boost/graph/bandwidth.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <boost/math/special_functions/round.hpp>
 #include "lib_disc/dof_manager/surface_dof_distribution.h"
 #include "lib_disc/dof_manager/level_dof_distribution.h"
 #include "cr_reorder.h"
@@ -69,7 +70,7 @@ void computeNewIndicesFromVIndexset(std::vector<std::vector<size_t> >& vvConnect
 		const std::vector<int>& inv_perm,bool bseparate,size_t strategy){
 	size_t n = vvConnection.size();
 	newIndex.resize(n);
-	size_t vn = round((number)1.0/dim*pmin);
+	size_t vn = boost::math::iround((number)1.0/dim*pmin);
 	size_t undefined = n+1;
 	for (size_t i=0;i<n;i++){
 		newIndex[i] = undefined;
@@ -172,7 +173,7 @@ void CRCuthillMcKee(std::vector<size_t>& newIndex,std::vector<std::vector<size_t
 		
 	size_t n = vvConnection.size();
 	size_t pnr = n-minpind;
-	size_t vnr = round((number)minpind/2.0);
+	size_t vnr = boost::math::iround((number)minpind/2.0);
 		
 	typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
 	boost::property<boost::vertex_color_t, boost::default_color_type,
@@ -231,7 +232,7 @@ void CRSloan(std::vector<size_t>& newIndex,std::vector<std::vector<size_t> >& vv
 
 	size_t n = vvConnection.size();
 	size_t pnr = n-minpind;
-	size_t vnr = round((number)minpind/2.0);
+	size_t vnr = boost::math::iround((number)minpind/2.0);
 
 	newIndex.clear();
 	newIndex.resize(n);
@@ -339,7 +340,7 @@ void CRKing(std::vector<size_t>& newIndex,std::vector<std::vector<size_t> >& vvC
 
 	size_t n = vvConnection.size();
 	size_t pnr = n-minpind;
-	size_t vnr = round((number)minpind/2.0);
+	size_t vnr = boost::math::iround((number)minpind/2.0);
 
 	newIndex.clear();
 	newIndex.resize(n);
@@ -399,7 +400,7 @@ void CRMinimumDegree(std::vector<size_t>& newIndex,std::vector<std::vector<size_
 
 	size_t n = vvConnection.size();
 	size_t pnr = n-minpind;
-	size_t vnr = round((number)minpind/2.0);
+	size_t vnr = boost::math::iround((number)minpind/2.0);
 
 	newIndex.clear();
 	newIndex.resize(n);

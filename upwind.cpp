@@ -370,7 +370,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
 
  		number max = -1000;
- 		size_t maxind;
+ 		size_t maxind=0;
 
  	// 	loop shape functions
  		for(size_t sh=0;sh < num_sh;sh++){
