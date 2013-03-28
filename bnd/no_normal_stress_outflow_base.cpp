@@ -81,7 +81,7 @@ void NavierStokesNoNormalStressOutflowBase<TDomain>::add
 template<typename TDomain>
 NavierStokesNoNormalStressOutflowBase<TDomain>::
 NavierStokesNoNormalStressOutflowBase(SmartPtr< NavierStokesBase<TDomain> > spMaster)
-	: IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()),
+	: IElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()),
 	  m_spMaster (spMaster)
 {
 //	check number of functions

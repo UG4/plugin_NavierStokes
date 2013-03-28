@@ -139,7 +139,7 @@ static void Domain(Registry& reg, string grp)
 //	Navier-Stokes Base
 	{
 		typedef NavierStokesBase<TDomain> T;
-		typedef IDomainElemDisc<TDomain> TBase;
+		typedef IElemDisc<TDomain> TBase;
 		string name = string("NavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -171,7 +171,7 @@ static void Domain(Registry& reg, string grp)
 	//	NavierStokesNoNormalStressOutflowBase
 	{
 		typedef NavierStokesNoNormalStressOutflowBase<TDomain> T;
-		typedef IDomainElemDisc<TDomain> TBase;
+		typedef IElemDisc<TDomain> TBase;
 		string name = string("NavierStokesNoNormalStressOutflowBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_method("add", &T::add, "", "Subset(s)");

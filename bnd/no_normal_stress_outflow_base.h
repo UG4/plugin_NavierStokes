@@ -43,11 +43,11 @@ namespace NavierStokes{
  */
 template<	typename TDomain>
 class NavierStokesNoNormalStressOutflowBase
-	: public IDomainElemDisc<TDomain>
+	: public IElemDisc<TDomain>
 {
 	protected:
 	///	Base class type
-		typedef IDomainElemDisc<TDomain> base_type;
+		typedef IElemDisc<TDomain> base_type;
 
 	///	own type
 		typedef NavierStokesNoNormalStressOutflowBase<TDomain> this_type;

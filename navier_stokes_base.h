@@ -115,11 +115,11 @@ namespace NavierStokes{
  */
 template<	typename TDomain>
 class NavierStokesBase
-	: public IDomainElemDisc<TDomain>
+	: public IElemDisc<TDomain>
 {
 	protected:
 	///	Base class type
-		typedef IDomainElemDisc<TDomain> base_type;
+		typedef IElemDisc<TDomain> base_type;
 
 	///	own type
 		typedef NavierStokesBase<TDomain> this_type;

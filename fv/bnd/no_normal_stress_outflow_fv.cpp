@@ -493,15 +493,16 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
-// register for all dim
+#ifdef UG_DIM_1
 template<>
 void NavierStokesNoNormalStressOutflowFV<Domain1d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
 	UG_THROW("Not implemented.");
 }
+#endif
 
-// register for all dim
+#ifdef UG_DIM_2
 template<>
 void NavierStokesNoNormalStressOutflowFV<Domain2d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
@@ -510,8 +511,9 @@ register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
+#endif
 
-// register for all dim
+#ifdef UG_DIM_3
 template<>
 void NavierStokesNoNormalStressOutflowFV<Domain3d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
@@ -521,6 +523,7 @@ register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
 }
+#endif
 
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>

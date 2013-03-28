@@ -29,7 +29,7 @@ class NavierStokesInflowFV
 		virtual size_t num_elem_disc() const {return 1;}
 
 	///	returns the element disc
-		virtual SmartPtr<IDomainElemDisc<TDomain> > elem_disc(size_t i) {return m_spNeumannDisc;}
+		virtual SmartPtr<IElemDisc<TDomain> > elem_disc(size_t i) {return m_spNeumannDisc;}
 
 	///	returns the number of constraints
 		virtual size_t num_constraint() const {return 1;}

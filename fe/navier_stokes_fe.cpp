@@ -541,15 +541,16 @@ add_rhs_elem(LocalVector& d)
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
-// register for all dim
+#ifdef UG_DIM_1
 template<>
 void NavierStokesFE<Domain1d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
 {
 	UG_THROW("Not implemented.");
 }
+#endif
 
-// register for all dim
+#ifdef UG_DIM_2
 template<>
 void NavierStokesFE<Domain2d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
@@ -558,8 +559,9 @@ register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
+#endif
 
-// register for all dim
+#ifdef UG_DIM_3
 template<>
 void NavierStokesFE<Domain3d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
@@ -569,6 +571,7 @@ register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
 }
+#endif
 
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>

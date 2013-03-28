@@ -164,7 +164,7 @@ static void Domain(Registry& reg, string grp)
 	//	NavierStokesSymBCFV1
 	{
 		typedef NavierStokesSymBCFV1<TDomain> T;
-		typedef IDomainElemDisc<TDomain> TBase;
+		typedef IElemDisc<TDomain> TBase;
 		string name = string("NavierStokesSymBCFV1").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesBase<TDomain> >)>("MasterDisc")

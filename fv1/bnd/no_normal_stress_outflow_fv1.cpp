@@ -423,6 +423,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef UG_DIM_1
 template<>
 void NavierStokesNoNormalStressOutflowFV1<Domain1d>::
 register_all_funcs(bool bHang)
@@ -437,7 +438,9 @@ register_all_funcs(bool bHang)
 		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
 	}
 }
+#endif
 
+#ifdef UG_DIM_2
 template<>
 void NavierStokesNoNormalStressOutflowFV1<Domain2d>::
 register_all_funcs(bool bHang)
@@ -453,7 +456,9 @@ register_all_funcs(bool bHang)
 		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
 	}
 }
+#endif
 
+#ifdef UG_DIM_3
 template<>
 void NavierStokesNoNormalStressOutflowFV1<Domain3d>::
 register_all_funcs(bool bHang)
@@ -471,6 +476,7 @@ register_all_funcs(bool bHang)
 		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
 	}
 }
+#endif
 
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>

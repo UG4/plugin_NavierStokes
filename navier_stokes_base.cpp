@@ -28,7 +28,7 @@ namespace NavierStokes{
 template<typename TDomain>
 NavierStokesBase<TDomain>::NavierStokesBase(const char* functions,
                                     const char* subsets)
-: IDomainElemDisc<TDomain>(functions, subsets),
+: IElemDisc<TDomain>(functions, subsets),
   m_bPecletBlend(false),
   m_bExactJacobian(false),
   m_bStokes(false),
@@ -39,7 +39,7 @@ NavierStokesBase<TDomain>::NavierStokesBase(const char* functions,
 template<typename TDomain>
 NavierStokesBase<TDomain>::NavierStokesBase(const std::vector<std::string>& vFct,
                                     const std::vector<std::string>& vSubset)
-: IDomainElemDisc<TDomain>(vFct, vSubset),
+: IElemDisc<TDomain>(vFct, vSubset),
   m_bPecletBlend(false),
   m_bExactJacobian(false),
   m_bStokes(false),

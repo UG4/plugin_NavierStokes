@@ -894,6 +894,7 @@ peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef UG_DIM_1
 template<>
 void NavierStokesFV1<Domain1d>::
 register_all_funcs(bool bHang)
@@ -908,7 +909,9 @@ register_all_funcs(bool bHang)
 		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
 	}
 }
+#endif
 
+#ifdef UG_DIM_2
 template<>
 void NavierStokesFV1<Domain2d>::
 register_all_funcs(bool bHang)
@@ -924,7 +927,9 @@ register_all_funcs(bool bHang)
 		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
 	}
 }
+#endif
 
+#ifdef UG_DIM_3
 template<>
 void NavierStokesFV1<Domain3d>::
 register_all_funcs(bool bHang)
@@ -942,6 +947,7 @@ register_all_funcs(bool bHang)
 		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
 	}
 }
+#endif
 
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>

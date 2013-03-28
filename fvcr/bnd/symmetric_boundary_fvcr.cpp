@@ -362,7 +362,7 @@ add_dA_elem_cr(LocalVector& d, const LocalVector& u)
 template<typename TDomain>
 CRNavierStokesSymBC<TDomain>::
 CRNavierStokesSymBC(SmartPtr< NavierStokesBase<TDomain> > spMaster)
-: IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
+: IElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
 {
 //	check number of functions
 	if(this->num_fct() != dim+1)

@@ -223,11 +223,11 @@ add_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 		static const TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 
 	//	check for source term to pass to the stabilization
-		const DataImport<MathVector<dim>, dim>* pSource = NULL;
-		if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
+//		const DataImport<MathVector<dim>, dim>* pSource = NULL;
+//		if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
 
 	//	check for solutions to pass to stabilization in time-dependent case
-		const LocalVector *pSol = &u, *pOldSol = NULL;
+/*		const LocalVector *pSol = &u, *pOldSol = NULL;
 		number dt = 0.0;
 		if(this->is_time_dependent())
 		{
@@ -242,7 +242,7 @@ add_JA_elem_fv1(LocalMatrix& J, const LocalVector& u)
 			pOldSol = &vLocSol->solution(1);
 			dt = vLocSol->time(0) - vLocSol->time(1);
 		}
-
+*/
 	//	interpolate velocity at ip with standard lagrange interpolation
 		static const size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
 		MathVector<dim> StdVel[numSCVF];
@@ -392,7 +392,7 @@ add_dA_elem_fv1(LocalVector& d, const LocalVector& u)
 template<typename TDomain>
 NavierStokesSymBCFV1<TDomain>::
 NavierStokesSymBCFV1(SmartPtr< NavierStokesBase<TDomain> > spMaster)
-: IDomainElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
+: IElemDisc<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets()), m_spMaster (spMaster)
 {
 //	check number of functions
 	if(this->num_fct() != dim+1)

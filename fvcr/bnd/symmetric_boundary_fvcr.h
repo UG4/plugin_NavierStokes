@@ -26,11 +26,11 @@ namespace NavierStokes{
 /// description, Naegele p. 55
 template<	typename TDomain>
 class CRNavierStokesSymBC
-	: public IDomainElemDisc<TDomain>
+	: public IElemDisc<TDomain>
 {
 	private:
 	///	Base class type
-		typedef IDomainElemDisc<TDomain> base_type;
+		typedef IElemDisc<TDomain> base_type;
 
 	///	own type
 		typedef CRNavierStokesSymBC<TDomain> this_type;
