@@ -62,7 +62,9 @@ void copyGridFunctionToAttachment(PeriodicAttachmentAccessor<elem_type,Attachmen
 			elem_type* elem = *iter;
 			for (int d=0;d<dim;d++){
 				u->multi_indices(elem, d, multInd);
-				aaU[elem][d]=DoFRef(*u,multInd[0]);
+				aaU[elem][d]=5;
+/*				DoFRef(*u,multInd[0])=7;
+				aaU[elem][d]=DoFRef(*u,multInd[0]);*/
 			}
 		}
 	}
@@ -101,11 +103,16 @@ void elementFilterFVCR(SmartPtr<TGridFunction> u){
 	aSideNumber acVolume;
 	ANumber aVolume;
 
+	// attach
 	grid.template attach_to<side_type>(aUHat);
 	grid.template attach_to<side_type>(aVolume);
 
+	// accessors
+	acUHat.access(grid,aUHat);
+	acVolume.access(grid,aVolume);
+
 	// initial values for attachments
-	copyGridFunctionToAttachment<dim,side_type,TGridFunction>(acUHat,u);
+	SetAttachmentValues(acUHat , u->template begin<side_type>(), u->template end<side_type>(), 0);
 	SetAttachmentValues(acVolume , u->template begin<side_type>(), u->template end<side_type>(), 0);
 
 	DimCRFVGeometry<dim> geo;
@@ -243,8 +250,12 @@ void scvFilterFVCR(SmartPtr<TGridFunction> u){
 	grid.template attach_to<side_type>(aUHat);
 	grid.template attach_to<side_type>(aVolume);
 
+	// accessors
+	acUHat.access(grid,aUHat);
+	acVolume.access(grid,aVolume);
+
 	// initial values for attachments
-	copyGridFunctionToAttachment<dim,side_type,TGridFunction>(acUHat,u);
+	SetAttachmentValues(acUHat , u->template begin<side_type>(), u->template end<side_type>(), 0);
 	SetAttachmentValues(acVolume , u->template begin<side_type>(), u->template end<side_type>(), 0);
 
 	DimCRFVGeometry<dim> geo;
@@ -394,8 +405,12 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 	grid.template attach_to<VertexBase>(aUHat);
 	grid.template attach_to<VertexBase>(aVolume);
 
+	// accessors
+	acUHat.access(grid,aUHat);
+	acVolume.access(grid,aVolume);
+
 	// initial values for attachments
-	copyGridFunctionToAttachment<dim,VertexBase,TGridFunction>(acUHat,u);
+	SetAttachmentValues(acUHat , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
 	SetAttachmentValues(acVolume , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
 
 	DimFV1Geometry<dim> geo;
@@ -526,8 +541,12 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 	grid.template attach_to<VertexBase>(aUHat);
 	grid.template attach_to<VertexBase>(aVolume);
 
+	// accessors
+	acUHat.access(grid,aUHat);
+	acVolume.access(grid,aVolume);
+
 	// initial values for attachments
-	copyGridFunctionToAttachment<dim,VertexBase,TGridFunction>(acUHat,u);
+	SetAttachmentValues(acUHat , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
 	SetAttachmentValues(acVolume , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
 
 	DimFV1Geometry<dim> geo;
@@ -536,8 +555,8 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
-	 for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
-	 {
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
 		//	get iterators
 		ElemIterator iter = u->template begin<elem_type>(si);
 		ElemIterator iterEnd = u->template end<elem_type>(si);
@@ -611,7 +630,7 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 				acUHat[elem->vertex(co)] += localValue;
 			}
 		}
-	 }
+    }
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
