@@ -65,10 +65,10 @@ class NavierStokesNoNormalStressOutflowBase
 	
 	protected:
 	///	sets the kinematic viscosity
-		virtual void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data) = 0;
+		virtual void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > data) = 0;
 
 	///	sets the density
-		virtual void set_density(SmartPtr<UserData<number, dim> > data) = 0;
+		virtual void set_density(SmartPtr<CplUserData<number, dim> > data) = 0;
 
 	public:
 	///	returns if local time series is needed

@@ -34,7 +34,7 @@ concept derived from grid_function_user_data.h
 */
 template <typename TGridFunction>
 class SeparatedPressureSource
-	: 	public UserData<MathVector<TGridFunction::dim>,TGridFunction::dim>, virtual public INewtonUpdate
+	: 	public CplUserData<MathVector<TGridFunction::dim>,TGridFunction::dim>, virtual public INewtonUpdate
 {
 	///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
@@ -96,12 +96,12 @@ class SeparatedPressureSource
 	private:
 
 	///	Data import for source
-		SmartPtr<UserData<MathVector<dim>,dim> > m_imSource;
+		SmartPtr<CplUserData<MathVector<dim>,dim> > m_imSource;
 
 	public:
 		/////////// Source
 
-		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
+		void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > data)
 		{
 			m_imSource = data;
 		}
@@ -453,6 +453,12 @@ class SeparatedPressureSource
 					 			*u, elem, NULL, this->template local_ips<dim>(s),
 												this->num_ip(s));
 			}
+
+		///	returns if provided data is continuous over geometric object boundaries
+			virtual bool continuous() const {return false;}
+
+		///	returns if grid function is needed for evaluation
+			virtual bool requires_grid_fct() const {return true;}
 };
 
 } // namespace NavierStokes

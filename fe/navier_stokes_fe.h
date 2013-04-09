@@ -49,19 +49,19 @@ class NavierStokesFE
 	/// \}
 
 	///	sets the kinematic viscosity
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user);
+		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user);
 
 	///	returns kinematic viscosity
-		SmartPtr<UserData<number, dim> > kinematic_viscosity() {return m_imKinViscosity.user_data ();}
+		SmartPtr<CplUserData<number, dim> > kinematic_viscosity() {return m_imKinViscosity.user_data ();}
 
 	///	sets the density
-		void set_density(SmartPtr<UserData<number, dim> > user);
+		void set_density(SmartPtr<CplUserData<number, dim> > user);
 
 	///	returns density
-		SmartPtr<UserData<number, dim> > density() {return m_imDensity.user_data ();}
+		SmartPtr<CplUserData<number, dim> > density() {return m_imDensity.user_data ();}
 
 	///	sets the source function
-		void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user);
+		void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user);
 
 	///	sets the stabilization parameter
 		void set_stabilization(number alpha) {m_stabParam = alpha;}

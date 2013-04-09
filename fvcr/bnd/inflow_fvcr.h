@@ -41,7 +41,7 @@ class NavierStokesInflowFVCR
 		NavierStokesInflowFVCR(SmartPtr< NavierStokesFVCR<TDomain> > spMaster);
 
 	///	sets the velocity to a given value
-		void add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND);
+		void add(SmartPtr<CplUserData<MathVector<dim>, dim> > user, const char* subsetsBND);
 
 	protected:
 	///	dirichlet disc for velocity components

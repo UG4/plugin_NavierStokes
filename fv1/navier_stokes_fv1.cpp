@@ -104,14 +104,14 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 
 template<typename TDomain>
 void NavierStokesFV1<TDomain>::
-set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
+set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > data)
 {
 	m_imKinViscosity.set_data(data);
 }
 
 template<typename TDomain>
 void NavierStokesFV1<TDomain>::
-set_density(SmartPtr<UserData<number, dim> > data)
+set_density(SmartPtr<CplUserData<number, dim> > data)
 {
 	m_imDensitySCVF.set_data(data);
 	m_imDensitySCV.set_data(data);
@@ -119,7 +119,7 @@ set_density(SmartPtr<UserData<number, dim> > data)
 
 template<typename TDomain>
 void NavierStokesFV1<TDomain>::
-set_source(SmartPtr<UserData<MathVector<dim>, dim> > data)
+set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > data)
 {
 	m_imSourceSCV.set_data(data);
 	m_imSourceSCVF.set_data(data);

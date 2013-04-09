@@ -33,7 +33,7 @@ concept derived from grid_function_user_data.h
 */
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 class StdTurbulentViscosityData
-	: 	public UserData<TData,dim>
+	: 	public CplUserData<TData,dim>
 {
 		///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
@@ -178,6 +178,12 @@ class StdTurbulentViscosityData
 			                  this->num_ip(s));
 		}
 
+	///	returns if provided data is continuous over geometric object boundaries
+		virtual bool continuous() const {return false;}
+
+	///	returns if grid function is needed for evaluation
+		virtual bool requires_grid_fct() const {return true;}
+
 		void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
 		void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU);
 
@@ -270,7 +276,7 @@ class CRSmagorinskyTurbViscData
 		 * \param[in]	data		kinematic Viscosity
 		 */
 		///	\{
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user){
+		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user){
 			m_imKinViscosity = user;
 		}
 		void set_kinematic_viscosity(number val){
@@ -285,7 +291,7 @@ class CRSmagorinskyTurbViscData
 
 	private:
 		///	Data import for kinematic viscosity
-		SmartPtr<UserData<number,dim> > m_imKinViscosity;
+		SmartPtr<CplUserData<number,dim> > m_imKinViscosity;
 
 	private:
 	// grid function
@@ -468,7 +474,7 @@ class CRDynamicTurbViscData
 		 * \param[in]	data		kinematic Viscosity
 		 */
 		///	\{
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user){
+		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user){
 			m_imKinViscosity = user;
 		}
 		void set_kinematic_viscosity(number val){
@@ -484,7 +490,7 @@ class CRDynamicTurbViscData
 
 	private:
 		///	Data import for kinematic viscosity
-		SmartPtr<UserData<number,dim> > m_imKinViscosity;
+		SmartPtr<CplUserData<number,dim> > m_imKinViscosity;
 
 		number m_viscosityNumber;
 

@@ -60,12 +60,12 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		string name = string("FV1SmagorinskyTurbViscData").append(suffix);
 		typedef FV1SmagorinskyTurbViscData<TFct> T;
-		typedef UserData<number, dim> TBase;
+		typedef CplUserData<number, dim> TBase;
 		typedef INewtonUpdate TBase2;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>,number)>("Approximation space, grid function, model parameter")
 			.add_method("set_model_parameter", &T::set_model_parameter)
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 		#ifdef UG_FOR_LUA
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -79,11 +79,11 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		string name = string("FV1DynamicTurbViscData").append(suffix);
 		typedef FV1DynamicTurbViscData<TFct> T;
-		typedef UserData<number, dim> TBase;
+		typedef CplUserData<number, dim> TBase;
 		typedef INewtonUpdate TBase2;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
-			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<UserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 		#ifdef UG_FOR_LUA
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")

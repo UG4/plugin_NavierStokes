@@ -62,11 +62,11 @@ class NavierStokesNoNormalStressOutflowFV
 
 	protected:
 	///	sets the kinematic viscosity
-		virtual void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
+		virtual void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > data)
 			{m_imKinViscosity.set_data(data);}
 
 	///	sets the density
-		virtual void set_density(SmartPtr<UserData<number, dim> > data)
+		virtual void set_density(SmartPtr<CplUserData<number, dim> > data)
 			{m_imDensity.set_data(data); m_imDensityP.set_data(data);}
 
 	public:

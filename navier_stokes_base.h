@@ -142,7 +142,7 @@ class NavierStokesBase
 	 * \param[in]	data		kinematic Viscosity
 	 */
 	///	\{
-		virtual void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user) = 0;
+		virtual void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user) = 0;
 		void set_kinematic_viscosity(number val);
 #ifdef UG_FOR_LUA
 		void set_kinematic_viscosity(const char* fctName);
@@ -150,7 +150,7 @@ class NavierStokesBase
 	///	\}
 
 	///	returns kinematic viscosity
-		virtual SmartPtr<UserData<number, dim> > kinematic_viscosity() = 0;
+		virtual SmartPtr<CplUserData<number, dim> > kinematic_viscosity() = 0;
 
 	///	sets the density
 	/**
@@ -159,7 +159,7 @@ class NavierStokesBase
 	 * \param[in]	data		density
 	 */
 	///	\{
-		virtual void set_density(SmartPtr<UserData<number, dim> > user) = 0;
+		virtual void set_density(SmartPtr<CplUserData<number, dim> > user) = 0;
 		void set_density(number val);
 #ifdef UG_FOR_LUA
 		void set_density(const char* fctName);
@@ -167,7 +167,7 @@ class NavierStokesBase
 	///	\}
 
 	///	returns density
-		virtual SmartPtr<UserData<number, dim> > density() = 0;
+		virtual SmartPtr<CplUserData<number, dim> > density() = 0;
 
 	///	sets the source function
 	/**
@@ -175,7 +175,7 @@ class NavierStokesBase
 	 * \param[in]	data		source data
 	 */
 	///	\{
-		virtual void set_source(SmartPtr<UserData<MathVector<dim>, dim> > user) = 0;
+		virtual void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user) = 0;
 		void set_source(const std::vector<number>& vSource);
 #ifdef UG_FOR_LUA
 		void set_source(const char* fctName);

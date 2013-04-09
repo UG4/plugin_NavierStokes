@@ -42,7 +42,7 @@ class NavierStokesInflowFV1
 		NavierStokesInflowFV1(SmartPtr< NavierStokesFV1<TDomain> > spMaster);
 
 	///	sets the velocity to a given value
-		void add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND);
+		void add(SmartPtr<CplUserData<MathVector<dim>, dim> > user, const char* subsetsBND);
 
 	protected:
 	///	neumann disc for pressure equation

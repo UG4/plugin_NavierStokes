@@ -60,7 +60,7 @@ class NavierStokesSymBCFV1
 	 *
 	 * \param[in]	data		kinematic Viscosity
 	 */
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > data)
+		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > data)
 			{m_imKinViscosity.set_data(data);}
 
 	///	sets the density
@@ -69,7 +69,7 @@ class NavierStokesSymBCFV1
 	 *
 	 * \param[in]	data		Density
 	 */
-		void set_density(SmartPtr<UserData<number, dim> > data)
+		void set_density(SmartPtr<CplUserData<number, dim> > data)
 			{m_imDensity.set_data(data);}
 
 	public:

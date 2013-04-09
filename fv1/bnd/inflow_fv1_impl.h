@@ -31,7 +31,7 @@ NavierStokesInflowFV1(SmartPtr< NavierStokesFV1<TDomain> > spMaster)
 
 template <typename TDomain, typename TAlgebra>
 void NavierStokesInflowFV1<TDomain,TAlgebra>::
-add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND)
+add(SmartPtr<CplUserData<MathVector<dim>, dim> > user, const char* subsetsBND)
 {
 	const std::vector<std::string>& vFctName = m_spMaster->symb_fcts();
 	if(vFctName.empty())
@@ -53,7 +53,7 @@ add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND)
 		if(i>0) velNames.append(",");
 		velNames.append(vFctName[i]);
 	}
-	m_spDirichletConstraint->add(user, velNames.c_str(), subsetsBND);
+	m_spDirichletConstraint->add(user.template cast_dynamic<UserData<MathVector<dim>, dim> >(), velNames.c_str(), subsetsBND);
 }
 
 } // namespace NavierStokes

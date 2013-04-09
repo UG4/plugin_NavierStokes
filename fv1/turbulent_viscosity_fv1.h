@@ -33,7 +33,7 @@ concept derived from grid_function_user_data.h
 */
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 class StdTurbulentViscosityDataFV1
-	: 	public UserData<TData,dim>
+	: 	public CplUserData<TData,dim>
 {
 		///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
@@ -175,6 +175,12 @@ class StdTurbulentViscosityDataFV1
 			                  this->num_ip(s));
 		}
 
+	///	returns if provided data is continuous over geometric object boundaries
+		virtual bool continuous() const {return false;}
+
+	///	returns if grid function is needed for evaluation
+		virtual bool requires_grid_fct() const {return true;}
+
 		void assembleDeformationTensor(aVertexTensor& aaDefTensor,aVertexNumber& aaVol,SmartPtr<TGridFunction> u);
 		void assembleDeformationTensor(aVertexTensor& aaDefTensor,aVertexNumber& aaVol,aVertexDimVector aaU);
 
@@ -264,7 +270,7 @@ class FV1SmagorinskyTurbViscData
 		 * \param[in]	data		kinematic Viscosity
 		 */
 		///	\{
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user){
+		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user){
 			m_imKinViscosity = user;
 		}
 		void set_kinematic_viscosity(number val){
@@ -279,7 +285,7 @@ class FV1SmagorinskyTurbViscData
 
 	private:
 		///	Data import for kinematic viscosity
-		SmartPtr<UserData<number,dim> > m_imKinViscosity;
+		SmartPtr<CplUserData<number,dim> > m_imKinViscosity;
 
 	private:
 	// grid function
@@ -456,7 +462,7 @@ class FV1DynamicTurbViscData
 		 * \param[in]	data		kinematic Viscosity
 		 */
 		///	\{
-		void set_kinematic_viscosity(SmartPtr<UserData<number, dim> > user){
+		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user){
 			m_imKinViscosity = user;
 		}
 		void set_kinematic_viscosity(number val){
@@ -472,7 +478,7 @@ class FV1DynamicTurbViscData
 
 	private:
 		///	Data import for kinematic viscosity
-		SmartPtr<UserData<number,dim> > m_imKinViscosity;
+		SmartPtr<CplUserData<number,dim> > m_imKinViscosity;
 
 		number m_viscosityNumber;
 

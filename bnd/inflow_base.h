@@ -36,7 +36,7 @@ class NavierStokesInflowBase
 	public:
 	///	sets the velocity to a given value
 	///	\{
-		virtual void add(SmartPtr<UserData<MathVector<dim>, dim> > user, const char* subsetsBND) = 0;
+		virtual void add(SmartPtr<CplUserData<MathVector<dim>, dim> > user, const char* subsetsBND) = 0;
 		void add(const std::vector<number>& vVel, const char* subsetsBND);
 #ifdef UG_FOR_LUA
 		void add(const char* luaFctName, const char* subsetsBND);
