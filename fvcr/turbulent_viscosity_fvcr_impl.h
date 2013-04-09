@@ -8,8 +8,6 @@
 #ifndef __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA_IMPL_H_
 #define __H__UG__NAVIER_STOKES_TURBULENT_VISCOSITY_DATA_IMPL_H_
 
-#include "turbulent_viscosity_fvcr.h"
-
 namespace ug{
 namespace NavierStokes{
 
@@ -349,10 +347,10 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 			for (size_t s=0;s<nofsides;s++){
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 				scvBary = 0;
-				size_t numScvVertices = sides[s].num_vertices;
+				size_t numScvVertices = sides[s]->num_vertices();
 				// compute barycenter of scv (average of side corner nodes + element bary)
 				for (size_t i=0;i<numScvVertices;i++){
-					scvBary += posAcc[sides[s]->vertex[i]];
+					scvBary += posAcc[sides[s]->vertex(i)];
 				}
 				scvBary += bary;
 				scvBary/=(numScvVertices+1);
@@ -472,10 +470,10 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 			for (size_t s=0;s<nofsides;s++){
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 				scvBary = 0;
-				size_t numScvVertices = sides[s].num_vertices;
+				size_t numScvVertices = sides[s]->num_vertices();
 				// compute barycenter of scv (average of side corner nodes + element bary)
 				for (size_t i=0;i<numScvVertices;i++){
-					scvBary += posAcc[sides[s]->vertex[i]];
+					scvBary += posAcc[sides[s]->vertex(i)];
 				}
 				scvBary += bary;
 				scvBary/=(numScvVertices+1);
@@ -483,11 +481,11 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 				//	memory for shapes
 				std::vector<number> vShape;
 				rTrialSpace.shapes(vShape, scvLocalBary);
-				number localValue = 0;
+				MathVector<dim> localValue = 0;
 
-				for (size_t j=0;j<nofsides;j++){
-					localValue += vShape[j]*uValue[j];
-				}
+				for (size_t j=0;j<nofsides;j++)
+					for (int d=0;d<dim;d++)
+//						localValue[d] += vShape[j]*uValue[j][d];
 
 				localValue *= scv.volume();
 				aaVol[sides[s]]  += scv.volume();

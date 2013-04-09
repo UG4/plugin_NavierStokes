@@ -12,6 +12,7 @@
 #include "navier_stokes_base.h"
 #include "upwind.h"
 #include "navier_stokes_tools.h"
+#include "filter.h"
 
 #include "bnd/inflow_base.h"
 #include "bnd/wall.h"
@@ -100,6 +101,11 @@ static void DomainAlgebra(Registry& reg, string grp)
 	// driven cavity data evaluation
 	{
 		reg.add_function("dcevaluation", static_cast<void (*)(function_type&,size_t)>(&drivenCavityEvaluation), grp);
+	}
+
+	// filter data
+	{
+		reg.add_function("filter", static_cast<void (*)(SmartPtr<function_type>,const std::string&)>(&filter), grp);
 	}
 }
 

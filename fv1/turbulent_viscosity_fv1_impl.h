@@ -74,7 +74,6 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
-	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
 		//	get iterators
@@ -178,7 +177,6 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
-	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
 		//	get iterators
@@ -386,7 +384,6 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 	//	create Multiindex
 	std::vector<MultiIndex<2> > multInd;
 
-	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
 		//	get iterators
@@ -444,18 +441,18 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 				const typename DimFV1Geometry<dim>::SCV& scv = geo.scv(co);
 				scvLocalBary = 0;
 				// compute barycenter of scv
-				for (size_t i=0;i<scv->num_corners();i++){
-					scvLocalBary += scv->loal_corner(i);
+				for (size_t i=0;i<scv.num_corners();i++){
+					scvLocalBary += scv.local_corner(i);
 				}
-				scvLocalBary/=(number)(scv->num_corners());
+				scvLocalBary/=(number)(scv.num_corners());
 				//	memory for shapes
 				std::vector<number> vShape;
 				rTrialSpace.shapes(vShape, scvLocalBary);
-				number localValue = 0;
+				MathVector<dim> localValue = 0;
 
-				for (size_t j=0;j<noc;j++){
-					localValue += vShape[j]*uValue[j];
-				}
+				for (size_t j=0;j<noc;j++)
+					for (int d=0;d<dim;d++)
+						localValue += vShape[j]*uValue[j];
 
 				localValue *= scv.volume();
 				aaVol[elem->vertex(co)]  += scv.volume();
