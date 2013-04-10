@@ -106,8 +106,6 @@ add
 )
 {
 	m_vScheduledBndSubSets.push_back(subsets);
-
-	if(this->fct_pattern_set()) extract_scheduled_data();
 }
 
 /**
@@ -136,6 +134,9 @@ prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
 	if(!m_imDensity.data_given())
 		UG_THROW("CRNavierStokesSymBC::prep_elem_loop_cr:"
 						" Density has not been set, but is required.\n");
+
+//	extract indices of boundary
+	extract_scheduled_data();
 
 //	request the subset indices as boundary subset. This will force the
 //	creation of boundary subsets when calling geo.update

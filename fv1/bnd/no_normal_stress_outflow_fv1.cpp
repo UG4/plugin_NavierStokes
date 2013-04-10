@@ -109,6 +109,9 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		UG_THROW("NavierStokesNoNormalStressOutflowFV1::prep_elem_loop:"
 						" Density has not been set, but is required.\n");
 
+//	extract indices of boundary
+	this->extract_scheduled_data();
+
 //	request the subset indices as boundary subset. This will force the
 //	creation of boundary subsets when calling geo.update
 	typename std::vector<int>::const_iterator subsetIter;

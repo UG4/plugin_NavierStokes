@@ -82,8 +82,7 @@ class NavierStokesNoNormalStressOutflowBase
 		std::vector<std::string> m_vScheduledBndSubSets; // names
 		std::vector<int> m_vBndSubSetIndex; // indices
 	
-		void extract_scheduled_data(); // converst m_vScheduledBndSubSets -> m_vBndSubSetIndex
-		virtual void approximation_space_changed() {extract_scheduled_data();}
+		void extract_scheduled_data(); // convert m_vScheduledBndSubSets -> m_vBndSubSetIndex
 };
 
 /// @}

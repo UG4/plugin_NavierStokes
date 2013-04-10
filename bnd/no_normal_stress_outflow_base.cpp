@@ -70,8 +70,6 @@ void NavierStokesNoNormalStressOutflowBase<TDomain>::add
 )
 {
 	m_vScheduledBndSubSets.push_back(subsets);
-
-	if(this->fct_pattern_set()) extract_scheduled_data();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
