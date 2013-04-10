@@ -60,39 +60,20 @@ void NavierStokesFE<TDomain>::init()
 }
 
 template<typename TDomain>
-bool NavierStokesFE<TDomain>::request_non_regular_grid(bool bNonRegular)
+void NavierStokesFE<TDomain>::
+prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-//	switch, which assemble functions to use.
-	if(bNonRegular)
-	{
-		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
-				" Non-regular grid not implemented.\n");
-		return false;
-	}
+	if(!bNonRegularGrid)
+		UG_THROW("NavierStokes: only implemented for regular grids.");
 
-//	this disc supports regular grids
-	return true;
-}
-
-template<typename TDomain>
-bool NavierStokesFE<TDomain>::
-request_finite_element_id(const std::vector<LFEID>& vLfeID)
-{
 //	check number
 	if(vLfeID.size() != dim+1)
-	{
-		UG_LOG("NavierStokes:"
-				" Wrong number of functions given. Need exactly "<<dim+1<<"\n");
-		return false;
-	}
+		UG_THROW("NavierStokes: Needs exactly "<<dim+1<<" functions.");
 
 	for(int d = 1; d < dim; ++d)
 		if(vLfeID[0] != vLfeID[d])
-		{
-			UG_LOG("NavierStokes: trial spaces for velocity expected to be"
-					" identical for all velocity components.\n");
-			return false;
-		}
+			UG_THROW("NavierStokes: trial spaces for velocity expected to be"
+					" identical for all velocity components.");
 
 //	remember lfeID;
 	m_vLFEID = vLfeID[0];
@@ -102,9 +83,6 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 
 	//	update assemble functions
 	register_all_funcs(m_vLFEID, m_pLFEID, m_quadOrder);
-
-	//	is supported
-	return true;
 }
 
 template<typename TDomain>

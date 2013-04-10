@@ -17,32 +17,15 @@ namespace ug{
 namespace NavierStokes{
 
 template<typename TDomain>
-bool CRNavierStokesSymBC<TDomain>::
-request_finite_element_id(const std::vector<LFEID>& vLfeID)
+void CRNavierStokesSymBC<TDomain>::
+prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
+	if(!bNonRegularGrid)
+		UG_THROW("CRNavierStokesSymBC: only regular grid implemented.");
+
 //	check number
-	if(vLfeID.size() != dim+1) return false;
-
-//	check that Lagrange 1st order
-//	for(size_t i = 0; i < vLfeID.size(); ++i)
-//		if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
-	return true;
-}
-
-template<typename TDomain>
-bool CRNavierStokesSymBC<TDomain>::
-request_non_regular_grid(bool bNonRegular)
-{
-//	switch, which assemble functions to use.
-	if(bNonRegular)
-	{
-		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
-				" Non-regular grid not implemented.\n");
-		return false;
-	}
-
-//	this disc supports regular grids
-	return true;
+	if(vLfeID.size() != dim+1)
+		UG_THROW("CRNavierStokesSymBC: Needs exactly "<<dim+1<<" functions.");
 }
 
 /**

@@ -37,40 +37,20 @@ NavierStokesNoNormalStressOutflowFV(SmartPtr< NavierStokesBase<TDomain> > spMast
 
 
 template<typename TDomain>
-bool NavierStokesNoNormalStressOutflowFV<TDomain>::
-request_non_regular_grid(bool bNonRegular)
+void NavierStokesNoNormalStressOutflowFV<TDomain>::
+prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-//	switch, which assemble functions to use.
-	if(bNonRegular)
-	{
-		UG_LOG("NavierStokes::request_non_regular_grid':"
-				" Non-regular grid not implemented.");
-		return false;
-	}
+	if(!bNonRegularGrid)
+		UG_THROW("NavierStokesNoNormalStressOutflow: only regular grid implemented.");
 
-//	this disc supports regular grids
-	return true;
-}
-
-template<typename TDomain>
-bool NavierStokesNoNormalStressOutflowFV<TDomain>::
-request_finite_element_id(const std::vector<LFEID>& vLfeID)
-{
-//	check number
+	//	check number
 	if(vLfeID.size() != dim+1)
-	{
-		UG_LOG("NavierStokes:"
-				" Wrong number of functions given. Need exactly "<<dim+1<<"\n");
-		return false;
-	}
+		UG_THROW("NavierStokesNoNormalStressOutflow: Needs exactly "<<dim+1<<" functions");
 
 	for(int d = 1; d < dim; ++d)
 		if(vLfeID[0] != vLfeID[d])
-		{
-			UG_LOG("NavierStokes: trial spaces for velocity expected to be"
-					" identical for all velocity components.\n");
-			return false;
-		}
+			UG_THROW("NavierStokesNoNormalStressOutflow: trial spaces for velocity"
+					" expected to be identical for all velocity components.");
 
 //	remember lfeID;
 	m_vLFEID = vLfeID[0];
@@ -79,9 +59,6 @@ request_finite_element_id(const std::vector<LFEID>& vLfeID)
 
 	//	update assemble functions
 	register_all_funcs(m_vLFEID, m_pLFEID);
-
-	//	is supported
-	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

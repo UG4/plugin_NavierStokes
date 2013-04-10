@@ -17,34 +17,21 @@ namespace ug{
 namespace NavierStokes{
 
 template<typename TDomain>
-bool NavierStokesSymBCFV1<TDomain>::
-request_finite_element_id(const std::vector<LFEID>& vLfeID)
+void NavierStokesSymBCFV1<TDomain>::
+prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
+	if(!bNonRegularGrid)
+		UG_THROW("NavierStokesSymBCFV1: only regular grid implemented.");
+
 //	check number
-	if(vLfeID.size() != dim+1) return false;
+	if(vLfeID.size() != dim+1)
+		UG_THROW("NavierStokesSymBCFV1: Needs exactly "<<dim+1<<" functions.");
 
 //	check that Lagrange 1st order
 	for(size_t i = 0; i < vLfeID.size(); ++i)
-		if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1)) return false;
-	return true;
+		if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1))
+			UG_THROW("NavierStokesSymBCFV1: only first order Lagrange supported.");
 }
-
-template<typename TDomain>
-bool NavierStokesSymBCFV1<TDomain>::
-request_non_regular_grid(bool bNonRegular)
-{
-//	switch, which assemble functions to use.
-	if(bNonRegular)
-	{
-		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
-				" Non-regular grid not implemented.\n");
-		return false;
-	}
-
-//	this disc supports regular grids
-	return true;
-}
-
 /**
  * converts the subset names where the BC is imposed to the corresponding subset
  * indices (i.e. m_vScheduledBndSubSets -> m_vBndSubSetIndex):

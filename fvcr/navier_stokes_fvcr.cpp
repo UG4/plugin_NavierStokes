@@ -60,51 +60,27 @@ void NavierStokesFVCR<TDomain>::init()
 }
 
 template<typename TDomain>
-bool NavierStokesFVCR<TDomain>::request_non_regular_grid(bool bNonRegular)
+void NavierStokesFVCR<TDomain>::
+prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-//	switch, which assemble functions to use.
-	if(bNonRegular)
-	{
-		UG_LOG("ERROR in 'NavierStokes::request_non_regular_grid':"
-				" Non-regular grid not implemented.\n");
-		return false;
-	}
+	if(!bNonRegularGrid)
+		UG_THROW("NavierStokes: only regular grid implemented.");
 
-//	this disc supports regular grids
-	return true;
-}
-
-template<typename TDomain>
-bool NavierStokesFVCR<TDomain>::
-request_finite_element_id(const std::vector<LFEID>& vLfeID)
-{
 //	check number
 	if(vLfeID.size() != dim+1)
-	{
-		UG_LOG("NavierStokes:"
-				" Wrong number of functions given. Need exactly "<<dim+1<<"\n");
-		return false;
-	}
+		UG_THROW("NavierStokes: Need exactly "<<dim+1<<" functions");
 
 	for(int d = 0; d < dim; ++d)
 		if(vLfeID[d].type() != LFEID::CROUZEIX_RAVIART)
-		{
-			UG_LOG("NavierStokes: 'fvcr' expects Crouzeix-Raviart trial"
-					" space for velocity.\n");
-			return false;
-		}
+			UG_THROW("NavierStokes: 'fvcr' expects Crouzeix-Raviart trial"
+					" space for velocity.");
+
 	if(vLfeID[dim].type() != LFEID::PIECEWISE_CONSTANT)
-	{
-		UG_LOG("NavierStokes: 'fvcr' expects piecewise constant trial"
-				" space for pressure.\n");
-		return false;
-	}
+		UG_THROW("NavierStokes: 'fvcr' expects piecewise constant trial"
+				" space for pressure.");
 
 	//	update assemble functions
 	register_all_funcs(false);
-
-	//	is supported
-	return true;
 }
 
 template<typename TDomain>
