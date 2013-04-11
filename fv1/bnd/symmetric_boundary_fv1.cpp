@@ -20,7 +20,7 @@ template<typename TDomain>
 void NavierStokesSymBCFV1<TDomain>::
 prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-	if(!bNonRegularGrid)
+	if(bNonRegularGrid)
 		UG_THROW("NavierStokesSymBCFV1: only regular grid implemented.");
 
 //	check number

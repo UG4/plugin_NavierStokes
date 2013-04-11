@@ -40,7 +40,7 @@ template<typename TDomain>
 void NavierStokesNoNormalStressOutflowFV<TDomain>::
 prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-	if(!bNonRegularGrid)
+	if(bNonRegularGrid)
 		UG_THROW("NavierStokesNoNormalStressOutflow: only regular grid implemented.");
 
 	//	check number

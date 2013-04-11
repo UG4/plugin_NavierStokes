@@ -63,7 +63,7 @@ template<typename TDomain>
 void NavierStokesFE<TDomain>::
 prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-	if(!bNonRegularGrid)
+	if(bNonRegularGrid)
 		UG_THROW("NavierStokes: only implemented for regular grids.");
 
 //	check number
