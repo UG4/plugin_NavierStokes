@@ -172,15 +172,12 @@ fsh_elem_loop()
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFVCR<TDomain>::
-prep_elem(TElem* elem, LocalVector& u)
+prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
-//	get corners
-	m_vCornerCoords = this->template element_corners<TElem>(elem);
-
 // 	Update Geometry for this element
 	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	try{
-		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
+		geo.update(elem, vCornerCoords, &(this->subset_handler()));
 	}
 	UG_CATCH_THROW("NavierStokes::prep_elem:"
 					" Cannot update Finite Volume Geometry.");
@@ -238,7 +235,7 @@ peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFVCR<TDomain>::
-add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	// 	Only first order implementation
 		UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
@@ -440,7 +437,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFVCR<TDomain>::
-add_def_A_elem(LocalVector& d, const LocalVector& u)
+add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	// 	Only first order implemented
 		UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
@@ -585,7 +582,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFVCR<TDomain>::
-add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
+add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
@@ -615,7 +612,7 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFVCR<TDomain>::
-add_def_M_elem(LocalVector& d, const LocalVector& u)
+add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
@@ -645,7 +642,7 @@ add_def_M_elem(LocalVector& d, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFVCR<TDomain>::
-add_rhs_elem(LocalVector& d)
+add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");

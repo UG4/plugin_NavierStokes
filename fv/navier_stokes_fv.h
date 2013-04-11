@@ -91,9 +91,6 @@ class NavierStokesFV
 		DataImport<number, dim> m_imDensitySCVFp;
 		DataImport<number, dim> m_imDensitySCV;
 
-	/// position access
-		const MathVector<dim>* m_vCornerCoords;
-
 	/// abbreviation for pressure
 		static const size_t _P_ = dim;
 
@@ -107,7 +104,7 @@ class NavierStokesFV
 		void prep_elem_loop(const ReferenceObjectID roid, const int si);
 
 		template<typename TElem, typename VGeom, typename PGeom>
-		void prep_elem(TElem* elem, const LocalVector& u);
+		void prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the loop over all elements
 		template<typename TElem, typename VGeom, typename PGeom>
@@ -115,23 +112,23 @@ class NavierStokesFV
 
 	///	assembles the local stiffness matrix using a finite volume scheme
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u);
+		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the local mass matrix using a finite volume scheme
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u);
+		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the stiffness part of the local defect
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_def_A_elem(LocalVector& d, const LocalVector& u);
+		void add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the mass part of the local defect
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_def_M_elem(LocalVector& d, const LocalVector& u);
+		void add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the local right hand side
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_rhs_elem(LocalVector& d);
+		void add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	protected:
 	///	register util

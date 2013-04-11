@@ -121,14 +121,12 @@ fsh_elem_loop()
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesNoNormalStressOutflowFV1<TDomain>::
-prep_elem(TElem* elem, const LocalVector& u)
+prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Update Geometry for this element
 	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	try{
-		geo.update(elem,
-	               this->template element_corners<TElem>(elem),
-	               &(this->subset_handler()));
+		geo.update(elem, vCornerCoords, &(this->subset_handler()));
 	}
 	UG_CATCH_THROW("NavierStokesNoNormalStressOutflowFV1::prep_elem:"
 						" Cannot update Finite Volume Geometry.");
@@ -312,7 +310,7 @@ convective_flux_defect
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesNoNormalStressOutflowFV1<TDomain>::
-add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
@@ -355,7 +353,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesNoNormalStressOutflowFV1<TDomain>::
-add_def_A_elem(LocalVector& d, const LocalVector& u)
+add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");

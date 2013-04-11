@@ -98,7 +98,7 @@ add
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
+prep_elem_loop(const ReferenceObjectID roid, const int si)
 {
 //	register subsetIndex at Geometry
 	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
@@ -110,12 +110,12 @@ prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
 
 //	check if kinematic Viscosity has been set
 	if(!m_imKinViscosity.data_given())
-		UG_THROW("CRNavierStokesSymBC::prep_elem_loop_cr:"
+		UG_THROW("CRNavierStokesSymBC::prep_elem_loop:"
 						" Kinematic Viscosity has not been set, but is required.\n");
 
 //	check if Density has been set
 	if(!m_imDensity.data_given())
-		UG_THROW("CRNavierStokesSymBC::prep_elem_loop_cr:"
+		UG_THROW("CRNavierStokesSymBC::prep_elem_loop:"
 						" Density has not been set, but is required.\n");
 
 //	extract indices of boundary
@@ -135,7 +135,7 @@ prep_elem_loop_cr(const ReferenceObjectID roid, const int si)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-fsh_elem_loop_cr()
+fsh_elem_loop()
 {
 	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 
@@ -153,17 +153,14 @@ fsh_elem_loop_cr()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-prep_elem_cr(TElem* elem, const LocalVector& u)
+prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
-//	get corners
-	m_vCornerCoords = this->template element_corners<TElem>(elem);
-
 // 	Update Geometry for this element
 	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 	try{
-		geo.update(elem, &m_vCornerCoords[0], &(this->subset_handler()));
+		geo.update(elem, vCornerCoords, &(this->subset_handler()));
 	}
-	UG_CATCH_THROW("CRNavierStokesSymBC::prep_elem_cr:"
+	UG_CATCH_THROW("CRNavierStokesSymBC::prep_elem:"
 						" Cannot update Finite Volume Geometry.");
 
 //	find and set the local and the global positions of the IPs for imports
@@ -198,7 +195,7 @@ prep_elem_cr(TElem* elem, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
+add_JA_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -270,7 +267,7 @@ add_JA_elem_cr(LocalMatrix& J, const LocalVector& u)
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void CRNavierStokesSymBC<TDomain>::
-add_dA_elem_cr(LocalVector& d, const LocalVector& u)
+add_dA_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -365,7 +362,7 @@ CRNavierStokesSymBC(SmartPtr< NavierStokesBase<TDomain> > spMaster)
 	m_imDensity.set_data(spMaster->density ());
 
 //	register assemble functions
-	this->register_all_cr_funcs(false);
+	this->register_all_funcs(false);
 }
 
 
@@ -377,7 +374,7 @@ CRNavierStokesSymBC(SmartPtr< NavierStokesBase<TDomain> > spMaster)
 template<typename TDomain>
 void
 CRNavierStokesSymBC<TDomain>::
-register_all_cr_funcs(bool bHang)
+register_all_funcs(bool bHang)
 {
 //	get all grid element types in this dimension and below
 	typedef typename domain_traits<dim>::DimElemList ElemList;
@@ -393,18 +390,18 @@ template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void
 CRNavierStokesSymBC<TDomain>::
-register_cr_func()
+register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
 
 	this->enable_fast_add_elem(true);
-	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop_cr<TElem, TFVGeom>);
-	this->set_prep_elem_fct(	   	id, &T::template prep_elem_cr<TElem, TFVGeom>);
-	this->set_fsh_elem_loop_fct(	id, &T::template fsh_elem_loop_cr<TElem, TFVGeom>);
-	this->set_add_jac_A_elem_fct(	id, &T::template add_JA_elem_cr<TElem, TFVGeom>);
+	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);
+	this->set_prep_elem_fct(	   	id, &T::template prep_elem<TElem, TFVGeom>);
+	this->set_fsh_elem_loop_fct(	id, &T::template fsh_elem_loop<TElem, TFVGeom>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_JA_elem<TElem, TFVGeom>);
 	this->set_add_jac_M_elem_fct(	id, &T::template add_JM_elem<TElem, TFVGeom>);
-	this->set_add_def_A_elem_fct(	id, &T::template add_dA_elem_cr<TElem, TFVGeom>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_dA_elem<TElem, TFVGeom>);
 	this->set_add_def_M_elem_fct(	id, &T::template add_dM_elem<TElem, TFVGeom>);
 	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }

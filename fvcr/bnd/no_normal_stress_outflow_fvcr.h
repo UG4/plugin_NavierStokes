@@ -80,7 +80,7 @@ class NavierStokesNoNormalStressOutflowFVCR
 
 	///	prepares the element for evaluation
 		template <typename TElem, typename TFVGeom>
-		void prep_elem(TElem* elem, const LocalVector& u);
+		void prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the element loop
 		template <typename TElem, typename TFVGeom>
@@ -88,21 +88,21 @@ class NavierStokesNoNormalStressOutflowFVCR
 
 	///	adds the stiffness part to the local jacobian
 		template <typename TElem, typename TFVGeom>
-		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u);
+		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	adds the stiffness part to the local defect
 		template <typename TElem, typename TFVGeom>
-		void add_def_A_elem(LocalVector& d, const LocalVector& u);
+		void add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	public:
 	///	dummy implementations
 	///	\{
 		template <typename TElem, typename TFVGeom>
-		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u){}
+		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]){}
 		template <typename TElem, typename TFVGeom>
-		void add_def_M_elem(LocalVector& d, const LocalVector& u){}
+		void add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]){}
 		template <typename TElem, typename TFVGeom>
-		void add_rhs_elem(LocalVector& d){}
+		void add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[]){}
 	/// \}
 
 	private:

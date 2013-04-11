@@ -1,12 +1,12 @@
 /*
- * symmetric_boundary_fv1.h
+ * symmetric_boundary.h
  *
  *  Created on: 18.03.2013
  *      Author: Christian Wehner
  */
 
-#ifndef __H__UG__PLUGINS__NAVIER_STOKES__SYMMETRIC__FV1__
-#define __H__UG__PLUGINS__NAVIER_STOKES__SYMMETRIC__FV1__
+#ifndef __H__UG__PLUGINS__NAVIER_STOKES__SYMMETRIC___
+#define __H__UG__PLUGINS__NAVIER_STOKES__SYMMETRIC___
 
 // other ug4 modules
 #include "common/common.h"
@@ -82,30 +82,30 @@ class NavierStokesSymBCFV1
 
 	///	prepares the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem_loop_fv1(const ReferenceObjectID roid, const int si);
+		void prep_elem_loop(const ReferenceObjectID roid, const int si);
 
 	///	prepares the element for evaluation
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem_fv1(TElem* elem, const LocalVector& u);
+		void prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void fsh_elem_loop_fv1();
+		void fsh_elem_loop();
 
 	///	adds the stiffness part to the local jacobian
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_JA_elem_fv1(LocalMatrix& J, const LocalVector& u);
+		void add_JA_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	adds the stiffness part to the local defect
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_dA_elem_fv1(LocalVector& d, const LocalVector& u);
+		void add_dA_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_JM_elem(LocalMatrix& J, const LocalVector& u) {}
+		void add_JM_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_dM_elem(LocalVector& d, const LocalVector& u) {}
+		void add_dM_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_rhs_elem(LocalVector& d) {}
+		void add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
 
 	private:
 	/// The master discretization:
@@ -128,28 +128,25 @@ class NavierStokesSymBCFV1
 	/// Data import for source
 		DataImport<MathVector<dim>, dim> m_imSourceSCVF;
 
-	/// position access
-		const position_type* m_vCornerCoords;
-
 	/// abbreviation for pressure
 		static const size_t _P_ = dim;
 
 	private:
-		void register_all_fv1_funcs(bool bHang);
+		void register_all_funcs(bool bHang);
 
 		template <template <class Elem, int WorldDim> class TFVGeom>
 		struct RegisterFV1 {
 				RegisterFV1(this_type* pThis) : m_pThis(pThis){}
 				this_type* m_pThis;
 				template< typename TElem > void operator()(TElem&)
-				{m_pThis->register_fv1_func<TElem, TFVGeom>();}
+				{m_pThis->register_func<TElem, TFVGeom>();}
 		};
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void register_fv1_func();
+		void register_func();
 };
 
 } // namespace NavierStokes
 } // end namespace ug
 
-#endif /* __H__UG__PLUGINS__NAVIER_STOKES__SYMMETRIC__FV1__ */
+#endif /* __H__UG__PLUGINS__NAVIER_STOKES__SYMMETRIC___ */
