@@ -94,16 +94,16 @@ class NavierStokesSymBCFV1
 
 	///	adds the stiffness part to the local jacobian
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_JA_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	adds the stiffness part to the local defect
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_dA_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_JM_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
+		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_dM_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
+		void add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
 

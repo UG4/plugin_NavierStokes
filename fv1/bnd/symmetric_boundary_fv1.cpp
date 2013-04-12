@@ -199,7 +199,7 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokesSymBCFV1<TDomain>::
-add_JA_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	// 	Only first order implementation
 		UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -301,7 +301,7 @@ add_JA_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const M
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokesSymBCFV1<TDomain>::
-add_dA_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom<TElem, dim>::order == 1), "Only first order implemented.");
@@ -433,10 +433,10 @@ register_func()
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);
 	this->set_prep_elem_fct(	   	id, &T::template prep_elem<TElem, TFVGeom>);
 	this->set_fsh_elem_loop_fct(	id, &T::template fsh_elem_loop<TElem, TFVGeom>);
-	this->set_add_jac_A_elem_fct(	id, &T::template add_JA_elem<TElem, TFVGeom>);
-	this->set_add_jac_M_elem_fct(	id, &T::template add_JM_elem<TElem, TFVGeom>);
-	this->set_add_def_A_elem_fct(	id, &T::template add_dA_elem<TElem, TFVGeom>);
-	this->set_add_def_M_elem_fct(	id, &T::template add_dM_elem<TElem, TFVGeom>);
+	this->set_add_jac_A_elem_fct(	id, &T::template add_jac_A_elem<TElem, TFVGeom>);
+	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem<TElem, TFVGeom>);
+	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem<TElem, TFVGeom>);
+	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem<TElem, TFVGeom>);
 	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }
 

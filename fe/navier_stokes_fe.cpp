@@ -296,7 +296,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 	// stabilization
 	if(m_stabParam != 0)
 	{
-		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, this->domain());
+		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, *this->domain());
 		for (size_t ip = 0; ip < pgeo.num_ip(); ++ip){
 			for (size_t psh = 0; psh < pgeo.num_sh(); ++psh){
 				for (size_t psh2 = 0; psh2 < pgeo.num_sh(); ++psh2){
@@ -422,7 +422,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 	// stabilization
 	if(m_stabParam != 0)
 	{
-		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, this->domain());
+		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, *this->domain());
 		for (size_t ip = 0; ip < pgeo.num_ip(); ++ip){
 
 			MathVector<dim> pressGrad; VecSet(pressGrad, 0.0);
