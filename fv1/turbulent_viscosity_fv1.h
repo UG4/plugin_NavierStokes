@@ -33,7 +33,7 @@ concept derived from grid_function_user_data.h
 */
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 class StdTurbulentViscosityDataFV1
-	: 	public CplUserData<TData,dim>
+	: 	public StdUserData<StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>, TData,dim>
 {
 		///	domain type
 		typedef typename TGridFunction::domain_type domain_type;
@@ -77,43 +77,6 @@ class StdTurbulentViscosityDataFV1
 			UG_THROW("StdTurbulentViscosityDataFV1: Need element.");
 		}
 
-		virtual void operator() (TData& value,
-		                         const MathVector<dim>& globIP,
-		                         number time, int si,
-		                         LocalVector& u,
-		                         GeometricObject* elem,
-		                         const MathVector<dim> vCornerCoords[],
-		                         const MathVector<1>& locIP) const
-		{
-			getImpl().template evaluate<1>(&value,&globIP,time,si,u,elem,vCornerCoords,&locIP, 1, NULL);
-		}
-
-		virtual void operator() (TData& value,
-		                         const MathVector<dim>& globIP,
-		                         number time, int si,
-		                         LocalVector& u,
-		                         GeometricObject* elem,
-		                         const MathVector<dim> vCornerCoords[],
-		                         const MathVector<2>& locIP) const
-		{
-			getImpl().template evaluate<2>(&value,&globIP,time,si,u,elem,vCornerCoords,&locIP, 1, NULL);
-		}
-
-		virtual void operator() (TData& value,
-		                         const MathVector<dim>& globIP,
-		                         number time, int si,
-		                         LocalVector& u,
-		                         GeometricObject* elem,
-		                         const MathVector<dim> vCornerCoords[],
-		                         const MathVector<3>& locIP) const
-		{
-			getImpl().template evaluate<3>(&value,&globIP,time,si,u,elem,vCornerCoords,&locIP, 1, NULL);
-		}
-
-		////////////////
-		// vector of values
-		////////////////
-
 		virtual void operator() (TData vValue[],
 		                         const MathVector<dim> vGlobIP[],
 		                         number time, int si, const size_t nip) const
@@ -121,47 +84,19 @@ class StdTurbulentViscosityDataFV1
 			UG_THROW("StdTurbulentViscosityDataFV1: Need element.");
 		}
 
-
-		virtual void operator()(TData vValue[],
-		                        const MathVector<dim> vGlobIP[],
-		                        number time, int si,
-		                        LocalVector& u,
-		                        GeometricObject* elem,
-		                        const MathVector<dim> vCornerCoords[],
-		                        const MathVector<1> vLocIP[],
-		                        const size_t nip,
-		                        const MathMatrix<1, dim>* vJT = NULL) const
+		template <int refDim>
+		void evaluate(TData vValue[],
+						const MathVector<dim> vGlobIP[],
+						number time, int si,
+						GeometricObject* elem,
+						const MathVector<dim> vCornerCoords[],
+						const MathVector<refDim> vLocIP[],
+						const size_t nip,
+						LocalVector* u,
+						const MathMatrix<refDim, dim>* vJT = NULL) const
 		{
-			getImpl().template evaluate<1>(vValue,vGlobIP,time,si,u,elem,
-			                               vCornerCoords,vLocIP,nip, vJT);
-		}
-
-		virtual void operator()(TData vValue[],
-		                        const MathVector<dim> vGlobIP[],
-		                        number time, int si,
-		                        LocalVector& u,
-		                        GeometricObject* elem,
-		                        const MathVector<dim> vCornerCoords[],
-		                        const MathVector<2> vLocIP[],
-		                        const size_t nip,
-		                        const MathMatrix<2, dim>* vJT = NULL) const
-		{
-			getImpl().template evaluate<2>(vValue,vGlobIP,time,si,u,elem,
-			                               vCornerCoords,vLocIP,nip, vJT);
-		}
-
-		virtual void operator()(TData vValue[],
-		                        const MathVector<dim> vGlobIP[],
-		                        number time, int si,
-		                        LocalVector& u,
-		                        GeometricObject* elem,
-		                        const MathVector<dim> vCornerCoords[],
-		                        const MathVector<3> vLocIP[],
-		                        const size_t nip,
-		                        const MathMatrix<3, dim>* vJT = NULL) const
-		{
-			getImpl().template evaluate<3>(vValue,vGlobIP,time,si,u,elem,
-			                               vCornerCoords,vLocIP,nip, vJT);
+			getImpl().template evaluate<refDim>(vValue,vGlobIP,time,si,elem,
+			                                    vCornerCoords,vLocIP,nip,u,vJT);
 		}
 
 		virtual void compute(LocalVector* u, GeometricObject* elem,
@@ -171,8 +106,8 @@ class StdTurbulentViscosityDataFV1
 			const int si = this->subset();
 			for(size_t s = 0; s < this->num_series(); ++s)
 				getImpl().template evaluate<dim>(this->values(s), this->ips(s), t, si,
-			                  *u, elem, NULL, this->template local_ips<dim>(s),
-			                  this->num_ip(s));
+			                  elem, vCornerCoords, this->template local_ips<dim>(s),
+			                  this->num_ip(s), u);
 		}
 
 	///	returns if provided data is continuous over geometric object boundaries
@@ -352,11 +287,11 @@ class FV1SmagorinskyTurbViscData
 		inline void evaluate(number vValue[],
 		                     const MathVector<dim> vGlobIP[],
 		                     number time, int si,
-		                     LocalVector& u,
 		                     GeometricObject* elem,
 		                     const MathVector<dim> vCornerCoords[],
 		                     const MathVector<refDim> vLocIP[],
 		                     const size_t nip,
+		                     LocalVector* u,
 		                     const MathMatrix<refDim, dim>* vJT = NULL) const
 		{
 		//	reference object id
@@ -397,11 +332,11 @@ class FV1SmagorinskyTurbViscData
 			(*m_imKinViscosity)(kinViscValues,
                     vGlobIP,
                     time, si,
-                    u,
                     elem,
                     vCornerCoords,
                     vLocIP,
                     nip,
+                    u,
                     vJT);
 			for (size_t ip=0;ip < nip;ip++){
 				// UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
@@ -586,11 +521,11 @@ class FV1DynamicTurbViscData
 		inline void evaluate(number vValue[],
 									 const MathVector<dim> vGlobIP[],
 				                     number time, int si,
-				                     LocalVector& u,
 				                     GeometricObject* elem,
 				                     const MathVector<dim> vCornerCoords[],
 				                     const MathVector<refDim> vLocIP[],
 				                     const size_t nip,
+				                     LocalVector* u,
 				                     const MathMatrix<refDim, dim>* vJT = NULL) const
 		{
 			//	reference object id
@@ -631,11 +566,11 @@ class FV1DynamicTurbViscData
 			(*m_imKinViscosity)(kinViscValues,
 							vGlobIP,
 		                    time, si,
-		                    u,
 		                    elem,
 		                    vCornerCoords,
 		                    vLocIP,
 		                    nip,
+		                    u,
 		                    vJT);
 			for (size_t ip=0;ip < nip;ip++){
 				// UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
