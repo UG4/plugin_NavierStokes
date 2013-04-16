@@ -54,7 +54,7 @@ extract_scheduled_data()
 						" all contained in ApproximationSpace.");
 
 	//	get subsethandler
-		const ISubsetHandler& rSH = *this->function_pattern().subset_handler();
+		const ISubsetHandler& rSH = *this->function_pattern()->subset_handler();
 
 	// 	loop subsets
 		for(size_t si = 0; si < subsetGroup.size(); ++si)
