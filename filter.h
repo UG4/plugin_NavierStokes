@@ -62,9 +62,7 @@ void copyGridFunctionToAttachment(PeriodicAttachmentAccessor<elem_type,Attachmen
 			elem_type* elem = *iter;
 			for (int d=0;d<dim;d++){
 				u->multi_indices(elem, d, multInd);
-				aaU[elem][d]=5;
-/*				DoFRef(*u,multInd[0])=7;
-				aaU[elem][d]=DoFRef(*u,multInd[0]);*/
+				aaU[elem][d]=DoFRef(*u,multInd[0]);
 			}
 		}
 	}
