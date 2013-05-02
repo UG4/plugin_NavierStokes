@@ -249,7 +249,7 @@ protected:
 						if(BlockNorm(c.dValue) > dmax * m_eps){
 							
 							size_t kitType;
-							if ((*A)((*k_it).iIndex,(*k_it).iIndex)!=0) kitType=velocity; else kitType=pressure; 
+							if ((*A)(k_it.index(),k_it.index())!=0) kitType=velocity; else kitType=pressure;
 						
 						if ((itype==velocity)&&(kitType==velocity)){
 							if(BlockNorm(c.dValue) > dmax * m_eps_vv)
@@ -299,7 +299,7 @@ protected:
 						typename matrix_type::connection c(k_it.index(),-k_it.value()*d);
 						if(BlockNorm(c.dValue) > dmax * m_eps){
 							size_t kitType;
-							if ((*A)((*k_it).iIndex,(*k_it).iIndex)!=0) kitType=velocity; else kitType=pressure; 
+							if ((*A)(k_it.index(),k_it.index())!=0) kitType=velocity; else kitType=pressure;
 							if ((itype==velocity)&&(kitType==velocity)){
 								if(BlockNorm(c.dValue) > dmax * m_eps_vv)
 								{
