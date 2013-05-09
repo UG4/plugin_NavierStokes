@@ -157,8 +157,8 @@ protected:
 		//	Prepare Inverse Matrix
 		matrix_type* A = &mat;
 		typedef typename matrix_type::connection connection;
-		m_L.resize(A->num_rows(), A->num_cols());
-		m_U.resize(A->num_rows(), A->num_cols());
+		m_L.resize_and_clear(A->num_rows(), A->num_cols());
+		m_U.resize_and_clear(A->num_rows(), A->num_cols());
 		
 		// con is the current line of L/U
 		std::vector<typename matrix_type::connection> con;
