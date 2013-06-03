@@ -16,8 +16,6 @@
 
 #include "central_gradient.h"
 
-#include "explicit_convection.h"
-
 #include "lib_disc/function_spaces/grid_function.h"
 
 using namespace std;
@@ -150,11 +148,6 @@ static void DomainAlgebra(Registry& reg, string grp)
 				.add_method("update", &T::update)
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "SeparatedPressureSource", tag);
-	}
-
-	// filter data
-	{
-		reg.add_function("convection", static_cast<void (*)(SmartPtr<function_type>,number)>(&explicitConvection), grp);
 	}
 
 	// CentralGradient
