@@ -13,6 +13,30 @@
 namespace ug{
 namespace NavierStokes{
 
+template <int dim,typename TFVGeom> // ,typename TFVGeom>
+MathVector<dim>
+upwind_vel(const TFVGeom& geo,size_t ip,const LocalVector& u,const MathVector<dim> vIPVel[],MathMatrix<dim,dim> centralGrad[])
+{
+	MathVector<dim> upwindVel,distVec;
+	const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+	size_t base;
+	const number flux = VecDot(scvf.normal(), vIPVel[ip]);
+	if (flux>0)
+		base = scvf.from();
+	else
+		base = scvf.to();
+
+	VecSubtract(distVec, scvf.global_ip(),geo.scv(base).global_ip());
+	for (int d=0;d<dim;d++){
+		number hgrad = 0;
+		for (size_t j=0;j<dim;j++)
+			hgrad+=(centralGrad[base])[d][j]*distVec[j];
+		upwindVel[d] = u(d,base) + hgrad;
+		if (std::abs(upwindVel[d])<1e-20) upwindVel[d]=0;
+	}
+	return upwindVel;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //	Constructor - set default values
 ////////////////////////////////////////////////////////////////////////////////
@@ -46,6 +70,7 @@ void NavierStokesFVCR<TDomain>::init()
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
+	this->register_import(m_imCentralGradient);
 
 	m_imSource.set_rhs_part();
 	m_imDensitySCV.set_mass_part();
@@ -55,6 +80,8 @@ void NavierStokesFVCR<TDomain>::init()
 
 	m_bDefectUpwind = true;
 
+	m_centralGradUpwind = false;
+
 	//	update assemble functions
 	register_all_funcs(false);
 }
@@ -63,8 +90,8 @@ template<typename TDomain>
 void NavierStokesFVCR<TDomain>::
 prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-	if(bNonRegularGrid)
-		UG_THROW("NavierStokes: only regular grid implemented.");
+//	if(bNonRegularGrid)
+//		UG_THROW("NavierStokes: only regular grid implemented.");
 
 //	check number
 	if(vLfeID.size() != dim+1)
@@ -159,6 +186,8 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		                                          geo.num_scv_ips());
 		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
 		                                          geo.num_scv_ips());
+		m_imCentralGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
+				                               geo.num_scv_ips());
 	}
 }
 
@@ -457,6 +486,9 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 				for(int d1 = 0; d1 < dim; ++d1)
 					StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 		}
+		
+		static const size_t max_num_sides = 12;
+		MathMatrix<dim,dim> centralGrad[max_num_sides];
 
 		const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
@@ -524,20 +556,24 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 			if (! m_bStokes) // no convective terms in the Stokes equation
 			{
 				if (m_bDefectUpwind == true){
-				//	find the upwind velocity at ip
+					//	find the upwind velocity at ip
 					MathVector<dim> UpwindVel;
 
-				//	switch PAC
-					UpwindVel = upwind.upwind_vel(ip, u, StdVel);
+					//	switch PAC
+					if (m_centralGradUpwind==true){
+						for (size_t i=0;i<scvf.num_sh();i++) centralGrad[i] = m_imCentralGradient[i];
+						UpwindVel = upwind_vel<dim,TFVGeom>(geo,ip,u,StdVel,centralGrad);
+					} else
+						UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 
-				//	Peclet Blend
+					//	Peclet Blend
 					if(m_bPecletBlend)
 						peclet_blend(UpwindVel, geo, ip, StdVel[ip], m_imKinViscosity[ip]);
 
-				//	compute product of standard velocity and normal
+					//	compute product of standard velocity and normal
 					const number prod = VecProd(StdVel[ip], scvf.normal()) * m_imDensitySCVF[ip];
 
-				//	Add contributions to local velocity components
+					//	Add contributions to local velocity components
 					for(int d1 = 0; d1 < dim; ++d1)
 					{
 						d(d1, scvf.from()) += UpwindVel[d1] * prod;

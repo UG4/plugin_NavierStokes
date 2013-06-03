@@ -14,6 +14,10 @@
 #include "cr_reorder.h"
 #include "cr_ilut.h"
 
+#include "central_gradient.h"
+
+#include "explicit_convection.h"
+
 #include "lib_disc/function_spaces/grid_function.h"
 
 using namespace std;
@@ -147,6 +151,24 @@ static void DomainAlgebra(Registry& reg, string grp)
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "SeparatedPressureSource", tag);
 	}
+
+	// filter data
+	{
+		reg.add_function("convection", static_cast<void (*)(SmartPtr<function_type>,number)>(&explicitConvection), grp);
+	}
+
+	// CentralGradient
+	{
+		string name = string("CentralGradient").append(suffix);
+		typedef CentralGradient<TFct> T;
+		typedef CplUserData<MathMatrix<dim,dim>, dim> TBase;
+		typedef INewtonUpdate TBase2;
+		reg.add_class_<T, TBase,TBase2>(name, grp)
+			.template add_constructor<void (*)(SmartPtr<TFct>)>("Grid function")
+				.add_method("update", &T::update)
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "CentralGradient", tag);
+	}
 }
 
 /**
@@ -211,6 +233,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_upwind))
 			.add_method("set_upwind",  static_cast<void (T::*)(const std::string&)>(&T::set_upwind))
 			.add_method("set_defect_upwind", &T::set_defect_upwind)
+			.add_method("set_central_grad", &T::set_central_grad)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFVCR", tag);
 	}

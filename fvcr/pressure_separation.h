@@ -306,7 +306,7 @@ class SeparatedPressureSource
 				m_pOld[elem]+=DoFRef(*m_u,multInd[0]);
 			}
 		}
-		// compute pressure by averaging
+		// compute pressure in vertices by averaging
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 			ElemIterator iter = m_u->template begin<elem_type>(si);
 			ElemIterator iterEnd = m_u->template end<elem_type>(si);

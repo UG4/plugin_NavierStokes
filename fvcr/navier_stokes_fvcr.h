@@ -52,7 +52,7 @@ class NavierStokesFVCR
 		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user);
 
 	///	returns kinematic viscosity
-		SmartPtr<CplUserData<number, dim> > kinematic_viscosity() {return m_imKinViscosity.user_data ();}
+		SmartPtr<CplUserData<number, dim> > kinematic_viscosity() {return m_imKinViscosity.user_data (); }
 
 	///	sets the density
 		void set_density(SmartPtr<CplUserData<number, dim> > user);
@@ -62,6 +62,12 @@ class NavierStokesFVCR
 
 	///	sets the source function
 		void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user);
+
+	/// set central gradient user data
+		void set_central_grad(SmartPtr<CplUserData<MathMatrix<dim,dim>, dim> > user){
+			m_imCentralGradient.set_data(user);
+			m_centralGradUpwind = true;
+		}
 
 		void set_defect_upwind(bool defectUpwind) { m_bDefectUpwind = defectUpwind;}
 		bool get_defect_upwind() {return m_bDefectUpwind; }
@@ -104,6 +110,9 @@ class NavierStokesFVCR
 		DataImport<number, dim> m_imDensitySCVF;
 		DataImport<number, dim> m_imDensitySCV;
 
+	/// Data import for central gradient
+		DataImport<MathMatrix<dim,dim>, dim> m_imCentralGradient;
+
 	///	Upwinding for velocity in convective term of momentum equation
 		SmartPtr<INavierStokesUpwind<dim> > m_spConvUpwind;
 
@@ -144,6 +153,7 @@ class NavierStokesFVCR
 		template <typename TElem, typename TFVGeom>
 		void register_func();
 		void register_all_funcs(bool bHang);
+		bool m_centralGradUpwind;
 };
 
 /// @}
