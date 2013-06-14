@@ -401,7 +401,12 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 				,0.27224
 				,0.00831,-0.30719,-0.36737,-0.41496,-0.45863,-0.49099
 				,-0.52987,-0.54302,0.00000};
-
+		// Botella reference data for Re=1000
+		number xLineReferenceValue1000Botella[17]={0.0000000 , -0.1812881 , -0.2023300 , -0.2228955 , -0.3004561 , -0.3885691 , -0.2803696 , -0.1081999 , -0.0620561 , 
+		0.0570178 , 0.1886747 , 0.3372212 , 0.4723329 , 0.5169277 , 0.5808359 , 0.6644227 , 1.0000000
+		};
+		number yLineReferenceValue1000Botella[17]={0.0000000 , 0.2807056 , 0.2962703 , 0.3099097 , 0.3330442 , 0.3769189 , 0.3339924 , 0.3253592 , 0.0257995 ,
+		 -0.3202137 , -0.4264545 , -0.5264392 , -0.4103754 , -0.3553213 , -0.2936869 , -0.2279225 , 0.0000000};
 	switch (Re){
 	case 100:
 		foundRe=true;
@@ -639,6 +644,34 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	}
 	UG_LOG("max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
 	UG_LOG("\n\n");
+	// if Re == 1000 also data from Botella/Peyret paper is available
+	if (Re==1000){
+		copyGhiaNumbers(xLineReferenceValue,xLineReferenceValue1000Botella);
+		copyGhiaNumbers(yLineReferenceValue,yLineReferenceValue1000Botella);
+		UG_LOG("Comparison with Botella/Peyret data:\n");
+		UG_LOG("\nData evaluation for Re=" << Re << ":\n\n");
+		UG_LOG("u values on line through x=0.5:" << "\n\n");
+		number maxdiff = 0;
+		number diffsum = 0;
+		for (size_t i=0;i<17;i++){
+			number localdiff=std::abs(xLineReferenceValue[i]-xLineValue[i]);
+			UG_LOG("y(" << i+1 << ") = " << yco[i] << "; u(" << i+1 << ") = " << xLineValue[i] << "; u_bot(" << i+1 << ") = " << xLineReferenceValue[i] << "; ubdiff(" << i+1 << ") = " << localdiff << ";\n");
+			if (localdiff>maxdiff) maxdiff = localdiff;
+			diffsum += localdiff;
+		}
+		UG_LOG("max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
+		UG_LOG("\n\nv values on line through y=0.5:" << "\n\n");
+		maxdiff = 0;
+		diffsum = 0;
+		for (size_t i=0;i<17;i++){
+			number localdiff=std::abs(yLineReferenceValue[i]-yLineValue[i]);
+			UG_LOG("x(" << i+1 << ") = " << xco[i] << "; v(" << i+1 << ") = " << yLineValue[i] << "; v_bot(" << i+1 << ") = " << yLineReferenceValue[i] << "; vbdiff(" << i+1 << ") = " << std::abs(yLineReferenceValue[i]-yLineValue[i]) << ";\n");
+			if (localdiff>maxdiff) maxdiff = localdiff;
+			diffsum += localdiff;
+		}
+		UG_LOG("max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
+		UG_LOG("\n\n");
+	}
 }
 
 /*

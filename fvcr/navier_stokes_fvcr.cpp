@@ -71,6 +71,7 @@ void NavierStokesFVCR<TDomain>::init()
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
 	this->register_import(m_imCentralGradient);
+	this->register_import(m_imPressureGradient);
 
 	m_imSource.set_rhs_part();
 	m_imDensitySCV.set_mass_part();
@@ -81,6 +82,8 @@ void NavierStokesFVCR<TDomain>::init()
 	m_bDefectUpwind = true;
 
 	m_centralGradUpwind = false;
+
+	m_pressureGradient = false;
 
 	//	update assemble functions
 	register_all_funcs(false);
@@ -188,6 +191,8 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		                                          geo.num_scv_ips());
 		m_imCentralGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
 				                               geo.num_scv_ips());
+		m_imPressureGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
+				 geo.num_scv_ips());
 	}
 }
 
@@ -228,6 +233,10 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 		                                          geo.num_scv_ips());
 		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
 		                                          geo.num_scv_ips());
+		m_imCentralGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
+						                               geo.num_scv_ips());
+		m_imPressureGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
+				 	 	 	 	 	 	 	 	 	 	 geo.num_scv_ips());
 	}
 
 //	set global positions for imports
@@ -235,6 +244,8 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 	m_imDensitySCVF.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
 	m_imDensitySCV.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 	m_imSource.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
+	m_imCentralGradient.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
+	m_imPressureGradient.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 }
 
 template<typename TDomain>
@@ -593,7 +604,19 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 			////////////////////////////////////////////////////
 			// Pressure Term (Momentum Equation)
 			////////////////////////////////////////////////////
-			number pressure = u(_P_, 0);
+			number pressure;
+			if (m_pressureGradient==false)
+				pressure = u(_P_, 0);
+			else {
+				MathVector<dim> distVec;
+				MathVector<dim> pGrad;
+				pGrad = m_imPressureGradient[0];
+				VecSubtract(distVec,scvf.global_ip(),geo.global_bary());
+				number hgrad = 0;
+				for (int j=0;j<dim;j++)
+					hgrad+=pGrad[j]*distVec[j];
+				pressure = u(_P_, 0) + hgrad;
+			}
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				d(d1, scvf.from()) += pressure * scvf.normal()[d1];

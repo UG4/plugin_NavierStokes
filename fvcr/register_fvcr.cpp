@@ -5,6 +5,8 @@
 #include "navier_stokes_fvcr.h"
 
 #include "pressure_separation.h"
+#include "pressure_gradient.h"
+
 #include "turbulent_viscosity_fvcr.h"
 
 #include "bnd/inflow_fvcr.h"
@@ -150,6 +152,19 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "SeparatedPressureSource", tag);
 	}
 
+	// PressureGradient
+	{
+		string name = string("PressureGradient").append(suffix);
+		typedef PressureGradient<TFct> T;
+		typedef CplUserData<MathVector<dim>, dim> TBase;
+		typedef INewtonUpdate TBase2;
+		reg.add_class_<T, TBase,TBase2>(name, grp)
+			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
+			.add_method("update", &T::update)
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "PressureGradient", tag);
+	}
+
 	// CentralGradient
 	{
 		string name = string("CentralGradient").append(suffix);
@@ -158,7 +173,19 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef INewtonUpdate TBase2;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<TFct>)>("Grid function")
-				.add_method("update", &T::update)
+				.add_method("set_source", static_cast<void (T::*)(SmartPtr<CplUserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
+				.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
+				.add_method("set_source", static_cast<void (T::*)(number,number)>(&T::set_source), "", "F_x, F_y")
+				.add_method("set_source", static_cast<void (T::*)(number,number,number)>(&T::set_source), "", "F_x, F_y, F_z")
+			#ifdef UG_FOR_LUA
+				.add_method("set_source", static_cast<void (T::*)(const char*)>(&T::set_source), "", "Source Vector")
+			#endif		
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+		#ifdef UG_FOR_LUA
+			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(const char*)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
+		#endif
+			.add_method("update", &T::update)
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CentralGradient", tag);
 	}
@@ -227,6 +254,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_upwind",  static_cast<void (T::*)(const std::string&)>(&T::set_upwind))
 			.add_method("set_defect_upwind", &T::set_defect_upwind)
 			.add_method("set_central_grad", &T::set_central_grad)
+			.add_method("set_pressure_grad", &T::set_pressure_grad)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFVCR", tag);
 	}

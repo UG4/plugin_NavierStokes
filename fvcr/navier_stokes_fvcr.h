@@ -69,6 +69,12 @@ class NavierStokesFVCR
 			m_centralGradUpwind = true;
 		}
 
+	/// set central gradient user data
+		void set_pressure_grad(SmartPtr<CplUserData<MathVector<dim>, dim> > user){
+			m_imPressureGradient.set_data(user);
+			m_pressureGradient = true;
+		}
+
 		void set_defect_upwind(bool defectUpwind) { m_bDefectUpwind = defectUpwind;}
 		bool get_defect_upwind() {return m_bDefectUpwind; }
 
@@ -113,6 +119,9 @@ class NavierStokesFVCR
 	/// Data import for central gradient
 		DataImport<MathMatrix<dim,dim>, dim> m_imCentralGradient;
 
+	/// Data import for central gradient
+		DataImport<MathVector<dim>, dim> m_imPressureGradient;
+
 	///	Upwinding for velocity in convective term of momentum equation
 		SmartPtr<INavierStokesUpwind<dim> > m_spConvUpwind;
 
@@ -154,6 +163,7 @@ class NavierStokesFVCR
 		void register_func();
 		void register_all_funcs(bool bHang);
 		bool m_centralGradUpwind;
+		bool m_pressureGradient;
 };
 
 /// @}
