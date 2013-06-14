@@ -188,7 +188,7 @@ class CentralGradient
 		    			size_t vlength=(size_t)round(0.5*(ord+1)*(ord+2));
 						//UG_LOG("vlength=" << vlength << "\n");
 						//UG_LOG("ord=" << ord << "\n");
-		    			size_t nrOfInterPoints = round(vlength*nodefactor);
+		    			size_t nrOfInterPoints = (size_t)round(vlength*nodefactor);
 						if (nrOfInterPoints>nOfPoints){
 							//UG_LOG("not enough points for desired order. reduce order\n");
 							ord--;
