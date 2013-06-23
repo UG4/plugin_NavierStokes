@@ -364,7 +364,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  	// 	get linear trial space
  		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
  		const LocalShapeFunctionSet<refDim>& TrialSpace =
- 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+ 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
  	// 	get Reference Element
  		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
@@ -435,7 +435,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
  	// 	get linear trial space
  		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
  		const LocalShapeFunctionSet<refDim>& TrialSpace =
- 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, 1));
+ 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
  	// 	get Reference Element
  		typedef typename FV1Geometry<TElem, dim>::ref_elem_type ref_elem_type;
@@ -503,7 +503,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  	// 	get linear trial space
  		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
  		const LocalShapeFunctionSet<refDim>& TrialSpace =
- 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+ 				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
  	// 	get Reference Element
  		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;

@@ -148,7 +148,7 @@ void elementFilterFVCR(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -291,7 +291,7 @@ void scvFilterFVCR(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -445,7 +445,7 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -581,7 +581,7 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -674,9 +674,9 @@ void filter(SmartPtr<TGridFunction> u,const std::string& name){
 	if (n=="elem") filter=ELEM_FILTER;
 	if (n=="scv") filter=SCV_FILTER;
 
-	if (u->local_finite_element_id(0) == LFEID(LFEID::CROUZEIX_RAVIART, 1))
+	if (u->local_finite_element_id(0) == LFEID(LFEID::CROUZEIX_RAVIART, dim, 1))
 		disc=FVCR; else
-	if  (u->local_finite_element_id(0) == LFEID(LFEID::LAGRANGE,1))
+	if  (u->local_finite_element_id(0) == LFEID(LFEID::LAGRANGE, dim, 1))
 		disc=FV1; else
 	UG_THROW("Unsupported local finite element type in filter command.");
 

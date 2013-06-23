@@ -64,12 +64,12 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 
 	SetAttachmentValues(m_acVolume,grid.template begin<side_type>(), grid.template end<side_type>(), 0);
 
-	if (vort.local_finite_element_id(0) != LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+	if (vort.local_finite_element_id(0) != LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
 				UG_THROW("Component " << 0 << " in approximation space of parameter 1 must be of Crouzeix-Raviart type.");
 	}
 
 	for (int d=0;d<dim;d++){
-		if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+		if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
 			UG_THROW("Component " << d << " in approximation space of parameter 2 must be of Crouzeix-Raviart type.");
 		}
 	}
@@ -209,12 +209,12 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 
 	SetAttachmentValues(m_acVolume,grid.template begin<VertexBase>(), grid.template end<VertexBase>(), 0);
 
-	if (vort.local_finite_element_id(0) != LFEID(LFEID::LAGRANGE, 1)){
+	if (vort.local_finite_element_id(0) != LFEID(LFEID::LAGRANGE, dim, 1)){
 				UG_THROW("Component " << 0 << " in approximation space of parameter 1 must be of Crouzeix-Raviart type.");
 	}
 
 	for (int d=0;d<dim;d++){
-		if (u.local_finite_element_id(d) != LFEID(LFEID::LAGRANGE, 1)){
+		if (u.local_finite_element_id(d) != LFEID(LFEID::LAGRANGE, dim, 1)){
 			UG_THROW("Component " << d << " in approximation space of parameter 2 must be of Crouzeix-Raviart type.");
 		}
 	}
@@ -305,10 +305,10 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 
 template <typename TGridFunction>
 void vorticity(TGridFunction& vort,TGridFunction& u){
-	if (vort.local_finite_element_id(0) == LFEID(LFEID::LAGRANGE, 1)){
+	if (vort.local_finite_element_id(0) == LFEID(LFEID::LAGRANGE, TGridFunction::dim, 1)){
 		vorticityFV1<TGridFunction>(vort,u);
 	} else
-		if (vort.local_finite_element_id(0) == LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+		if (vort.local_finite_element_id(0) == LFEID(LFEID::CROUZEIX_RAVIART, TGridFunction::dim, 1)){
 			vorticityFVCR<TGridFunction>(vort,u);
 		} else {
 			UG_LOG("Function type " << vort.local_finite_element_id(0) << " not supported in vorticity computation.");
@@ -1204,7 +1204,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -1325,7 +1325,7 @@ void kineticEnergy(TGridFunction& u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);

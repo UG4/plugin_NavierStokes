@@ -305,7 +305,7 @@ class FV1SmagorinskyTurbViscData
 		//	get trial space
 			try{
 			const LocalShapeFunctionSet<refDim>& rTrialSpace =
-					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, 1));
+					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, refDim, 1));
 
 		//	memory for shapes
 			std::vector<number> vShape;
@@ -539,7 +539,7 @@ class FV1DynamicTurbViscData
 			//	get trial space
 			try{
 				const LocalShapeFunctionSet<refDim>& rTrialSpace =
-				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, 1));
+				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, refDim, 1));
 
 				//	memory for shapes
 				std::vector<number> vShape;

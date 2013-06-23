@@ -29,7 +29,7 @@ prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 
 //	check that Lagrange 1st order
 	for(size_t i = 0; i < vLfeID.size(); ++i)
-		if(vLfeID[i] != LFEID(LFEID::LAGRANGE, 1))
+		if(vLfeID[i] != LFEID(LFEID::LAGRANGE, dim, 1))
 			UG_THROW("NavierStokesSymBCFV1: only first order Lagrange supported.");
 }
 /**

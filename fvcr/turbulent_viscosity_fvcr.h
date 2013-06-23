@@ -309,7 +309,7 @@ class CRSmagorinskyTurbViscData
 		//	get trial space
 		try{
 			const LocalShapeFunctionSet<refDim>& rTrialSpace =
-					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, refDim, 1));
 
 			//	memory for shapes
 			std::vector<number> vShape;
@@ -555,7 +555,7 @@ class CRDynamicTurbViscData
 		//	get trial space
 		try{
 			const LocalShapeFunctionSet<refDim>& rTrialSpace =
-					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, 1));
+					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, refDim, 1));
 
 			//	memory for shapes
 			std::vector<number> vShape;

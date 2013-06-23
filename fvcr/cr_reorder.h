@@ -163,11 +163,11 @@ void CROrderCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 			}
 		}
 		for (int d=0;d<dim;d++){
-			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
 				UG_THROW("Component " << d << " in approximation space must be of Crouzeix-Raviart type.");
 			}
 		}
-		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT,0)){
+		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, dim, 0)){
 			UG_THROW("Component dim in approximation space must be of piecewise constant type.");
 		}
 	}
@@ -217,11 +217,11 @@ void CROrderSloan(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 			}
 		}
 		for (int d=0;d<dim;d++){
-			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
 				UG_THROW("Component " << d << " in approximation space must be of Crouzeix-Raviart type.");
 			}
 		}
-		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT,0)){
+		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, dim, 0)){
 			UG_THROW("Component dim in approximation space must be of piecewise constant type.");
 		}
 	}
@@ -271,11 +271,11 @@ void CROrderKing(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 			}
 		}
 		for (int d=0;d<dim;d++){
-			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
 				UG_THROW("Component " << d << " in approximation space must be of Crouzeix-Raviart type.");
 			}
 		}
-		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT,0)){
+		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, dim, 0)){
 			UG_THROW("Component dim in approximation space must be of piecewise constant type.");
 		}
 	}
@@ -325,11 +325,11 @@ void CROrderMinimumDegree(ApproximationSpace<TDomain>& approxSpace,TGridFunction
 			}
 		}
 		for (int d=0;d<dim;d++){
-			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
 				UG_THROW("Component " << d << " in approximation space must be of Crouzeix-Raviart type.");
 			}
 		}
-		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT,0)){
+		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, dim, 0)){
 			UG_THROW("Component dim in approximation space must be of piecewise constant type.");
 		}
 	}
@@ -379,11 +379,11 @@ void OrderCRCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 			}
 		}
 		for (int d=0;d<dim;d++){
-			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, 1)){
+			if (u.local_finite_element_id(d) != LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
 				UG_THROW("Component " << d << " in approximation space must be of Crouzeix-Raviart type.");
 			}
 		}
-		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT,0)){
+		if (u.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, dim, 0)){
 			UG_THROW("Component dim in approximation space must be of piecewise constant type.");
 		}
 	}

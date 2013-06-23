@@ -418,7 +418,7 @@ class SeparatedPressureSource
 
 		// Lagrange 1 trial space
 		const LocalShapeFunctionSet<dim>& lagrange1 =
-				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
+				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 		std::vector<number> shapes;
 
