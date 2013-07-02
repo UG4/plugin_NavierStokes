@@ -668,7 +668,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 
 							//	get trial space
 							const LocalShapeFunctionSet<dim>& rTrialSpace =
-								LocalShapeFunctionSetProvider::get<dim>(roid, m_id);
+								LocalFiniteElementProvider::get<dim>(roid, m_id);
 
 							//	number of dofs on element
 							const size_t num_sh = rTrialSpace.num_sh();
@@ -716,7 +716,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 
 							//	get trial space
 							const LocalShapeFunctionSet<dim>& rTrialSpace =
-								LocalShapeFunctionSetProvider::get<dim>(roid, m_id);
+								LocalFiniteElementProvider::get<dim>(roid, m_id);
 
 							//	number of dofs on element
 							const size_t num_sh = rTrialSpace.num_sh();
@@ -997,7 +997,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 
 							//	get trial space
 							const LocalShapeFunctionSet<dim>& rTrialSpace =
-								LocalShapeFunctionSetProvider::get<dim>(roid, m_id);
+								LocalFiniteElementProvider::get<dim>(roid, m_id);
 
 							//	number of dofs on element
 							const size_t num_sh = rTrialSpace.num_sh();
@@ -1045,7 +1045,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 
 							//	get trial space
 							const LocalShapeFunctionSet<dim>& rTrialSpace =
-								LocalShapeFunctionSetProvider::get<dim>(roid, m_id);
+								LocalFiniteElementProvider::get<dim>(roid, m_id);
 
 							//	number of dofs on element
 							const size_t num_sh = rTrialSpace.num_sh();
@@ -1204,7 +1204,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -1325,7 +1325,7 @@ void kineticEnergy(TGridFunction& u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);

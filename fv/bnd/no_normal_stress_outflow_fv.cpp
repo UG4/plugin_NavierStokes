@@ -181,7 +181,7 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 	}
 
 	const LocalShapeFunctionSet<dim>& rVTrialSpace =
-		LocalShapeFunctionSetProvider::get<dim>(elem->reference_object_id(),m_vLFEID);
+		LocalFiniteElementProvider::get<dim>(elem->reference_object_id(),m_vLFEID);
 	m_vvVShape.resize(m_vLocIPp.size());
 	for(size_t ip = 0; ip < m_vvVShape.size(); ++ip){
 		m_vvVShape[ip].resize(rVTrialSpace.num_sh());

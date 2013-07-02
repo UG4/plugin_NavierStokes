@@ -13,7 +13,7 @@
 #include "lib_disc/common/subset_group.h"
 #include "lib_disc/common/function_group.h"
 #include "lib_disc/common/groups_util.h"
-#include "lib_disc/local_finite_element/local_shape_function_set.h"
+#include "lib_disc/local_finite_element/local_finite_element_provider.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
 #include "lib_disc/spatial_disc/user_data/const_user_data.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton_update_interface.h"
@@ -305,7 +305,7 @@ class FV1SmagorinskyTurbViscData
 		//	get trial space
 			try{
 			const LocalShapeFunctionSet<refDim>& rTrialSpace =
-					LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, refDim, 1));
+					LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, refDim, 1));
 
 		//	memory for shapes
 			std::vector<number> vShape;
@@ -539,7 +539,7 @@ class FV1DynamicTurbViscData
 			//	get trial space
 			try{
 				const LocalShapeFunctionSet<refDim>& rTrialSpace =
-				LocalShapeFunctionSetProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, refDim, 1));
+				LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, refDim, 1));
 
 				//	memory for shapes
 				std::vector<number> vShape;

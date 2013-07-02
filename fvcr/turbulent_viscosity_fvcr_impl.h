@@ -107,7 +107,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -213,7 +213,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -325,7 +325,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -436,7 +436,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);

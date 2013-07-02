@@ -13,7 +13,7 @@
 #include "lib_disc/common/subset_group.h"
 #include "lib_disc/common/function_group.h"
 #include "lib_disc/common/groups_util.h"
-#include "lib_disc/local_finite_element/local_shape_function_set.h"
+#include "lib_disc/local_finite_element/local_finite_element_provider.h"
 #include "lib_disc/spatial_disc/user_data/user_data.h"
 #include "lib_disc/spatial_disc/user_data/const_user_data.h"
 #include "lib_disc/operator/non_linear_operator/newton_solver/newton_update_interface.h"
@@ -418,7 +418,7 @@ class SeparatedPressureSource
 
 		// Lagrange 1 trial space
 		const LocalShapeFunctionSet<dim>& lagrange1 =
-				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
+				LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 		std::vector<number> shapes;
 
@@ -745,7 +745,7 @@ class SeparatedPressureSourceInter
 
 		// Lagrange 1 trial space
 		const LocalShapeFunctionSet<dim>& lagrange1 =
-				LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
+				LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
 
 		std::vector<number> shapes;
 

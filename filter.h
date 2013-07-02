@@ -15,7 +15,7 @@
 #include "common/profiler/profiler.h"
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
-#include "lib_disc/local_finite_element/local_shape_function_set.h"
+#include "lib_disc/local_finite_element/local_finite_element_provider.h"
 #include "lib_grid/algorithms/attachment_util.h"
 
 namespace ug{
@@ -148,7 +148,7 @@ void elementFilterFVCR(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -291,7 +291,7 @@ void scvFilterFVCR(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -445,7 +445,7 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -581,7 +581,7 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalShapeFunctionSetProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
