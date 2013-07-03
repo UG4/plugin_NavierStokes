@@ -129,14 +129,6 @@ class CRNavierStokesSymBC
 	private:
 		void register_all_funcs(bool bHang);
 
-		template <template <class Elem, int WorldDim> class TFVGeom>
-		struct RegisterCR {
-				RegisterCR(this_type* pThis) : m_pThis(pThis){}
-				this_type* m_pThis;
-				template< typename TElem > void operator()(TElem&)
-				{m_pThis->register_func<TElem, TFVGeom>();}
-		};
-
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 		void register_func();
 };

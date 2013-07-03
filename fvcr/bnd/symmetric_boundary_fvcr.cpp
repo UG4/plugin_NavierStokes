@@ -370,21 +370,61 @@ CRNavierStokesSymBC(SmartPtr< NavierStokesBase<TDomain> > spMaster)
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
-// register for 1D
-template<typename TDomain>
-void
-CRNavierStokesSymBC<TDomain>::
+#ifdef UG_DIM_1
+template<>
+void CRNavierStokesSymBC<Domain1d>::
 register_all_funcs(bool bHang)
 {
-//	get all grid element types in this dimension and below
-	typedef typename domain_traits<dim>::DimElemList ElemList;
-	// REMARK: Note that we register this boundary condition only
-	// for the full-dimensional elements (DimElemList instead of AllElemList).
-
 //	switch assemble functions
-	if(!bHang) boost::mpl::for_each<ElemList>( RegisterCR<CRFVGeometry>(this) );
-	else UG_THROW("Not implemented.");
+	if(!bHang)
+	{
+		UG_THROW("Crouxeiz-Raviart only senseful in dimension >= 2");
+	}
+	else
+	{
+		UG_THROW("CRNavierStokesSymBC: Hanging Nodes not implemented.")
+	}
 }
+#endif
+
+#ifdef UG_DIM_2
+template<>
+void CRNavierStokesSymBC<Domain2d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Triangle, CRFVGeometry >();
+		register_func<Quadrilateral, CRFVGeometry >();
+	}
+	else
+	{
+		UG_THROW("CRNavierStokesSymBC: Hanging Nodes not implemented.")
+	}
+}
+#endif
+
+#ifdef UG_DIM_3
+template<>
+void CRNavierStokesSymBC<Domain3d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Tetrahedron, CRFVGeometry >();
+		register_func<Prism, CRFVGeometry>();
+		register_func<Pyramid, CRFVGeometry >();
+		register_func<Hexahedron, CRFVGeometry >();
+	}
+	else
+	{
+		UG_THROW("CRNavierStokesSymBC: Hanging Nodes not implemented.")
+	}
+}
+#endif
+
 
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
