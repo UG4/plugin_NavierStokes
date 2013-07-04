@@ -124,10 +124,10 @@ void extractPGraph(TGraph& G,std::vector<std::vector<size_t> >& vvConnection,siz
 template <class TGraph>
 void extractVGraph(TGraph& G,std::vector<std::vector<size_t> >& vvConnection,size_t pmin,size_t dim,bool directed){
 	for (size_t i=0;i<pmin;i=i+dim){
-		size_t ind1 = round((number)i/dim);
+		size_t ind1 = (size_t)round((number)i/dim);
 		size_t s = vvConnection[i].size();
 		for (size_t j=0;j<s-1;j=j+2){
-			size_t ind2 = round((number)vvConnection[i][j]/dim);
+			size_t ind2 = (size_t)round((number)vvConnection[i][j]/dim);
 			if (dim*ind2>=pmin) break;
 			if (ind1==ind2) continue;
 			boost::add_edge(ind1,ind2,G);
