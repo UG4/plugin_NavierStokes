@@ -118,7 +118,7 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 		{
 		};
 
-	///	sets threshold for incomplete LU factorisation (added 01122010ih)
+	///	sets threshold for incomplete LU factorisation
 	void set_threshold(number threshvv,number threshvp,number threshpv,number threshpp)
 	{
 		m_eps_vv = threshvv;
@@ -128,6 +128,16 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 		m_eps = std::min(std::min(m_eps_vv,m_eps_vp),std::min(m_eps_pv,m_eps_pp));
 	}
 	
+	///	sets threshold for incomplete LU factorisation
+	void set_threshold(number threshvv,number thresh_vp_pv_pp)
+	{
+		m_eps_vv = threshvv;
+		m_eps_vp = thresh_vp_pv_pp;
+		m_eps_pv = thresh_vp_pv_pp;
+		m_eps_pp = thresh_vp_pv_pp;
+		m_eps = std::min(std::min(m_eps_vv,m_eps_vp));
+	}
+
 	void set_threshold(number thresh)
 	{
 		m_eps_vv = thresh;
