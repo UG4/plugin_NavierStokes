@@ -214,7 +214,11 @@ static void Algebra(Registry& reg, string grp)
 		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
 		.add_constructor()
 		.template add_constructor<void (*)(number)>("threshold parameter")
+		.template add_constructor<void (*)(number,number)>("threshold parameters")
 		.template add_constructor<void (*)(number,number,number,number)>("threshold parameters")
+		.template add_constructor<void (*)(number,bool)>("threshold parameter,storage info output")
+		.template add_constructor<void (*)(number,number,bool)>("threshold vv,threshold vp/pv/pp,storage info output")
+		.template add_constructor<void (*)(number,number,number,number,bool)>("threshold vv,vp,pv,pp,storage info output")
 		.add_method("set_threshold",static_cast<void (T::*)(number,number,number,number)>(&T::set_threshold),
 					"", "threshold", "sets threshold of incomplete LU factorisation")
 		.add_method("set_threshold",static_cast<void (T::*)(number,number)>(&T::set_threshold),

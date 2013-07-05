@@ -91,15 +91,34 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 			m_info = false;
 		};
 
+		CRILUTPreconditioner(number threshvv,number thresh_vp_pv_pp)
+		{
+			set_threshold(threshvv,thresh_vp_pv_pp);
+			m_info = false;
+		}
+
 		CRILUTPreconditioner(number threshvv,number threshvp,number threshpv,number threshpp)
 		{
-			m_eps_vv = threshvv;
-			m_eps_vp = threshvp;
-			m_eps_pv = threshpv;
-			m_eps_pp = threshpp;
-			m_eps = std::min(std::min(m_eps_vv,m_eps_vp),std::min(m_eps_pv,m_eps_pp));
+			set_threshold(threshvv,threshvp,threshpv,threshpp);
 			m_info = false;
 		};
+
+		CRILUTPreconditioner(double eps,bool info) :
+		m_eps(eps), m_eps_vv(eps), m_eps_vp(eps), m_eps_pv(eps), m_eps_pp(eps), m_info(info)
+		{
+		}
+
+		CRILUTPreconditioner(number threshvv,number thresh_vp_pv_pp,bool info)
+		{
+			set_threshold(threshvv,thresh_vp_pv_pp);
+			m_info = info;
+		}
+
+		CRILUTPreconditioner(number threshvv,number threshvp,number threshpv,number threshpp,bool info)
+		{
+			set_threshold(threshvv,threshvp,threshpv,threshpp);
+			m_info = info;
+		}
 
 	// 	Clone
 	
@@ -135,7 +154,7 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 		m_eps_vp = thresh_vp_pv_pp;
 		m_eps_pv = thresh_vp_pv_pp;
 		m_eps_pp = thresh_vp_pv_pp;
-		m_eps = std::min(std::min(m_eps_vv,m_eps_vp));
+		m_eps = std::min(m_eps_vv,m_eps_vp);
 	}
 
 	void set_threshold(number thresh)
