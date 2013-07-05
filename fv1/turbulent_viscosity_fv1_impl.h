@@ -310,7 +310,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(Peri
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
@@ -412,7 +412,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 
 			//	get trial space
 			const LocalShapeFunctionSet<dim>& rTrialSpace =
-			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, 1));
+					LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
 			//	get Reference Mapping
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
