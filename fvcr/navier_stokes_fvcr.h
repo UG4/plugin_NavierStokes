@@ -63,18 +63,6 @@ class NavierStokesFVCR
 	///	sets the source function
 		void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user);
 
-	/// set central gradient user data
-		void set_central_grad(SmartPtr<CplUserData<MathMatrix<dim,dim>, dim> > user){
-			m_imCentralGradient.set_data(user);
-			m_centralGradUpwind = true;
-		}
-
-	/// set central gradient user data
-		void set_pressure_grad(SmartPtr<CplUserData<MathVector<dim>, dim> > user){
-			m_imPressureGradient.set_data(user);
-			m_pressureGradient = true;
-		}
-
 		void set_defect_upwind(bool defectUpwind) { m_bDefectUpwind = defectUpwind;}
 		bool get_defect_upwind() {return m_bDefectUpwind; }
 
@@ -162,8 +150,6 @@ class NavierStokesFVCR
 		template <typename TElem, typename TFVGeom>
 		void register_func();
 		void register_all_funcs(bool bHang);
-		bool m_centralGradUpwind;
-		bool m_pressureGradient;
 };
 
 /// @}

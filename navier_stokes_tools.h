@@ -1082,7 +1082,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 		if (localdiff>maxdiff) maxdiff = localdiff;
 		diffsum += localdiff;
 	}
-	UG_LOG("max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
+	UG_LOG("u max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
 	UG_LOG("\n\nv values on line through y=0.5:" << "\n\n");
 	maxdiff = 0;
 	diffsum = 0;
@@ -1092,7 +1092,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 		if (localdiff>maxdiff) maxdiff = localdiff;
 		diffsum += localdiff;
 	}
-	UG_LOG("max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
+	UG_LOG("v max difference: " << maxdiff << "\naverage difference: " << (number)diffsum/17.0);
 	UG_LOG("\n\n");
 	// if Re == 1000 also data from Botella/Peyret paper is available
 	if (Re==1000){
@@ -1109,7 +1109,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 			if (localdiff>maxdiff) maxdiff = localdiff;
 			diffsum += localdiff;
 		}
-		UG_LOG("v max difference: " << maxdiff << "\nv average difference: " << (number)diffsum/17.0);
+		UG_LOG("u max difference: " << maxdiff << "\nv average difference: " << (number)diffsum/17.0);
 		UG_LOG("\n\nv values on line through y=0.5:" << "\n\n");
 		maxdiff = 0;
 		diffsum = 0;
@@ -1119,7 +1119,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 			if (localdiff>maxdiff) maxdiff = localdiff;
 			diffsum += localdiff;
 		}
-		UG_LOG("u max difference: " << maxdiff << "\nu average difference: " << (number)diffsum/17.0);
+		UG_LOG("v max difference: " << maxdiff << "\nu average difference: " << (number)diffsum/17.0);
 		UG_LOG("\n\n");
 	}
 	// check for Erturk data

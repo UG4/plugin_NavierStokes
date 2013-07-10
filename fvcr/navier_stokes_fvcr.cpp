@@ -13,30 +13,6 @@
 namespace ug{
 namespace NavierStokes{
 
-template <int dim,typename TFVGeom> // ,typename TFVGeom>
-MathVector<dim>
-upwind_vel(const TFVGeom& geo,size_t ip,const LocalVector& u,const MathVector<dim> vIPVel[],MathMatrix<dim,dim> centralGrad[])
-{
-	MathVector<dim> upwindVel,distVec;
-	const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-	size_t base;
-	const number flux = VecDot(scvf.normal(), vIPVel[ip]);
-	if (flux>0)
-		base = scvf.from();
-	else
-		base = scvf.to();
-
-	VecSubtract(distVec, scvf.global_ip(),geo.scv(base).global_ip());
-	for (int d=0;d<dim;d++){
-		number hgrad = 0;
-		for (size_t j=0;j<dim;j++)
-			hgrad+=(centralGrad[base])[d][j]*distVec[j];
-		upwindVel[d] = u(d,base) + hgrad;
-		if (std::abs(upwindVel[d])<1e-20) upwindVel[d]=0;
-	}
-	return upwindVel;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 //	Constructor - set default values
 ////////////////////////////////////////////////////////////////////////////////
@@ -70,8 +46,6 @@ void NavierStokesFVCR<TDomain>::init()
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
-	this->register_import(m_imCentralGradient);
-	this->register_import(m_imPressureGradient);
 
 	m_imSource.set_rhs_part();
 	m_imDensitySCV.set_mass_part();
@@ -80,10 +54,6 @@ void NavierStokesFVCR<TDomain>::init()
 	base_type::set_density(1.0);
 
 	m_bDefectUpwind = true;
-
-	m_centralGradUpwind = false;
-
-	m_pressureGradient = false;
 
 	//	update assemble functions
 	register_all_funcs(false);
@@ -189,10 +159,6 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		                                          geo.num_scv_ips());
 		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
 		                                          geo.num_scv_ips());
-		m_imCentralGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
-				                               geo.num_scv_ips());
-		m_imPressureGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
-				 geo.num_scv_ips());
 	}
 }
 
@@ -233,10 +199,6 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 		                                          geo.num_scv_ips());
 		m_imSource.template set_local_ips<refDim>(geo.scv_local_ips(),
 		                                          geo.num_scv_ips());
-		m_imCentralGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
-						                               geo.num_scv_ips());
-		m_imPressureGradient.template set_local_ips<refDim>(geo.scv_local_ips(),
-				 	 	 	 	 	 	 	 	 	 	 geo.num_scv_ips());
 	}
 
 //	set global positions for imports
@@ -244,8 +206,6 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 	m_imDensitySCVF.set_global_ips(geo.scvf_global_ips(), geo.num_scvf_ips());
 	m_imDensitySCV.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 	m_imSource.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
-	m_imCentralGradient.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
-	m_imPressureGradient.set_global_ips(geo.scv_global_ips(), geo.num_scv_ips());
 }
 
 template<typename TDomain>
@@ -415,19 +375,33 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 				//	Add remaining term for exact jacobian
 					if(m_bExactJacobian)
 					{
+						//  full jacobian term without upwind velocity
+						
 						//	loop defect components
 						for(int d1 = 0; d1 < dim; ++d1)
 							for(int d2 = 0; d2 < dim; ++d2)
 							{
 							//	derivatives w.r.t. velocity
-								number prod_vel = w * upwind.upwind_shape_sh(ip,sh)
-													* scvf.normal()[d2] * m_imDensitySCVF[ip];
+								number prod_vel = m_imDensitySCVF[ip] * StdVel[ip][d1]
+													 * scvf.normal()[d2]   * scvf.shape(sh);
 
-								J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
-								J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
+								J(d1, scvf.from(), d2, sh) += prod_vel;
+								J(d1, scvf.to()  , d2, sh) -= prod_vel;
 							}
-
-
+			/*		
+				//  full jacobian term with upwind
+			
+				//	loop defect components
+					for(int d1 = 0; d1 < dim; ++d1)
+						for(int d2 = 0; d2 < dim; ++d2)
+						{
+							//	derivatives w.r.t. velocity
+							number prod_vel = w * upwind.upwind_shape_sh(ip,sh)
+													* scvf.normal()[d2] * m_imDensitySCVF[ip];
+							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
+							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
+						}
+					
 					//	derivative due to peclet blending
 						if(m_bPecletBlend)
 						{
@@ -442,6 +416,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 									J(d1, scvf.to()  , d2, sh) -= convFluxPe;
 								}
 						}
+			*/
 					} // end exact jacobian part
 
 				} // end of if (! m_bStokes) for the convective terms
@@ -498,9 +473,6 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 					StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 		}
 		
-		static const size_t max_num_sides = 12;
-		MathMatrix<dim,dim> centralGrad[max_num_sides];
-
 		const INavierStokesUpwind<dim>& upwind = *m_spConvUpwind;
 
 		if ((! m_bStokes) && (m_bDefectUpwind == true))
@@ -568,14 +540,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 			{
 				if (m_bDefectUpwind == true){
 					//	find the upwind velocity at ip
-					MathVector<dim> UpwindVel;
-
-					//	switch PAC
-					if (m_centralGradUpwind==true){
-						for (size_t i=0;i<scvf.num_sh();i++) centralGrad[i] = m_imCentralGradient[i];
-						UpwindVel = upwind_vel<dim,TFVGeom>(geo,ip,u,StdVel,centralGrad);
-					} else
-						UpwindVel = upwind.upwind_vel(ip, u, StdVel);
+					MathVector<dim> UpwindVel = upwind.upwind_vel(ip, u, StdVel);
 
 					//	Peclet Blend
 					if(m_bPecletBlend)
@@ -604,19 +569,8 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 			////////////////////////////////////////////////////
 			// Pressure Term (Momentum Equation)
 			////////////////////////////////////////////////////
-			number pressure;
-			if (m_pressureGradient==false)
-				pressure = u(_P_, 0);
-			else {
-				MathVector<dim> distVec;
-				MathVector<dim> pGrad;
-				pGrad = m_imPressureGradient[0];
-				VecSubtract(distVec,scvf.global_ip(),geo.global_bary());
-				number hgrad = 0;
-				for (int j=0;j<dim;j++)
-					hgrad+=pGrad[j]*distVec[j];
-				pressure = u(_P_, 0) + hgrad;
-			}
+			number pressure = u(_P_, 0);
+			
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				d(d1, scvf.from()) += pressure * scvf.normal()[d1];
