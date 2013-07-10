@@ -521,7 +521,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					CollectCornerCoordinates(vCorner, *elem, aaPos);
 					
 					//	evaluate finite volume geometry
-					geo.update_geometric_data(elem, &(vCorner[0]), domain.subset_handler().get());
+					geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
 					
 					//	compute size (volume) of element
 					const number elemSize = ElementSize<dim>(roid, &vCorner[0]);
