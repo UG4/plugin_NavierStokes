@@ -373,7 +373,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 				/////////////////////////////////////////
 
 				//	Add remaining term for exact jacobian
-					if(m_bExactJacobian)
+					if(m_bFullNewtonFactor)
 					{
 						//  full jacobian term without upwind velocity
 						
@@ -382,25 +382,25 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 							for(int d2 = 0; d2 < dim; ++d2)
 							{
 							//	derivatives w.r.t. velocity
-								number prod_vel = m_imDensitySCVF[ip] * StdVel[ip][d1]
+								number prod_vel = m_bFullNewtonFactor * m_imDensitySCVF[ip] * StdVel[ip][d1]
 													 * scvf.normal()[d2]   * scvf.shape(sh);
 
 								J(d1, scvf.from(), d2, sh) += prod_vel;
 								J(d1, scvf.to()  , d2, sh) -= prod_vel;
 							}
-			/*		
-				//  full jacobian term with upwind
+						/*
+					//  full jacobian term with upwind
 			
-				//	loop defect components
-					for(int d1 = 0; d1 < dim; ++d1)
-						for(int d2 = 0; d2 < dim; ++d2)
-						{
-							//	derivatives w.r.t. velocity
-							number prod_vel = w * upwind.upwind_shape_sh(ip,sh)
+					//	loop defect components
+						for(int d1 = 0; d1 < dim; ++d1)
+							for(int d2 = 0; d2 < dim; ++d2)
+							{
+								//	derivatives w.r.t. velocity
+								number prod_vel = w * upwind.upwind_shape_sh(ip,sh)
 													* scvf.normal()[d2] * m_imDensitySCVF[ip];
-							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
-							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
-						}
+								J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
+								J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
+							} */
 					
 					//	derivative due to peclet blending
 						if(m_bPecletBlend)
@@ -411,12 +411,12 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 									const number convFluxPe = UpwindVel[d1] * (1.0-w)
 															  * scvf.shape(sh)
 															  * scvf.normal()[d2]
-															  * m_imDensitySCVF[ip];
+															  * m_imDensitySCVF[ip] * m_bFullNewtonFactor;
 									J(d1, scvf.from(), d2, sh) += convFluxPe;
 									J(d1, scvf.to()  , d2, sh) -= convFluxPe;
 								}
 						}
-			*/
+
 					} // end exact jacobian part
 
 				} // end of if (! m_bStokes) for the convective terms

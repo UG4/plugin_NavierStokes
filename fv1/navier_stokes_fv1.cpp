@@ -448,7 +448,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 			/////////////////////////////////////////
 	
 			//	Add remaining term for exact jacobian
-				if(m_bExactJacobian)
+				if(m_bFullNewtonFactor)
 				{
 				//	Stabilization used as upwind
 					if(m_spConvStab.valid())
@@ -471,7 +471,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 								prod_vel = convStab.stab_shape_vel(ip, d1, d1, sh)
 													* scvf.normal()[d1];
 	
-							prod_vel *= m_imDensitySCVF[ip];
+							prod_vel *= m_bFullNewtonFactor * m_imDensitySCVF[ip];
 
 							J(d1, scvf.from(), d2, sh) += prod_vel * UpwindVel[d1];
 							J(d1, scvf.to()  , d2, sh) -= prod_vel * UpwindVel[d1];
@@ -486,7 +486,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 								prod_p += convStab.stab_shape_p(ip, k, sh)
 													* scvf.normal()[k];
 	
-							prod_p *= m_imDensitySCVF[ip];
+							prod_p *= m_bFullNewtonFactor * m_imDensitySCVF[ip];
 
 							J(d1, scvf.from(), _P_, sh) += prod_p * UpwindVel[d1];
 							J(d1, scvf.to()  , _P_, sh) -= prod_p * UpwindVel[d1];

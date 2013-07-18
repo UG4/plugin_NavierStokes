@@ -287,12 +287,12 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 					}
 				}
 
-				if(m_bExactJacobian){
+				if(m_bFullNewtonFactor){
 					// linearization of u^T n u w.r.t first u (i.e. keeping second as old iterate)
 					for (int d1 = 0; d1 < dim; ++d1){
 						for (size_t sh = 0; sh < scvf.num_sh(); ++sh){
 
-							const number prod =  scvf.shape(i, sh)
+							const number prod =  m_bFullNewtonFactor * scvf.shape(i, sh)
 												 * m_imDensitySCVF[ip] * scvf.weight(i);
 							for (int d2 = 0; d2 < dim; ++d2){
 							J(d1, scvf.from(), d2, sh) += Vel[d1] * scvf.normal()[d2] * prod;

@@ -232,7 +232,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 				}
 			}
 
-			if(m_bExactJacobian){
+			if(m_bFullNewtonFactor){
 
 				// 	Interpolate Functional Matrix of velocity at ip
 				MathMatrix<dim, dim> gradVel;
@@ -251,7 +251,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 						for (size_t ush = 0; ush < vgeo.num_sh(); ++ush){
 							for (int udim = 0; udim < dim; ++udim) {
 
-								J(vdim, vsh, udim, ush) += m_imDensity[ip]
+								J(vdim, vsh, udim, ush) += m_bFullNewtonFactor * m_imDensity[ip]
 								                           * gradVel(vdim, udim)
 								                   		   * vgeo.shape(ip, ush)
 														   * vgeo.shape(ip, vsh)

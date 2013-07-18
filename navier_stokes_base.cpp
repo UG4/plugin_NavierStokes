@@ -30,7 +30,7 @@ NavierStokesBase<TDomain>::NavierStokesBase(const char* functions,
                                     const char* subsets)
 : IElemDisc<TDomain>(functions, subsets),
   m_bPecletBlend(false),
-  m_bExactJacobian(false),
+  m_bFullNewtonFactor(0),
   m_bStokes(false),
   m_bLaplace(false)
 {
@@ -41,7 +41,7 @@ NavierStokesBase<TDomain>::NavierStokesBase(const std::vector<std::string>& vFct
                                     const std::vector<std::string>& vSubset)
 : IElemDisc<TDomain>(vFct, vSubset),
   m_bPecletBlend(false),
-  m_bExactJacobian(false),
+  m_bFullNewtonFactor(0),
   m_bStokes(false),
   m_bLaplace(false)
 {

@@ -208,7 +208,9 @@ class NavierStokesBase
         void set_peclet_blend(bool pecletBlend) {m_bPecletBlend = pecletBlend;}
 
     ///	sets if the exact jacobian is computed (fixpoint approximation else)
-        void set_exact_jacobian(bool bExactJacobian) {m_bExactJacobian = bExactJacobian;}
+        void set_exact_jacobian(bool bExactJacobian) { if (bExactJacobian) m_bFullNewtonFactor=1;
+        												else m_bFullNewtonFactor=0;}
+        void set_exact_jacobian(number fullNewtonFactor){ m_bFullNewtonFactor=fullNewtonFactor; };
 
   	public:
 	///	returns if local time series is needed
@@ -221,8 +223,8 @@ class NavierStokesBase
 	///	flag if using Peclet Blending
 		int m_bPecletBlend;
 
-	///	flag if computing exact jacobian
-		bool m_bExactJacobian;
+	///	factor for exact jacobian, (1 for exact jacobian, 0 for fix point)
+		number m_bFullNewtonFactor;
 
 	/// flag if solving the Stokes equation
 		bool m_bStokes;

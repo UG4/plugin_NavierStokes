@@ -514,7 +514,7 @@ class NavierStokesFV1
 		static const size_t _P_ = dim;
 
 		using base_type::m_bPecletBlend;
-		using base_type::m_bExactJacobian;
+		using base_type::m_bFullNewtonFactor;
 		using base_type::m_bStokes;
 		using base_type::m_bLaplace;
 
