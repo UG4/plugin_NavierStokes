@@ -154,11 +154,21 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 	{
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
-		for(  ;sideIter !=sideIterEnd; sideIter++)
-		{
-			side_type* side = *sideIter;
-			if (pbm && pbm->is_slave(side)) continue;
-			aaUHat[side]/=(number)aaVol[side];
+		// no filtering in boundary nodes
+		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)){
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				if (pbm && pbm->is_slave(side)) continue;
+				aaUHat[side] = aaU[side];
+			}
+		} else {
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				if (pbm && pbm->is_slave(side)) continue;
+				aaUHat[side]/=(number)aaVol[side];
+			}
 		}
 	}
 }
@@ -266,12 +276,24 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 	{
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
-		for(  ;sideIter !=sideIterEnd; sideIter++)
-		{
-			side_type* side = *sideIter;
-			if (pbm && pbm->is_slave(side)) continue;
-			//for debug UG_LOG("# " << aaUHat[side] << " " << aaVol[side] << "\n");
-			aaUHat[side]/=(number)aaVol[side];
+		// no filtering in boundary nodes
+		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)){
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				for (int d=0;d<dim;d++){
+					u->multi_indices(side,d, multInd);
+					aaUHat[side]=DoFRef(*u,multInd[0]);
+				}
+			}
+		} else {
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				if (pbm && pbm->is_slave(side)) continue;
+				//for debug UG_LOG("# " << aaUHat[side] << " " << aaVol[side] << "\n");
+				aaUHat[side]/=(number)aaVol[side];
+			}
 		}
 	}
 }
@@ -376,11 +398,21 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 	{
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
-		for(  ;sideIter !=sideIterEnd; sideIter++)
-		{
-			side_type* side = *sideIter;
-			if (pbm && pbm->is_slave(side)) continue;
-			aaUHat[side]/=(number)aaVol[side];
+		// no filtering in boundary nodes
+		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)){
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				if (pbm && pbm->is_slave(side)) continue;
+				aaUHat[side] = aaU[side];
+			}
+		} else {
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				if (pbm && pbm->is_slave(side)) continue;
+				aaUHat[side]/=(number)aaVol[side];
+			}
 		}
 	}
 }
@@ -499,11 +531,24 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 	{
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
-		for(  ;sideIter !=sideIterEnd; sideIter++)
-		{
-			side_type* side = *sideIter;
-			if (pbm && pbm->is_slave(side)) continue;
-			aaUHat[side]/=(number)aaVol[side];
+		// no filtering in boundary nodes
+		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)){
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				for (int d=0;d<dim;d++){
+					u->multi_indices(side,d, multInd);
+					aaUHat[side]=DoFRef(*u,multInd[0]);
+				}
+			}
+		} else {
+			for(  ;sideIter !=sideIterEnd; sideIter++)
+			{
+				side_type* side = *sideIter;
+				if (pbm && pbm->is_slave(side)) continue;
+					//for debug UG_LOG("# " << aaUHat[side] << " " << aaVol[side] << "\n");
+					aaUHat[side]/=(number)aaVol[side];
+			}
 		}
 	}
 }
@@ -612,7 +657,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 							for (int j=0;j<dim;j++){
 								// bf ip and u position are identical for CR-FV-Geometry
 								//for debug UG_LOG("[" << i << "," << j << "]" <<  0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]) << "\n");
-								aaDefTensor[sides[sideID]][i][j] += 0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]);
+								aaDefTensor[sides[sideID]][i][j] -= 0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]);
 							}
 					}
 				}
@@ -656,6 +701,9 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scaleTensorByNorm
 		{
 			side_type* side = *sideIter;
 			if (pbm && pbm->is_slave(side)) continue;
+			//UG_LOG(aaTensor[side] << "\n");
+			//UG_LOG(FNorm(aaTensor[side]) << "\n");
+			//UG_LOG("--------------------\n");
 			//for debug UG_LOG("&&&&&&&& norm = " << FNorm(aaTensor[side]) << "\n");
 			aaTensor[side]*=(number)FNorm(aaTensor[side]);
 		}

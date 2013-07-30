@@ -481,8 +481,7 @@ class CRDynamicTurbViscData
 	PeriodicBoundaryManager* m_pbm;
 
 	  public:
-	/// constructor
-	CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct){
+	void init(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,bool spaceFilter,number timeFilterEps){
 		m_u = spGridFct;
 		this->m_uInfo = m_u;
 		m_spApproxSpace = approxSpace;
@@ -512,10 +511,23 @@ class CRDynamicTurbViscData
 		m_acDeformationHat.access(grid,m_aDeformationHat);
 		m_acLij.access(grid,m_aLij);
 		m_acMij.access(grid,m_aMij);
-		// default setting for filtering of model constant c
-		m_spaceFilter=true;
-		m_timeFilter=false;
-		m_timeFilterEps=1;
+		m_spaceFilter=spaceFilter;
+		m_timeFilterEps=timeFilterEps;
+		if (timeFilterEps==1) m_timeFilter=false;
+	}
+	/// constructor
+	CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct){
+		// use default settings for filtering of model constant c, use space filter, no time filter (timeFilter eps=1)
+		init(approxSpace,spGridFct,true,1);
+	}
+
+	CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,bool spaceFilter,number timeFilter){
+		init(approxSpace,spGridFct,spaceFilter,timeFilter);
+	}
+
+	CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,bool spaceFilter,bool timeFilter){
+		init(approxSpace,spGridFct,spaceFilter,1);
+		set_time_filter(timeFilter);
 	}
 
 	virtual ~CRDynamicTurbViscData() {
