@@ -293,7 +293,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 					J(d1, scvf.from(), d1, sh) += flux_sh;
 					J(d1, scvf.to()  , d1, sh) -= flux_sh;
 				}
-//				UG_LOG("---------------------------------------------------\n");
+
 				if(!m_bLaplace)
 				{
 					for(int d1 = 0; d1 < dim; ++d1)
@@ -301,7 +301,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 						{
 							const number flux2_sh = -1.0 * m_imKinViscosity[ip] * m_imDensitySCVF[ip]
 													* scvf.global_grad(sh)[d1] * scvf.normal()[d2];
-//	UG_LOG("d1 = " << d1  << " scvf.global_grad(sh)[d1] = " << scvf.global_grad(sh)[d1] << " d2 = " << d2 << " scvf.normal()[d2] = " << scvf.normal()[d2] << "\n");
 							J(d1, scvf.from(), d2, sh) += flux2_sh;
 							J(d1, scvf.to()  , d2, sh) -= flux2_sh;
 						}
@@ -375,7 +374,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 				//	Add remaining term for exact jacobian
 					if(m_bFullNewtonFactor)
 					{
-						//  full jacobian term without upwind velocity
+						//  full jacobian term without using upwind
 						
 						//	loop defect components
 						for(int d1 = 0; d1 < dim; ++d1)
@@ -389,7 +388,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 								J(d1, scvf.to()  , d2, sh) -= prod_vel;
 							}
 						/*
-					//  full jacobian term with upwind
+					//  full jacobian term using upwind
 			
 					//	loop defect components
 						for(int d1 = 0; d1 < dim; ++d1)
