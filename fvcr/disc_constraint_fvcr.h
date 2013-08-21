@@ -122,12 +122,16 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		bool m_bLinPressureJacobian;
 		bool m_bLinUpConvDefect;
 		bool m_bLinUpConvJacobian;
+		ISubsetHandler* m_ish;
+		// zero gradient subset group
+		SubsetGroup m_zeroGradSg;
 	public:
 		void init(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive){
 			m_u = u;
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
 			m_grid = &grid;
+			m_ish = m_u->domain()->subset_handler().get();
 			m_bLinPressureDefect = bLinPressureDefect;
 			m_bLinPressureJacobian = bLinPressureJacobian;
 			m_bLinUpConvDefect = bLinUpConvDefect;
@@ -149,6 +153,14 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			}
 			if (m_bLinUpConvJacobian==true) if (bAdaptive==false) compute_grad_shapes();
 		}
+		
+	/// set boundaries, in associated elements there is no linear pressure and no linear velocity upwind	
+		void set_zero_grad_bnd(const char* subsets){
+			try{
+				m_zeroGradSg = m_u->subset_grp_by_name(subsets);
+			}UG_CATCH_THROW("ERROR while parsing Subsets.");
+		}
+		
 	/// constructor
 		DiscConstraintFVCR(SmartPtr<TGridFunction> u){
 			init(u,true,false,true,false,false);
@@ -158,11 +170,23 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive);
 		};
 		
+		DiscConstraintFVCR(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive,const char* subsets){
+			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive);
+			set_zero_grad_bnd(subsets);
+		};
+		
 	///	destructor
 		~DiscConstraintFVCR() {};
 
-		///	adapts jacobian to enforce constraints
-			/// \{
+		bool zeroGradBndElem(typename grid_type::template traits<side_type>::secure_container sides){
+			for (size_t i=0;i<sides.size();i++){
+				int si=m_ish->get_subset_index(sides[i]);
+				if (m_zeroGradSg.contains(si)) return true;
+			}
+			return false;
+		}
+
+		///	compute gradient shapes for velocity on rotated elements
 		void compute_grad_shapes(){
 			domain_type& domain = *m_u->domain().get();
 			
@@ -297,10 +321,12 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			}
 		}
 	
+		// add linear pressure part and linear velocity upwind part to jacobian
 		virtual void adjust_jacobian(matrix_type& J, const vector_type& u,
 				                             ConstSmartPtr<DoFDistribution> dd, number time = 0.0,
 				                             ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = NULL,const number s_a0 = 1.0){
 			if ((m_bLinUpConvJacobian==false)&&(m_bLinPressureJacobian==false)) return;
+			// compute new velocity gradient shapes in adaptive case
 			if ((m_bAdaptive==true)&&(m_bLinUpConvJacobian==true)) compute_grad_shapes();
 			
 			domain_type& domain = *m_u->domain().get();
@@ -324,8 +350,6 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 
 			for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 			{
-				//UG_LOG("si = " << si << "\n");
-				//UG_LOG("______________________________________________________________\n");
 			//	get iterators
 				ElemIterator iter = dd->template begin<elem_type>(si);
 				ElemIterator iterEnd = dd->template end<elem_type>(si);
@@ -340,6 +364,11 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem );
+					
+					// leave out boundary elements if boundaries were specified
+					if (m_zeroGradSg.size()>0){
+						if (zeroGradBndElem(sides)) continue;
+					}
 					
 					//	get corners of element
 					CollectCornerCoordinates(vCorner, *elem, aaPos);
@@ -480,8 +509,8 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 				}
 			}
 		};
-			/// \}
-			
+		
+		// add linear pressure part to defect
 		virtual void add_pressure_defect(vector_type& d, const vector_type& u,
 				                           ConstSmartPtr<DoFDistribution> dd,const number time = 0.0,const number s_a = 1.0){
 			domain_type& domain = *m_u->domain().get();
@@ -514,6 +543,11 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem );
 					
+					// leave out boundary elements if boundaries were specified
+					if (m_zeroGradSg.size()>0){
+						if (zeroGradBndElem(sides)) continue;
+					}
+
 					//	reference object type
 					ReferenceObjectID roid = elem->reference_object_id();
 					
@@ -575,6 +609,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			}
 		};
 			
+		// add linear pressure part and linear velocity upwind part to defect
 		virtual void add_defect(vector_type& d, const vector_type& u,
 				                           ConstSmartPtr<DoFDistribution> dd,const number time = 0.0,const number s_a = 1.0){
 				domain_type& domain = *m_u->domain().get();
@@ -595,7 +630,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			SetAttachmentValues(acVol, dd->template begin<side_type>(), dd->template end<side_type>(), 0);
 			SetAttachmentValues(acGrad, dd->template begin<side_type>(), dd->template end<side_type>(), 0);
 
-			// compute gradient in sides
+			// compute velocity gradient in sides by assembling averaged gradients
 			for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 			{
 				ElemIterator iter = dd->template begin<elem_type>(si);
@@ -611,9 +646,6 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem );
-					
-					//	reference object type
-					//  ReferenceObjectID roid = elem->reference_object_id();
 					
 					//	get corners of element
 					CollectCornerCoordinates(vCorner, *elem, aaPos);
@@ -681,7 +713,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 				}
 			}
 			PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
-			// complete computation by averaging
+			// complete velocity gradient computation by averaging
 			for(int si = 0; si <  domain.subset_handler()->num_subsets(); ++si)
 			{
 				SideIterator sideIter = dd->template begin<side_type>(si);
@@ -710,28 +742,22 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 					MathVector<dim> vGlobalGrad=0;
 					
-					//  get sides of element
-					m_grid->template associated_elements_sorted(sides, elem );
+					typename grid_type::template traits<side_type>::secure_container sides;
 					
-					//	reference object type
-					//  ReferenceObjectID roid = elem->reference_object_id();
+					//  get sides of element
+					m_grid->template associated_elements_sorted(sides, elem);
+					
+					// leave out boundary elements if boundaries were specified
+					if (m_zeroGradSg.size()>0){
+						if (zeroGradBndElem(sides)) continue;
+					}
 					
 					//	get corners of element
 					CollectCornerCoordinates(vCorner, *elem, aaPos);
 					
 					//	evaluate finite volume geometry
 					geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
-					
-					// static const size_t MaxNumSidesOfElem = 10;
-
-					typename grid_type::template traits<side_type>::secure_container sides;
-
-					UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
-
-					domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
-
-					// size_t nofsides = geo.num_scv();
-					
+									
 					static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 					MathVector<dim> StdVel[maxNumSCVF];
 

@@ -160,7 +160,10 @@ static void DomainAlgebra(Registry& reg, string grp)
 		string name = string("DiscConstraintFVCR").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.template add_constructor<void (*)(SmartPtr<TFct>)>("Grid function")
-		.template add_constructor<void (*)(SmartPtr<TFct>,bool,bool,bool,bool,bool)>("Grid function,bool jacobian")
+		// bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive
+		.template add_constructor<void (*)(SmartPtr<TFct>,bool,bool,bool,bool,bool)>("Grid function,lin up def,lin up jac,lin p def,lin p jac,adaptivity")
+		.template add_constructor<void (*)(SmartPtr<TFct>,bool,bool,bool,bool,bool,const char*)>("Grid function,lin up def,lin up jac,lin p def,lin p jac,adaptivity,bnd subsets")
+		.add_method("set_zero_grad_bnd", &T::set_zero_grad_bnd)
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "DiscConstraintFVCR", tag);
 	}
