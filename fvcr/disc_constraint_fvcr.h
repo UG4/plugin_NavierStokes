@@ -122,11 +122,12 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		bool m_bLinPressureJacobian;
 		bool m_bLinUpConvDefect;
 		bool m_bLinUpConvJacobian;
+		bool m_limiter;
 		ISubsetHandler* m_ish;
 		// zero gradient subset group
 		SubsetGroup m_zeroGradSg;
 	public:
-		void init(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive){
+		void init(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive,bool bLimiter){
 			m_u = u;
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
@@ -137,6 +138,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			m_bLinUpConvDefect = bLinUpConvDefect;
 			m_bLinUpConvJacobian = bLinUpConvJacobian;
 			m_bAdaptive=bAdaptive;
+			m_limiter=bLimiter;
 			if (m_bLinUpConvDefect==true){
 				// attach
 				grid.template attach_to<side_type>(aGrad);
@@ -161,20 +163,34 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			}UG_CATCH_THROW("ERROR while parsing Subsets.");
 		}
 		
+		void set_limiter(bool bLimiter){
+			m_limiter = bLimiter;
+		}
+
 	/// constructor
 		DiscConstraintFVCR(SmartPtr<TGridFunction> u){
-			init(u,true,false,true,false,false);
+			init(u,true,false,true,false,false,false);
 		};
 
 		DiscConstraintFVCR(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive){
-			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive);
+			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive,false);
 		};
 		
+		DiscConstraintFVCR(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive,bool bLimiter){
+			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive,bLimiter);
+		};
+
 		DiscConstraintFVCR(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive,const char* subsets){
-			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive);
+			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive,false);
 			set_zero_grad_bnd(subsets);
 		};
 		
+		DiscConstraintFVCR(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,
+							bool bAdaptive,bool bLimiter,const char* subsets){
+			init(u,bLinUpConvDefect,bLinUpConvJacobian,bLinPressureDefect,bLinPressureJacobian,bAdaptive,bLimiter);
+			set_zero_grad_bnd(subsets);
+		};
+
 	///	destructor
 		~DiscConstraintFVCR() {};
 
@@ -617,7 +633,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			//	create Multiindex
 			std::vector<MultiIndex<2> > multInd;
 			
-			position_accessor_type aaPos = m_u->domain()->position_accessor();
+			position_accessor_type posAcc = m_u->domain()->position_accessor();
 			
 			typename grid_type::template traits<side_type>::secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
@@ -648,7 +664,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					m_grid->template associated_elements_sorted(sides, elem );
 					
 					//	get corners of element
-					CollectCornerCoordinates(vCorner, *elem, aaPos);
+					CollectCornerCoordinates(vCorner, *elem, posAcc);
 					
 					//	evaluate finite volume geometry
 					geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
@@ -728,6 +744,94 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					//UG_LOG(acGrad[side] << "\n");
 				}
 			}
+			// limit valus, so that that no new maximum and minimum values occur in corners of scv
+			// in linear reconstruction with computed gradient
+			if (m_limiter==true){
+				for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
+					SideIterator sideIter = m_u->template begin<side_type>(si);
+					SideIterator sideIterEnd = m_u->template end<side_type>(si);
+					for(  ;sideIter !=sideIterEnd; ++sideIter)
+					{
+						side_type* side = *sideIter;
+						// UG_LOG("---------\n");
+						typename grid_type::template traits<elem_type>::secure_container assoElements;
+						m_grid->template associated_elements(assoElements,side);
+						MathVector<dim> bary[2];
+						MathVector<dim> sideBary;
+						MathVector<dim> sideValue;
+						// compute barycenter of side
+						const size_t numVertices = side->num_vertices();
+						sideBary = 0;
+						std::vector<MathVector<dim> > coCoord(numVertices);
+						for(size_t i = 0; i < numVertices; ++i){
+							coCoord[i] = posAcc[side->vertex(i)];
+							sideBary += coCoord[i];
+						}
+						sideBary /= numVertices;
+						// get velocity value in side
+						for (int d0=0;d0<dim;d0++){
+							dd->inner_multi_indices(side,d0,multInd);
+							sideValue[d0]=DoFRef(u,multInd[0]);
+						}
+						MathVector<dim> nbhoodMin;
+						MathVector<dim> nbhoodMax;
+						for (int d=0;d<dim;d++) nbhoodMin[d] = sideValue[d];
+						for (int d=0;d<dim;d++) nbhoodMax[d] = sideValue[d];
+						typename grid_type::template traits<side_type>::secure_container assoElementSides;
+						// compute max/min over associated elements
+						for (size_t el=0;el<assoElements.size();el++){
+							//  get sides of element
+							m_grid->template associated_elements(assoElementSides, assoElements[el]);
+							// compute barycenter of element
+							const size_t numVertices = assoElements[el]->num_vertices();
+							bary[el] = 0;
+							for(size_t i = 0; i < numVertices; ++i){
+								bary[el] += posAcc[assoElements[el]->vertex(i)];
+							}
+							bary[el] /= numVertices;
+							// compute maximum and minimum
+							for (int d0=0;d0<dim;d0++){
+								for (size_t s=0;s<assoElementSides.size();s++){
+									dd->inner_multi_indices(assoElementSides[s], d0, multInd);
+									number uValue=DoFRef(u,multInd[0]);
+									if (uValue<nbhoodMin[d0]) nbhoodMin[d0]=uValue;
+									if (uValue>nbhoodMax[d0]) nbhoodMax[d0]=uValue;
+								}
+							}
+						}
+						// add barycenter coords to evaluated coordinates (corners of the scv)
+						coCoord.resize(numVertices+assoElements.size());
+						for (size_t i=0;i<assoElements.size();i++){
+							coCoord[numVertices+i] = bary[i];
+						}
+						for (size_t i=0;i<coCoord.size();i++){
+							MathVector<dim> distVec;
+							VecSubtract(distVec,coCoord[i],sideBary);
+							for (int d0=0;d0<dim;d0++){
+								number uValue = sideValue[d0];
+								number addValue=0;
+								for (int d1=0;d1<dim;d1++){
+									addValue += distVec[d1]*acGrad[side][d0][d1];
+								}
+								if (addValue<1e-12) continue;
+								if (addValue<0){
+									if (uValue+addValue<nbhoodMin[d0]){
+										number alpha = (nbhoodMin[d0]-uValue)/addValue;
+										// UG_LOG("alpha=" << alpha << "\n");
+										for (int d1=0;d1<dim;d1++) acGrad[side][d0][d1] *= alpha;
+									}
+								} else {
+									if (uValue+addValue>nbhoodMax[d0]){
+										number alpha = (nbhoodMax[d0]-uValue)/addValue;
+										// UG_LOG("alpha=" << alpha << "\n");
+										for (int d1=0;d1<dim;d1++) acGrad[side][d0][d1] *= alpha;
+									}
+								}
+							}
+						}
+					}
+				}
+			} // end of limiting procedure
 			// compute defect
 			for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 			{
@@ -753,7 +857,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					}
 					
 					//	get corners of element
-					CollectCornerCoordinates(vCorner, *elem, aaPos);
+					CollectCornerCoordinates(vCorner, *elem, posAcc);
 					
 					//	evaluate finite volume geometry
 					geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
