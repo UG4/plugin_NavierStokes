@@ -16,6 +16,154 @@
 
 namespace ug{
 
+// Crouzeix-Raviart function is interpolated to Lagrange 1 function 
+template <typename TGridFunction>
+void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
+	///	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+
+	///	grid type
+	typedef typename domain_type::grid_type grid_type;
+
+	///	world dimension
+	static const int dim = domain_type::dim;
+
+	// get grid
+	grid_type& grid = *uLagrange.domain()->grid();
+
+	// position accessor type
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+
+	/// element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	/// side type
+	typedef typename elem_type::side side_type;
+
+	//  volume attachment
+	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
+	aVertexNumber m_acVolume;
+	ANumber m_aVolume;
+
+	/// element iterator
+	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
+	/// vertex iterator
+	typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+
+	//	get position accessor
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	position_accessor_type& posAcc = uLagrange.domain()->position_accessor();
+
+	for (int i=0;i<dim;i++){ 
+		if (uLagrange.local_finite_element_id(i) != LFEID(LFEID::LAGRANGE, TGridFunction::dim, 1)){
+			UG_THROW("First parameter must be of Lagrange 1 type.");
+		} 
+		if (uCR.local_finite_element_id(i) != LFEID(LFEID::CROUZEIX_RAVIART, TGridFunction::dim, 1)){
+			UG_THROW("Second parameter must be of CR type.");
+		} 
+	}
+
+	DimFV1Geometry<dim> geo;
+
+	grid.template attach_to<VertexBase>(m_aVolume);
+	m_acVolume.access(grid,m_aVolume);
+
+	SetAttachmentValues(m_acVolume,grid.template begin<VertexBase>(), grid.template end<VertexBase>(), 0);
+	
+	PeriodicBoundaryManager* pbm = grid.periodic_boundary_manager();
+
+	// coord and vertex array
+	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+
+	// create Multiindex
+	std::vector<MultiIndex<2> > multInd;
+
+	static const size_t MaxNumSidesOfElem = 10;
+
+	typedef MathVector<dim> MVD;
+	std::vector<MVD> uValue(MaxNumSidesOfElem);
+
+	for(int si = 0; si < uLagrange.num_subsets(); ++si)
+	{
+		//	get iterators
+		ElemIterator iter = uLagrange.template begin<elem_type>(si);
+		ElemIterator iterEnd = uLagrange.template end<elem_type>(si);
+
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+
+			//	reference object id
+			ReferenceObjectID roid = elem->reference_object_id();
+
+			// get Crouzeix-Raviart trial space
+			const LocalShapeFunctionSet<dim>& crTrialSpace =
+			LocalFiniteElementProvider::get<dim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
+
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+				// UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
+			}
+			
+			typename grid_type::template traits<side_type>::secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			grid.associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+			
+			size_t nofsides = sides.size();
+			for (size_t s=0;s < nofsides;s++)
+			{
+				for (int d=0;d<dim;d++){
+					//	get indices of function fct on vertex
+					uCR.inner_multi_indices(sides[s], d, multInd);
+					//	read value of index from vector
+					uValue[s][d]=DoFRef(uCR,multInd[0]);
+				}
+			}
+			
+			//	evaluate finite volume geometry
+			geo.update(elem, &(coCoord[0]), uLagrange.domain()->subset_handler().get());
+			for(size_t i = 0; i < numVertices; ++i){
+				const typename DimFV1Geometry<dim>::SCV& scv = geo.scv(i);
+				number scvVol = scv.volume();
+				m_acVolume[vVrt[i]]+=scvVol;
+				std::vector<number> vShape;
+				crTrialSpace.shapes(vShape, scv.local_ip());
+				MathVector<dim> localValue = 0;
+				for (size_t s=0;s<nofsides;s++)
+					for (int d=0;d<dim;d++)
+						localValue[d]=vShape[s]*uValue[s][d];
+				for (int d=0;d<dim;d++){
+					uLagrange.inner_multi_indices(vVrt[i], d, multInd);
+					DoFRef(uLagrange,multInd[0])+=scvVol*localValue[d];
+				}
+			}
+		}
+	}
+	// finish computation by averaging
+	for(int si = 0; si < uLagrange.num_subsets(); ++si){
+		//	get iterators
+		VertexIterator iter = uLagrange.template begin<VertexBase>(si);
+		VertexIterator iterEnd = uLagrange.template end<VertexBase>(si);
+		for(  ;iter !=iterEnd; ++iter){
+			VertexBase* vrt = *iter;
+			if (pbm && pbm->is_slave(vrt)) continue;
+			for (int d=0;d<dim;d++){
+				uLagrange.inner_multi_indices(vrt, d, multInd);
+				DoFRef(uLagrange,multInd[0])/=m_acVolume[vrt];
+			}
+		}
+	}
+}
+
 // compute vorticity
 // for velocity field (u,v,w) the vorticity is \partial_x v - \partial_y u
 template <typename TGridFunction>

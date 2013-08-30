@@ -97,6 +97,11 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		reg.add_function("kineticEnergy", static_cast<void (*)(function_type&)>(&kineticEnergy), grp);
 	}
+	
+	// interpolate cr to lagrange 1
+	{
+		reg.add_function("interpolateToNodes", static_cast<void (*)(function_type&,function_type&)>(&interpolateToNodes), grp);
+	}
 
 	// driven cavity data evaluation
 	{
