@@ -798,6 +798,20 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 									if (uValue>nbhoodMax[d0]) nbhoodMax[d0]=uValue;
 								}
 							}
+							// also use neighbour sides of given side
+							for (size_t i=0;i<side->num_vertices();i++){
+								typename grid_type::template traits<side_type>::secure_container neighbourSides;
+								m_grid->template associated_elements(neighbourSides,side);
+								for (size_t j=0;j<neighbourSides.size();j++){
+									if (neighbourSides[j]==side) continue;
+									for (int d0=0;d0<dim;d0++){
+										dd->inner_multi_indices(neighbourSides[j], d0, multInd);
+										number uValue=DoFRef(u,multInd[0]);
+										if (uValue<nbhoodMin[d0]) nbhoodMin[d0]=uValue;
+										if (uValue>nbhoodMax[d0]) nbhoodMax[d0]=uValue;
+									}
+								}
+							}
 						}
 						// add barycenter coords to evaluated coordinates (corners of the scv)
 						coCoord.resize(numVertices+assoElements.size());

@@ -1004,6 +1004,11 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 		};
 		number yLineReferenceValue1000Botella[17]={0.0000000 , 0.2807056 , 0.2962703 , 0.3099097 , 0.3330442 , 0.3769189 , 0.3339924 , 0.3253592 , 0.0257995 ,
 		 -0.3202137 , -0.4264545 , -0.5264392 , -0.4103754 , -0.3553213 , -0.2936869 , -0.2279225 , 0.0000000};
+		// ug4 fvcr / linear upwind/linear pressure reference data for Re=3200 (computed on level 6)
+		number xLineReferenceValue3200ug4[17]={0, -3.565562e-01, -3.854442e-01,-4.083199e-01,-4.329174e-01, -3.455453e-01,-2.425736e-01,-8.123961e-02,-3.689807e-02,7.721821e-02,2.018428e-01,
+		 3.482477e-01,4.618284e-01,4.654109e-01,4.811885e-01,5.280763e-01,1};
+		number yLineReferenceValue3200ug4[17]={0,3.961922e-01,4.113146e-01,4.224736e-01,4.327940e-01,3.771819e-01,2.964934e-01,2.881224e-01,1.425516e-02,-3.136940e-01,
+				-3.787908e-01,-4.436374e-01,-5.672544e-01,-5.610925e-01,-5.200556e-01,-4.390652e-01,0};
 	switch (Re){
 	case 100:
 		foundRe=true;
@@ -1257,7 +1262,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 			if (localdiff>maxdiff) maxdiff = localdiff;
 			diffsum += localdiff;
 		}
-		UG_LOG("u max difference: " << maxdiff << "\nv average difference: " << (number)diffsum/17.0);
+		UG_LOG("u max difference: " << maxdiff << "\nu average difference: " << (number)diffsum/17.0);
 		UG_LOG("\n\nv values on line through y=0.5:" << "\n\n");
 		maxdiff = 0;
 		diffsum = 0;
@@ -1267,7 +1272,35 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 			if (localdiff>maxdiff) maxdiff = localdiff;
 			diffsum += localdiff;
 		}
-		UG_LOG("v max difference: " << maxdiff << "\nu average difference: " << (number)diffsum/17.0);
+		UG_LOG("v max difference: " << maxdiff << "\nv average difference: " << (number)diffsum/17.0);
+		UG_LOG("\n\n");
+	}
+	// for Re == 3200 ug4 reference data is available
+	if (Re==3200){
+		copyGhiaNumbers(xLineReferenceValue,xLineReferenceValue3200ug4);
+		copyGhiaNumbers(yLineReferenceValue,yLineReferenceValue3200ug4);
+		UG_LOG("Comparison with ug4 fvcr data:\n");
+		UG_LOG("\nData evaluation for Re=" << Re << ":\n\n");
+		UG_LOG("u values on line through x=0.5:" << "\n\n");
+		number maxdiff = 0;
+		number diffsum = 0;
+		for (size_t i=0;i<17;i++){
+			number localdiff=std::abs(xLineReferenceValue[i]-xLineValue[i]);
+			UG_LOG("y(" << i+1 << ") = " << yco[i] << "; u(" << i+1 << ") = " << xLineValue[i] << "; u_ug4(" << i+1 << ") = " << xLineReferenceValue[i] << "; uerror_ug4(" << i+1 << ") = " << localdiff << ";\n");
+			if (localdiff>maxdiff) maxdiff = localdiff;
+			diffsum += localdiff;
+		}
+		UG_LOG("u max difference: " << maxdiff << "\nu average difference: " << (number)diffsum/17.0);
+		UG_LOG("\n\nv values on line through y=0.5:" << "\n\n");
+		maxdiff = 0;
+		diffsum = 0;
+		for (size_t i=0;i<17;i++){
+			number localdiff=std::abs(yLineReferenceValue[i]-yLineValue[i]);
+			UG_LOG("x(" << i+1 << ") = " << xco[i] << "; v(" << i+1 << ") = " << yLineValue[i] << "; v_ug4(" << i+1 << ") = " << yLineReferenceValue[i] << "; verror_ug4(" << i+1 << ") = " << std::abs(yLineReferenceValue[i]-yLineValue[i]) << ";\n");
+			if (localdiff>maxdiff) maxdiff = localdiff;
+			diffsum += localdiff;
+		}
+		UG_LOG("v max difference: " << maxdiff << "\nv average difference: " << (number)diffsum/17.0);
 		UG_LOG("\n\n");
 	}
 	// check for Erturk data
