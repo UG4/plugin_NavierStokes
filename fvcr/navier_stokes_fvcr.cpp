@@ -8,6 +8,7 @@
 #include "navier_stokes_fvcr.h"
 
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
+#include "lib_disc/spatial_disc/disc_util/hfvcr_geom.h"
 #include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
 namespace ug{
@@ -63,9 +64,6 @@ template<typename TDomain>
 void NavierStokesFVCR<TDomain>::
 prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 {
-//	if(bNonRegularGrid)
-//		UG_THROW("NavierStokes: only regular grid implemented.");
-
 //	check number
 	if(vLfeID.size() != dim+1)
 		UG_THROW("NavierStokes: Need exactly "<<dim+1<<" functions");
@@ -80,7 +78,14 @@ prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 				" space for pressure.");
 
 	//	update assemble functions
-	register_all_funcs(false);
+	register_all_funcs(bNonRegularGrid);
+}
+
+template<typename TDomain>
+bool NavierStokesFVCR<TDomain>::
+use_hanging() const
+{
+	return true;
 }
 
 template<typename TDomain>
@@ -244,7 +249,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 	//	interpolate velocity at ip with standard lagrange interpolation
-		static const size_t numSCVF = TFVGeom::numSCVF;
+		size_t numSCVF = geo.num_scvf();
 		MathVector<dim> StdVel[numSCVF];
 		for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 		{
@@ -443,10 +448,24 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 			const typename TFVGeom::SCV& scv = geo.scv(sh);
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
-				J(_P_, 0 , d1, sh) += scv.normal()[d1];
+				J(_P_, 0 , d1, scv.node_id()) += scv.normal()[d1];
 			}
 		}
-};
+		
+		// handle constrained dofs
+		if(TFVGeom::usesHangingNodes){
+			for (size_t i=0;i<geo.num_constrained_dofs();i++){
+				const typename TFVGeom::CONSTRAINED_DOF& cd = geo.constrained_dof(i);
+				const size_t index = cd.index();
+				for (int d=0;d<dim;d++){
+					J(d,index,d,index) = 1;
+					for (size_t j=0;j<cd.num_constraining_dofs();j++){
+						J(d, index,d, cd.constraining_dofs_index(j)) = -cd.constraining_dofs_weight(j);
+					}
+				}
+			}
+		}
+}
 
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
@@ -460,7 +479,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 	//	interpolate velocity at ip with standard lagrange interpolation
-		static const size_t numSCVF = TFVGeom::numSCVF;
+		size_t numSCVF = geo.num_scvf();
 		MathVector<dim> StdVel[numSCVF];
 		for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 		{
@@ -585,7 +604,21 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 			const typename TFVGeom::SCV& scv = geo.scv(sh);
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
-				d(_P_, 0 ) += scv.normal()[d1] * u(d1,sh);
+				d(_P_, 0 ) += scv.normal()[d1] * u(d1,scv.node_id());
+			}
+		}
+		
+		// handle constrained dofs, compute defect of interpolation equation
+		if(TFVGeom::usesHangingNodes){
+			for (size_t i=0;i<geo.num_constrained_dofs();i++){
+				const typename TFVGeom::CONSTRAINED_DOF& cd = geo.constrained_dof(i);
+				const size_t index = cd.index();
+				for (int d1=0;d1<dim;d1++){
+					number defect = u(d1,index);
+					for (size_t j=0;j<cd.num_constraining_dofs();j++)
+						defect -= cd.constraining_dofs_weight(j) * u(d1,cd.constraining_dofs_index(j));
+					d(d1,index) = defect;
+				}
 			}
 		}
 }
@@ -715,8 +748,8 @@ register_all_funcs(bool bHang)
 	}
 	else
 	{
-		UG_THROW("ConvectionDiffusion"
-						" Hanging nodes not supported for CRFV discretization.");
+		register_func<Triangle, HCRFVGeometry<Triangle, dim> >();
+		register_func<Quadrilateral, HCRFVGeometry<Quadrilateral, dim> >();
 	}
 }
 #endif
@@ -736,8 +769,10 @@ register_all_funcs(bool bHang)
 	}
 	else
 	{
-		UG_THROW("ConvectionDiffusion"
-						" Hanging nodes not supported for CRFV discretization.");
+		register_func<Tetrahedron, HCRFVGeometry<Tetrahedron, dim> >();
+		register_func<Prism, HCRFVGeometry<Prism, dim> >();
+		register_func<Pyramid, HCRFVGeometry<Pyramid, dim> >();
+		register_func<Hexahedron, HCRFVGeometry<Hexahedron, dim> >();
 	}
 }
 #endif

@@ -77,6 +77,9 @@ class NavierStokesFVCR
 	public:
 	///	type of trial space for each function used
 		void prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid);
+		
+	///	returns if hanging nodes are needed
+		virtual bool use_hanging() const;
 
 	///	returns string identifying disc type
 		virtual std::string disc_type() const {return "fvcr";};
