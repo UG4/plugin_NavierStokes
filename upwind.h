@@ -18,6 +18,7 @@
 #include "upwind_interface.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
+#include "lib_disc/spatial_disc/disc_util/hfvcr_geom.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -30,7 +31,8 @@ template <int dim>
 class NavierStokesNoUpwind
 : public INavierStokesUpwind<dim>,
   public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesNoUpwind<dim> >,
-  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesNoUpwind<dim> >
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesNoUpwind<dim> >,
+  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesNoUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
@@ -56,6 +58,14 @@ class NavierStokesNoUpwind
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 					 number vConvLength[maxNumSCVF]);
+
+		///	update of values for CRFVGeometry
+		template <typename TElem>
+		void compute(const HCRFVGeometry<TElem, dim>* geo,
+					 const MathVector<dim> vIPVel[maxNumSCVF],
+					 number vUpShapeSh[maxNumSCVF][maxNumSH],
+					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					 number vConvLength[maxNumSCVF]);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -66,7 +76,8 @@ template <int dim>
 class NavierStokesFullUpwind
 : public INavierStokesUpwind<dim>,
   public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesFullUpwind<dim> >,
-  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesFullUpwind<dim> >
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesFullUpwind<dim> >,
+  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesFullUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
@@ -88,6 +99,14 @@ class NavierStokesFullUpwind
 	///	update of values for CRFVGeometry
 		template <typename TElem>
 		void compute(const CRFVGeometry<TElem, dim>* geo,
+					 const MathVector<dim> vIPVel[maxNumSCVF],
+					 number vUpShapeSh[maxNumSCVF][maxNumSH],
+					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+					 number vConvLength[maxNumSCVF]);
+
+	///	update of values for CRFVGeometry
+		template <typename TElem>
+		void compute(const HCRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],

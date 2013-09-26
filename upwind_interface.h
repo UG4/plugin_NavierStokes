@@ -82,8 +82,8 @@ class INavierStokesUpwind
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+			// UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+			// UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
 			return m_vvUpShapeSh[scvf][sh];
 		}
 
@@ -283,6 +283,7 @@ void
 INavierStokesUpwind<dim>::
 set_geometry_type()
 {
+
 //	get unique geometry id
 	size_t id = GetUniqueFVGeomID<TFVGeom>();
 
@@ -299,6 +300,7 @@ set_geometry_type()
 	m_numSh = geo.num_sh();
 	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
 	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
+
 }
 
 
