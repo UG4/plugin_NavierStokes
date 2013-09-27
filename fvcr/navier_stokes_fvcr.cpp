@@ -249,8 +249,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 	//	interpolate velocity at ip with standard lagrange interpolation
-		size_t numSCVF = geo.num_scvf();
-		MathVector<dim> StdVel[numSCVF];
+		MathVector<dim> StdVel[TFVGeom::maxNumSCVF];
 		for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 		{
 			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
@@ -479,8 +478,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 	//	interpolate velocity at ip with standard lagrange interpolation
-		size_t numSCVF = geo.num_scvf();
-		MathVector<dim> StdVel[numSCVF];
+		MathVector<dim> StdVel[TFVGeom::maxNumSCVF];
 		for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 		{
 			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
