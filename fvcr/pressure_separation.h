@@ -457,7 +457,7 @@ class SeparatedPressureSource
 		//	get domain
 		domain_type& domain = *m_u->domain().get();
 		//	create Multiindex
-		std::vector<MultiIndex<2> > multInd;
+		std::vector<DoFIndex> multInd;
 		DimFV1Geometry<dim> geo;
 
 		//	coord and vertex array
@@ -784,7 +784,7 @@ class SeparatedPressureSourceInter
 		//	get domain
 		domain_type& domain = *m_u->domain().get();
 		//	create Multiindex
-		std::vector<MultiIndex<2> > multInd;
+		std::vector<DoFIndex> multInd;
 		DimFV1Geometry<dim> geo;
 
 		//	coord and vertex array

@@ -42,7 +42,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::fillAttachment(aS
 	//	get domain
 	domain_type& domain = *u->domain().get();
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		ElemIterator iter = u->template begin<side_type>(si);
 		ElemIterator iterEnd = u->template end<side_type>(si);
@@ -180,7 +180,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 	domain_type& domain = *m_uInfo->domain().get();
 	DimCRFVGeometry<dim> geo;
 
-	 std::vector<MultiIndex<2> > multInd;
+	 std::vector<DoFIndex> multInd;
 
 	// set attachment values to zero
 	SetAttachmentValues(aaUHat , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
@@ -437,7 +437,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	// assemble deformation tensor fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
@@ -561,7 +561,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	DimCRFVGeometry<dim> geo;
 
@@ -717,7 +717,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	// get periodic boundary manager
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	DimCRFVGeometry<dim> geo;
 
@@ -882,7 +882,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSide
 	// get periodic boundary manager
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
@@ -1004,7 +1004,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	bool use_filter = false;
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	// complete Mij term computation by scaling and adding the two terms,
 	// solve the local least squares problem and compute local c and local turbulent viscosity

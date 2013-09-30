@@ -29,7 +29,7 @@ void copyAttachmentToGridFunction(SmartPtr<TGridFunction> u,PeriodicAttachmentAc
 	//	get domain
 	domain_type& domain = *u->domain().get();
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		ElemIterator iter = u->template begin<elem_type>(si);
 		ElemIterator iterEnd = u->template end<elem_type>(si);
@@ -53,7 +53,7 @@ void copyGridFunctionToAttachment(PeriodicAttachmentAccessor<elem_type,Attachmen
 	//	get domain
 	domain_type& domain = *u->domain().get();
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
 		ElemIterator iter = u->template begin<elem_type>(si);
 		ElemIterator iterEnd = u->template end<elem_type>(si);
@@ -114,7 +114,7 @@ void elementFilterFVCR(SmartPtr<TGridFunction> u){
 	SetAttachmentValues(acVolume , u->template begin<side_type>(), u->template end<side_type>(), 0);
 
 	DimCRFVGeometry<dim> geo;
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -257,7 +257,7 @@ void scvFilterFVCR(SmartPtr<TGridFunction> u){
 	SetAttachmentValues(acVolume , u->template begin<side_type>(), u->template end<side_type>(), 0);
 
 	DimCRFVGeometry<dim> geo;
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -412,7 +412,7 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 	SetAttachmentValues(acVolume , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
 
 	DimFV1Geometry<dim> geo;
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -548,7 +548,7 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 	SetAttachmentValues(acVolume , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
 
 	DimFV1Geometry<dim> geo;
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];

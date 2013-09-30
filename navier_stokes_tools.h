@@ -78,7 +78,7 @@ void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	static const size_t MaxNumSidesOfElem = 10;
 
@@ -229,7 +229,7 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	for(int si = 0; si < u.num_subsets(); ++si)
 	{
@@ -374,7 +374,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	for(int si = 0; si < u.num_subsets(); ++si)
 	{
@@ -738,7 +738,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	for(int si = 0; si < u.num_subsets(); ++si)
 	{
@@ -822,7 +822,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 							const size_t num_sh = rTrialSpace.num_sh();
 
 							//	get multiindices of element
-							std::vector<MultiIndex<2> > ind;  // 	aux. index array
+							std::vector<DoFIndex> ind;  // 	aux. index array
 							u.multi_indices(elem, 0, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
@@ -870,7 +870,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 							const size_t num_sh = rTrialSpace.num_sh();
 
 							//	get multiindices of element
-							std::vector<MultiIndex<2> > ind;  // 	aux. index array
+							std::vector<DoFIndex> ind;  // 	aux. index array
 							u.multi_indices(elem, 1, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
@@ -1072,7 +1072,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex> multInd;
 
 	for(int si = 0; si < u.num_subsets(); ++si)
 	{
@@ -1156,7 +1156,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 							const size_t num_sh = rTrialSpace.num_sh();
 
 							//	get multiindices of element
-							std::vector<MultiIndex<2> > ind;  // 	aux. index array
+							std::vector<DoFIndex> ind;  // 	aux. index array
 							u.multi_indices(elem, 0, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
@@ -1204,7 +1204,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 							const size_t num_sh = rTrialSpace.num_sh();
 
 							//	get multiindices of element
-							std::vector<MultiIndex<2> > ind;  // 	aux. index array
+							std::vector<DoFIndex> ind;  // 	aux. index array
 							u.multi_indices(elem, 1, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
@@ -1347,7 +1347,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 	DimCRFVGeometry<dim> geo;
 
 	//	create Multiindex
-	std::vector<MultiIndex<2> > multInd;
+	std::vector<DoFIndex > multInd;
 	
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -1467,7 +1467,7 @@ void kineticEnergy(TGridFunction& u){
 	domain_type& domain = *u.domain().get();
 	DimCRFVGeometry<dim> geo;
 
-	 std::vector<MultiIndex<2> > multInd;
+	 std::vector<DoFIndex> multInd;
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];

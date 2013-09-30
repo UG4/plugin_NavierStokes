@@ -87,8 +87,8 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 	
 		static const size_t maxShapeSize = 2*DimCRFVGeometry<dim>::maxNumSCV-1;
 
-		typedef std::vector<std::pair<MultiIndex<2>, MathVector<dim> > > vIndexPosPair;
-		typedef std::vector<std::vector<std::pair<MultiIndex<2>, MathVector<dim> > > > vvIndexPosPair;
+		typedef std::vector<std::pair<DoFIndex, MathVector<dim> > > vIndexPosPair;
+		typedef std::vector<std::vector<std::pair<DoFIndex, MathVector<dim> > > > vvIndexPosPair;
 		typedef std::pair<MathVector<dim>, MathVector<dim> > MathVector_Pair;
 		
 		typedef MathMatrix<dim,dim> dimMat;
@@ -97,7 +97,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
 	
 		typedef Attachment<std::vector< MathVector<dim> > > ANumberArray;
-		typedef Attachment<std::vector< MultiIndex<2> > > ASizetArray;
+		typedef Attachment<std::vector< DoFIndex > > ASizetArray;
 		typedef PeriodicAttachmentAccessor<side_type,ANumberArray> aSideNumberArray;
 		typedef PeriodicAttachmentAccessor<side_type,ASizetArray> aSideSizetArray;
 	
@@ -207,13 +207,13 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			domain_type& domain = *m_u->domain().get();
 			
 			//	create Multiindex
-			std::vector<MultiIndex<2> > multInd;
+			std::vector<DoFIndex> multInd;
 			
 			position_accessor_type aaPos = m_u->domain()->position_accessor();
 			
 			typename grid_type::template traits<side_type>::secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
-			std::vector<MultiIndex<2> > ind;
+			std::vector<DoFIndex> ind;
 			
 			//	create a FV Geometry for the dimension
 			DimCRFVGeometry<dim> geo;
@@ -348,17 +348,17 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			domain_type& domain = *m_u->domain().get();
 
 			//	create Multiindex
-			std::vector<MultiIndex<2> > multInd;
+			std::vector<DoFIndex> multInd;
 			
 			position_accessor_type aaPos = m_u->domain()->position_accessor();
 			
 			typename grid_type::template traits<side_type>::secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
-			std::vector<MultiIndex<2> > ind;
+			std::vector<DoFIndex> ind;
 			
-			MultiIndex<2> localInd;
+			DoFIndex localInd;
 			localInd[1]=0;
-			MultiIndex<2> shapeInd;
+			DoFIndex shapeInd;
 			shapeInd[1]=0;
 
 			//	create a FV Geometry for the dimension
@@ -375,8 +375,6 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 				{
 					//	get Elem
 					elem_type* elem = *iter;
-					
-					MathVector<dim> vGlobalGrad=0;
 					
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem );
@@ -444,8 +442,6 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					/// handle pressure
 					if (m_bLinPressureJacobian==true){
 					
-						MathVector<dim> vGlobalGrad=0;
-					
 						//  get sides of element
 						m_grid->template associated_elements_sorted(sides, elem );
 					
@@ -457,7 +453,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 						typename grid_type::template traits<elem_type>::secure_container assoElements;
 					
-						std::vector<MultiIndex<2> > elemInd(sides.size()+1);
+						std::vector<DoFIndex> elemInd(sides.size()+1);
 					
 						dd->inner_multi_indices(elem,_P_,ind);
 						elemInd[0] = ind[0];
@@ -532,13 +528,13 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			domain_type& domain = *m_u->domain().get();
 
 			//	create Multiindex
-			std::vector<MultiIndex<2> > multInd;
+			std::vector<DoFIndex> multInd;
 			
 			position_accessor_type aaPos = m_u->domain()->position_accessor();
 			
 			typename grid_type::template traits<side_type>::secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
-			std::vector<MultiIndex<2> > ind;
+			std::vector<DoFIndex> ind;
 
 			//	create a FV Geometry for the dimension
 			DimCRFVGeometry<dim> geo;
@@ -553,9 +549,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 				{
 					//	get Elem
 					elem_type* elem = *iter;
-					
-					MathVector<dim> vGlobalGrad=0;
-					
+
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem );
 					
@@ -631,13 +625,13 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 				domain_type& domain = *m_u->domain().get();
 
 			//	create Multiindex
-			std::vector<MultiIndex<2> > multInd;
+			std::vector<DoFIndex> multInd;
 			
 			position_accessor_type posAcc = m_u->domain()->position_accessor();
 			
 			typename grid_type::template traits<side_type>::secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
-			std::vector<MultiIndex<2> > ind;
+			std::vector<DoFIndex> ind;
 
 			//	create a FV Geometry for the dimension
 			DimCRFVGeometry<dim> geo;
@@ -657,8 +651,6 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 				{
 					//	get Elem
 					elem_type* elem = *iter;
-					
-					MathVector<dim> vGlobalGrad=0;
 					
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem );
@@ -857,8 +849,6 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 				{
 					//	get Elem
 					elem_type* elem = *iter;
-					
-					MathVector<dim> vGlobalGrad=0;
 					
 					typename grid_type::template traits<side_type>::secure_container sides;
 					
