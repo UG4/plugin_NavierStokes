@@ -47,7 +47,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::fillAttachment
 		{
 			VertexBase* vertex = iter;
 			for (int d=0;d<dim;d++){
-				u->multi_indices(vertex, d, multInd);
+				u->dof_indices(vertex, d, multInd);
 				aaU[vertex][d]=DoFRef(*u,multInd[0]);
 			}
 		}
@@ -229,7 +229,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 				const typename DimFV1Geometry<dim>::SCV& scv = geo.scv(co);
 				MathVector<dim> localValue;
 				for (int d=0;d<dim;d++){
-					u->multi_indices(elem->vertex(co), d, multInd);
+					u->dof_indices(elem->vertex(co), d, multInd);
 					localValue[d]=DoFRef(*u,multInd[0]);
 				}
 				//for debug UG_LOG("localValue=" << localValue << "\n");
@@ -431,7 +431,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 
 			for (size_t co=0;co<noc;co++){
 				for (int d=0;d<dim;d++){
-					u->multi_indices(elem->vertex(co), d, multInd);
+					u->dof_indices(elem->vertex(co), d, multInd);
 					uValue[co][d]=DoFRef(*u,multInd[0]);
 				}
 			};
@@ -538,7 +538,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 				{
 					const typename DimFV1Geometry<dim>::SCV& scv = geo.scv(co);
 					for (int d=0;d<dim;d++){
-						u->multi_indices(elem->vertex(co), d, multInd);
+						u->dof_indices(elem->vertex(co), d, multInd);
 						uValue[co][d]=DoFRef(*u,multInd[0]);
 					}
 					aaVol[elem->vertex(co)] += scv.volume();
@@ -778,7 +778,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aV
 			dimMat Tij;
 			MathVector<dim> uValue;
 			for (int d=0;d<dim;d++){
-				u->multi_indices(vertex, d, multInd);
+				u->dof_indices(vertex, d, multInd);
 				uValue[d]=DoFRef(*u,multInd[0]);
 			}
 			for (int d1=0;d1 < dim;d1++)
@@ -893,8 +893,8 @@ void FV1DynamicTurbViscData<TGridFunction>::update(){
 			delta = pow(delta,(number)1.0/(number)dim);
 			number deltaHat = m_acVolumeHat[vertex];
 			deltaHat = pow(deltaHat,(number)1.0/(number)dim);
-			m_u->multi_indices(vertex, 0, multInd);
-			m_u->multi_indices(vertex, 1, multInd);
+			m_u->dof_indices(vertex, 0, multInd);
+			m_u->dof_indices(vertex, 1, multInd);
 			m_acDeformationHat[vertex] *= -2*deltaHat*deltaHat;
 			m_acMij[vertex] *= 2*delta*delta;
 			m_acMij[vertex] += m_acDeformationHat[vertex];

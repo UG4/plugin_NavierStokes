@@ -123,7 +123,7 @@ void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
 			{
 				for (int d=0;d<dim;d++){
 					//	get indices of function fct on vertex
-					uCR.inner_multi_indices(sides[s], d, multInd);
+					uCR.inner_dof_indices(sides[s], d, multInd);
 					//	read value of index from vector
 					uValue[s][d]=DoFRef(uCR,multInd[0]);
 				}
@@ -142,7 +142,7 @@ void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
 					for (int d=0;d<dim;d++)
 						localValue[d]=vShape[s]*uValue[s][d];
 				for (int d=0;d<dim;d++){
-					uLagrange.inner_multi_indices(vVrt[i], d, multInd);
+					uLagrange.inner_dof_indices(vVrt[i], d, multInd);
 					DoFRef(uLagrange,multInd[0])+=scvVol*localValue[d];
 				}
 			}
@@ -157,7 +157,7 @@ void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
 			VertexBase* vrt = *iter;
 			if (pbm && pbm->is_slave(vrt)) continue;
 			for (int d=0;d<dim;d++){
-				uLagrange.inner_multi_indices(vrt, d, multInd);
+				uLagrange.inner_dof_indices(vrt, d, multInd);
 				DoFRef(uLagrange,multInd[0])/=m_acVolume[vrt];
 			}
 		}
@@ -270,7 +270,7 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 			{
 				for (int d=0;d<dim;d++){
 					//	get indices of function fct on vertex
-					u.multi_indices(sides[s], d, multInd);
+					u.dof_indices(sides[s], d, multInd);
 					//	read value of index from vector
 					uValue[s][d]=DoFRef(u,multInd[0]);
 				}
@@ -289,7 +289,7 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 
 				localvort*=vol;
 
-				vort.multi_indices(sides[s], 0, multInd);
+				vort.dof_indices(sides[s], 0, multInd);
 				DoFRef(vort,multInd[0])+=localvort;
 				m_acVolume[sides[s]] += vol;
 			}
@@ -304,7 +304,7 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 			side_type* elem = *sideIter;
 			// if periodic slave continue
 			if (pbm && pbm->is_slave(elem)) continue;
-			vort.multi_indices(elem, 0, multInd);
+			vort.dof_indices(elem, 0, multInd);
 			DoFRef(vort,multInd[0])/=m_acVolume[elem];
 			if (DoFRef(vort,multInd[0])*DoFRef(vort,multInd[0])>maxvort*maxvort){
 				maxvort = DoFRef(vort,multInd[0]);
@@ -407,7 +407,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 			{
 				for (int d=0;d<dim;d++){
 					//	get indices of function fct on vertex
-					u.multi_indices(elem->vertex(co), d, multInd);
+					u.dof_indices(elem->vertex(co), d, multInd);
 					//	read value of index from vector
 					uValue[co][d]=DoFRef(u,multInd[0]);
 				}
@@ -426,7 +426,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 
 				localvort*=vol;
 
-				vort.multi_indices(elem->vertex(co), 0, multInd);
+				vort.dof_indices(elem->vertex(co), 0, multInd);
 				DoFRef(vort,multInd[0])+=localvort;
 				m_acVolume[elem->vertex(co)] += vol;
 			}
@@ -441,7 +441,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 			VertexBase* vrt = *vertexIter;
 			// if periodic slave continue
 			if (pbm && pbm->is_slave(vrt)) continue;
-			vort.multi_indices(vrt, 0, multInd);
+			vort.dof_indices(vrt, 0, multInd);
 			DoFRef(vort,multInd[0])/=m_acVolume[vrt];
 			if (DoFRef(vort,multInd[0])*DoFRef(vort,multInd[0])>maxvort*maxvort){
 				maxvort = DoFRef(vort,multInd[0]);
@@ -823,7 +823,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 
 							//	get multiindices of element
 							std::vector<DoFIndex> ind;  // 	aux. index array
-							u.multi_indices(elem, 0, ind);
+							u.dof_indices(elem, 0, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
 							for(size_t sh = 0; sh < num_sh; ++sh)
@@ -871,7 +871,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 
 							//	get multiindices of element
 							std::vector<DoFIndex> ind;  // 	aux. index array
-							u.multi_indices(elem, 1, ind);
+							u.dof_indices(elem, 1, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
 							for(size_t sh = 0; sh < num_sh; ++sh)
@@ -1157,7 +1157,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 
 							//	get multiindices of element
 							std::vector<DoFIndex> ind;  // 	aux. index array
-							u.multi_indices(elem, 0, ind);
+							u.dof_indices(elem, 0, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
 							for(size_t sh = 0; sh < num_sh; ++sh)
@@ -1205,7 +1205,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 
 							//	get multiindices of element
 							std::vector<DoFIndex> ind;  // 	aux. index array
-							u.multi_indices(elem, 1, ind);
+							u.dof_indices(elem, 1, ind);
 							// 	compute approximated solution at integration point
 							interpolation = 0.0;
 							for(size_t sh = 0; sh < num_sh; ++sh)
@@ -1413,7 +1413,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 			for (size_t s=0;s<nofsides;s++){
 				MathVector<dim> localbaryV;
 				for (int d=0;d<dim;d++){
-					u.multi_indices(sides[s], d, multInd);
+					u.dof_indices(sides[s], d, multInd);
 					localbaryV[d]=DoFRef(u,multInd[0]);
 				}
 				localbaryV *= vShape[s];
@@ -1536,7 +1536,7 @@ void kineticEnergy(TGridFunction& u){
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 				MathVector<dim> localValue;
 				for (int d=0;d<dim;d++){
-					u.multi_indices(sides[s], d, multInd);
+					u.dof_indices(sides[s], d, multInd);
 					localValue[d]=DoFRef(u,multInd[0]);
 				}
 				localValue *= vShape[s];

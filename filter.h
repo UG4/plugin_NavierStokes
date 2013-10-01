@@ -37,7 +37,7 @@ void copyAttachmentToGridFunction(SmartPtr<TGridFunction> u,PeriodicAttachmentAc
 		{
 			elem_type* elem = *iter;
 			for (int d=0;d<dim;d++){
-				u->multi_indices(elem, d, multInd);
+				u->dof_indices(elem, d, multInd);
 				DoFRef(*u,multInd[0])=aaU[elem][d];
 			}
 		}
@@ -61,7 +61,7 @@ void copyGridFunctionToAttachment(PeriodicAttachmentAccessor<elem_type,Attachmen
 		{
 			elem_type* elem = *iter;
 			for (int d=0;d<dim;d++){
-				u->multi_indices(elem, d, multInd);
+				u->dof_indices(elem, d, multInd);
 				aaU[elem][d]=DoFRef(*u,multInd[0]);
 			}
 		}
@@ -178,7 +178,7 @@ void elementFilterFVCR(SmartPtr<TGridFunction> u){
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 				MathVector<dim> localValue;
 				for (int d=0;d<dim;d++){
-					u->multi_indices(sides[s], d, multInd);
+					u->dof_indices(sides[s], d, multInd);
 					localValue[d]=DoFRef(*u,multInd[0]);
 				}
 				localValue *= vShape[s];
@@ -316,7 +316,7 @@ void scvFilterFVCR(SmartPtr<TGridFunction> u){
 
 			for (size_t s=0;s<nofsides;s++){
 				for (int d=0;d<dim;d++){
-					u->multi_indices(sides[s], d, multInd);
+					u->dof_indices(sides[s], d, multInd);
 					uValue[s][d]=DoFRef(*u,multInd[0]);
 				}
 			};
@@ -469,7 +469,7 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 				const typename DimFV1Geometry<dim>::SCV& scv = geo.scv(co);
 				MathVector<dim> localValue;
 				for (int d=0;d<dim;d++){
-					u->multi_indices(elem->vertex(co), d, multInd);
+					u->dof_indices(elem->vertex(co), d, multInd);
 					localValue[d]=DoFRef(*u,multInd[0]);
 				}
 				//for debug UG_LOG("localValue=" << localValue << "\n");
@@ -600,7 +600,7 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 
 			for (size_t co=0;co<noc;co++){
 				for (int d=0;d<dim;d++){
-					u->multi_indices(elem->vertex(co), d, multInd);
+					u->dof_indices(elem->vertex(co), d, multInd);
 					uValue[co][d]=DoFRef(*u,multInd[0]);
 				}
 			};

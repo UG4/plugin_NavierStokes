@@ -479,7 +479,7 @@ class SeparatedPressureSource
 			for(  ;iter !=iterEnd; ++iter)
 			{
 				elem_type* elem = *iter;
-				m_u->inner_multi_indices(elem, _P_, multInd);
+				m_u->inner_dof_indices(elem, _P_, multInd);
 				m_pOld[elem]+=DoFRef(*m_u,multInd[0]);
 			}
 		}
@@ -806,7 +806,7 @@ class SeparatedPressureSourceInter
 			for(  ;iter !=iterEnd; ++iter)
 			{
 				elem_type* elem = *iter;
-				m_u->inner_multi_indices(elem, _P_, multInd);
+				m_u->inner_dof_indices(elem, _P_, multInd);
 				m_pOld[elem]+=DoFRef(*m_u,multInd[0]);
 			}
 		}

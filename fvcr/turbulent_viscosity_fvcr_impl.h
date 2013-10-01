@@ -50,7 +50,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::fillAttachment(aS
 		{
 			side_type* side = iter;
 			for (int d=0;d<dim;d++){
-				u->multi_indices(side, d, multInd);
+				u->dof_indices(side, d, multInd);
 				aaU[side][d]=DoFRef(*u,multInd[0]);
 			}
 		}
@@ -253,7 +253,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 				MathVector<dim> localValue;
 				for (int d=0;d<dim;d++){
-					u->multi_indices(sides[s], d, multInd);
+					u->dof_indices(sides[s], d, multInd);
 					localValue[d]=DoFRef(*u,multInd[0]);
 				}
 				//for debug UG_LOG("localValue=" << localValue << "\n");
@@ -282,7 +282,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 			{
 				side_type* side = *sideIter;
 				for (int d=0;d<dim;d++){
-					u->multi_indices(side,d, multInd);
+					u->dof_indices(side,d, multInd);
 					aaUHat[side]=DoFRef(*u,multInd[0]);
 				}
 			}
@@ -493,7 +493,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 
 			for (size_t s=0;s<nofsides;s++){
 				for (int d=0;d<dim;d++){
-					u->multi_indices(sides[s], d, multInd);
+					u->dof_indices(sides[s], d, multInd);
 					uValue[s][d]=DoFRef(*u,multInd[0]);
 				}
 			};
@@ -537,7 +537,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 			{
 				side_type* side = *sideIter;
 				for (int d=0;d<dim;d++){
-					u->multi_indices(side,d, multInd);
+					u->dof_indices(side,d, multInd);
 					aaUHat[side]=DoFRef(*u,multInd[0]);
 				}
 			}
@@ -622,7 +622,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 				{
 					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 					for (int d=0;d<dim;d++){
-						u->multi_indices(sides[s], d, multInd);
+						u->dof_indices(sides[s], d, multInd);
 						uValue[s][d]=DoFRef(*u,multInd[0]);
 					}
 					aaVol[sides[s]] += scv.volume();
@@ -894,7 +894,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSide
 			dimMat Tij;
 			MathVector<dim> uValue;
 			for (int d=0;d<dim;d++){
-				u->multi_indices(side, d, multInd);
+				u->dof_indices(side, d, multInd);
 				uValue[d]=DoFRef(*u,multInd[0]);
 			}
 			for (int d1=0;d1 < dim;d1++)
@@ -1022,11 +1022,11 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 			delta = pow(delta,(number)1.0/(number)dim);
 			number deltaHat = m_acVolumeHat[side];
 			deltaHat = pow(deltaHat,(number)1.0/(number)dim);
-			m_u->multi_indices(side, 0, multInd);
+			m_u->dof_indices(side, 0, multInd);
 			//for debug UG_LOG("--------------------------------------------------");
 			//for debug UG_LOG("co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
 			//for debug UG_LOG("u = " << DoFRef(*m_u,multInd[0]) << "\n");
-			m_u->multi_indices(side, 1, multInd);
+			m_u->dof_indices(side, 1, multInd);
 			//for debug UG_LOG("v = " << DoFRef(*m_u,multInd[0]) << "\n");
 			//for debug UG_LOG("uHat = " << m_acUHat[side] << "\n");
 			//for debug UG_LOG("deformNorm = " << FNorm(m_acDeformation[side]) << "\n");

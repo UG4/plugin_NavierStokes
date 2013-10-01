@@ -268,7 +268,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 					size_t nofsides = geo.num_scv();
 					
-					m_u->multi_indices(elem,0,ind);
+					m_u->dof_indices(elem,0,ind);
 					
 					//	loop sides
 					for (size_t s=0;s < nofsides;s++)
@@ -396,14 +396,14 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 						MathVector<dim> StdVel[maxNumSCVF];
 					
-						m_u->multi_indices(elem,0,ind);
+						m_u->dof_indices(elem,0,ind);
 
 						for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 						{
 							const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
 							VecSet(StdVel[ip], 0.0);
 							for(int d1 = 0; d1 < dim; ++d1){
-								dd->multi_indices(elem,0,ind);
+								dd->dof_indices(elem,0,ind);
 								for(size_t sh = 0; sh < sides.size(); ++sh){
 									localInd[0]=ind[sh][0]+d1;
 									StdVel[ip][d1] += DoFRef(u,localInd) * scvf.shape(sh);
@@ -455,7 +455,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 						std::vector<DoFIndex> elemInd(sides.size()+1);
 					
-						dd->inner_multi_indices(elem,_P_,ind);
+						dd->inner_dof_indices(elem,_P_,ind);
 						elemInd[0] = ind[0];
 					
 						//UG_LOG("0 " << elemInd[0] << "\n");
@@ -477,7 +477,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 								continue;
 							}
 							for (size_t i=0;i<numOfAsso;i++){
-								dd->inner_multi_indices(assoElements[i],_P_,ind);
+								dd->inner_dof_indices(assoElements[i],_P_,ind);
 								//UG_LOG(assoElements[i] << "\n");
 								if (assoElements[i]!=elem) break;
 							}
@@ -498,7 +498,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 
 						for (int d1=0;d1<dim;d1++){
-							dd->multi_indices(elem, d1 , multInd);
+							dd->dof_indices(elem, d1 , multInd);
 							for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 							{
 								// 	get current SCVF
@@ -572,7 +572,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 					typename grid_type::template traits<elem_type>::secure_container assoElements;
 					
-					dd->inner_multi_indices(elem,_P_,ind);
+					dd->inner_dof_indices(elem,_P_,ind);
 					
 					number elemValue = DoFRef(u,ind[0]);
 					
@@ -589,7 +589,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 							continue;
 						}
 						for (size_t i=0;i<numOfAsso;i++){
-							dd->inner_multi_indices(assoElements[i],_P_,ind);
+							dd->inner_dof_indices(assoElements[i],_P_,ind);
 							//UG_LOG(assoElements[i] << "\n");
 							if (assoElements[i]!=elem) break;
 						}
@@ -608,7 +608,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						pressureAddition*=s_a;						
 														
 						for (int d1=0;d1<dim;d1++){
-							dd->multi_indices(elem, d1 , multInd);
+							dd->dof_indices(elem, d1 , multInd);
 							//UG_LOG("from = " << multInd[scvf.from()] << " p = " << elemInd[sh] << "\n");
 							DoFRef(d,multInd[scvf.from()]) += pressureAddition *  scvf.normal()[d1];
 							//UG_LOG("to = " << multInd[scvf.to()] << " p = " << elemInd[sh] << "\n");
@@ -675,7 +675,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 
 					for (int d0=0;d0<dim;d0++){
 						for (size_t s=0;s<nofsides;s++){
-							dd->inner_multi_indices(sides[s], d0, multInd);
+							dd->inner_dof_indices(sides[s], d0, multInd);
 							uValue[s][d0]=DoFRef(u,multInd[0]);
 							//UG_LOG("u(" << s << "," << d0 << ") = " << uValue[s][d0] << "\n");
 						}
@@ -762,7 +762,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						sideBary /= numVertices;
 						// get velocity value in side
 						for (int d0=0;d0<dim;d0++){
-							dd->inner_multi_indices(side,d0,multInd);
+							dd->inner_dof_indices(side,d0,multInd);
 							sideValue[d0]=DoFRef(u,multInd[0]);
 						}
 						MathVector<dim> nbhoodMin;
@@ -784,7 +784,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 							// compute maximum and minimum
 							for (int d0=0;d0<dim;d0++){
 								for (size_t s=0;s<assoElementSides.size();s++){
-									dd->inner_multi_indices(assoElementSides[s], d0, multInd);
+									dd->inner_dof_indices(assoElementSides[s], d0, multInd);
 									number uValue=DoFRef(u,multInd[0]);
 									if (uValue<nbhoodMin[d0]) nbhoodMin[d0]=uValue;
 									if (uValue>nbhoodMax[d0]) nbhoodMax[d0]=uValue;
@@ -797,7 +797,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 								for (size_t j=0;j<neighbourSides.size();j++){
 									if (neighbourSides[j]==side) continue;
 									for (int d0=0;d0<dim;d0++){
-										dd->inner_multi_indices(neighbourSides[j], d0, multInd);
+										dd->inner_dof_indices(neighbourSides[j], d0, multInd);
 										number uValue=DoFRef(u,multInd[0]);
 										if (uValue<nbhoodMin[d0]) nbhoodMin[d0]=uValue;
 										if (uValue>nbhoodMax[d0]) nbhoodMax[d0]=uValue;
@@ -876,7 +876,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 
 						for(size_t sh = 0; sh < sides.size(); ++sh){
 							for(int d1 = 0; d1 < dim; ++d1){
-								dd->inner_multi_indices(sides[sh], d1, multInd);
+								dd->inner_dof_indices(sides[sh], d1, multInd);
 								StdVel[ip][d1] += DoFRef(u,multInd[0]) * scvf.shape(sh);
 							}
 						}
@@ -895,7 +895,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 						typename grid_type::template traits<elem_type>::secure_container assoElements;
 					
-						dd->inner_multi_indices(elem,dim,multInd);
+						dd->inner_dof_indices(elem,dim,multInd);
 						elemPressureValue = DoFRef(u,multInd[0]);
 					
 						for (int i=0;i<dim;i++) pGrad[i]=0;
@@ -910,7 +910,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 								continue;
 							}
 							for (size_t i=0;i<numOfAsso;i++){
-								dd->inner_multi_indices(assoElements[i],_P_,ind);
+								dd->inner_dof_indices(assoElements[i],_P_,ind);
 								//UG_LOG(assoElements[i] << "\n");
 								if (assoElements[i]!=elem) break;
 							}
@@ -943,7 +943,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						
 						for(int d1 = 0; d1 < dim; ++d1)
 						{
-//							dd->inner_multi_indices(sides[base],d1,multInd);
+//							dd->inner_dof_indices(sides[base],d1,multInd);
 //							number upwindVel = DoFRef(u,multInd[0]);
 							number upwindVel = 0;
 							VecSubtract(distVec, scvf.global_ip(),geo.scv(base).global_ip());
@@ -953,7 +953,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 								upwindVel+=(acGrad[sides[base]])[d1][d2]*distVec[d2];
 							}
 						//	UG_LOG("upv(" << ip+1 << "," << d1+1 << ")=" << upwindVel << "\n");
-							dd->multi_indices(elem,d1,multInd);
+							dd->dof_indices(elem,d1,multInd);
 							DoFRef(d,multInd[scvf.from()]) += upwindVel * flux;
 							DoFRef(d,multInd[scvf.to()]) -= upwindVel * flux;
 							
