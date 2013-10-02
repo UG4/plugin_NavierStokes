@@ -25,6 +25,9 @@
 
 #include "lib_disc/function_spaces/grid_function.h"
 
+#include "transforming_smoother.h"
+#include "lib_algebra/operator/debug_writer.h"
+
 using namespace std;
 using namespace ug::bridge;
 
@@ -111,6 +114,19 @@ static void DomainAlgebra(Registry& reg, string grp)
 	// filter data
 	{
 		reg.add_function("filter", static_cast<void (*)(SmartPtr<function_type>,const std::string&)>(&filter), grp);
+	}
+
+
+//	AssembledTransformingSmoother
+	{
+		typedef AssembledTransformingSmoother<TDomain, TAlgebra> T;
+		typedef ILinearIterator<typename TAlgebra::vector_type> TBase;
+		typedef DebugWritingObject<TAlgebra> TBase2;
+		string name = string("AssembledTransformingSmoother").append(suffix);
+		reg.add_class_<T, TBase, TBase2>(name, grp)
+			.template add_constructor<void (*)(SmartPtr<IAssemble<TAlgebra> >, SmartPtr<IAssemble<TAlgebra> >, SmartPtr<ILinearIterator<typename TAlgebra::vector_type> >)>("RightTrafoAss, TrafoSystemAss, Smoother")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "AssembledTransformingSmoother", tag);
 	}
 }
 
