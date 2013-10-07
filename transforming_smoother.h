@@ -118,7 +118,9 @@ apply_update_defect(vector_type &c, vector_type& d)
 //	apply right-transformation
 	m_spRightTrafoMat->apply(c, *y);
 
+#ifdef UG_PARALLEL
 	c.change_storage_type(PST_CONSISTENT);
+#endif
 
 	const number damp = this->damping()->damping();
 	c *= damp;
