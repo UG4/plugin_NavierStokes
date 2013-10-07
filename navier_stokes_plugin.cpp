@@ -144,7 +144,6 @@ static void Algebra(Registry& reg, string grp)
 {
 	string suffix = GetAlgebraSuffix<TAlgebra>();
 	string tag = GetAlgebraTag<TAlgebra>();
-	
 }
 
 /**

@@ -37,6 +37,56 @@ template <> struct face_type_traits<3>
 	typedef ReferenceQuadrilateral face_type1;
 };
 
+// parameters:
+// secure_container& sides : as given by associated_elements collection computed beforehand
+// const TGridFunction& u : grid function
+// std::vector<MultiIndex<2> > multInd : constrained dof_indices computed beforehand
+// size_t fct, specifies funtion used in multi index computation, default 0
+template<typename side_type,typename secure_container,typename TGridFunction>
+	void get_constrained_sides_cr(secure_container& sides,const TGridFunction& u,std::vector<MultiIndex<2> > multInd,size_t fct = 0){
+	size_t nOfSides = sides.size();
+	ConstrainingEdge* cEdge=NULL;
+	ConstrainingFace* cFace=NULL;
+	EdgeBase* edge;
+	Face* face;
+	size_t nc;
+	///	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+	///	world dimension
+	static const int dim = domain_type::dim;
+	///	create Multiindex
+	std::vector<MultiIndex<2> > seMultInd;
+	for (size_t i=0;i<nOfSides;i++){
+		if (dim==2){
+			cEdge = dynamic_cast<ConstrainingEdge*>(sides[i]);
+			if (cEdge==NULL) continue;
+			nc = cEdge->num_constrained_edges();
+			cEdge->constrained_edge(0);
+		}
+		else{
+			cFace = dynamic_cast<ConstrainingFace*>(sides[i]);
+			if (cFace==NULL) continue;
+			nc = cFace->num_constrained_faces();
+		}
+		for (size_t k=0;k<nc;k++){
+			if (dim==2){
+				edge = dynamic_cast<EdgeBase*>(cEdge->constrained_edge(k));
+				u.inner_dof_indices(edge,fct,seMultInd);
+			} else {
+				face = 	dynamic_cast<Face*>(cFace->constrained_face(k));
+				u.inner_dof_indices(face,fct,seMultInd);
+			}
+			for(size_t j=nOfSides;j<multInd.size();j++){
+				if (multInd[j][0]==seMultInd[0][0]){
+					if (dim==2) sides.push_back(dynamic_cast<side_type*>(edge));
+					else sides.push_back(dynamic_cast<side_type*>(face));
+					break;
+				}
+			}
+		}
+	}
+}
+
 template <typename TGridFunction>
 class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domain_type, typename TGridFunction::algebra_type>
 {
@@ -126,6 +176,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		ISubsetHandler* m_ish;
 		// zero gradient subset group
 		SubsetGroup m_zeroGradSg;
+		
 	public:
 		void init(SmartPtr<TGridFunction> u,bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive,bool bLimiter){
 			m_u = u;
@@ -530,9 +581,11 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			//	create Multiindex
 			std::vector<DoFIndex> multInd;
 			
-			position_accessor_type aaPos = m_u->domain()->position_accessor();
+			position_accessor_type aaPos =  m_u->domain()->position_accessor();
 			
-			typename grid_type::template traits<side_type>::secure_container sides;
+			typedef typename grid_type::template traits<side_type>::secure_container secure_container;
+			
+			secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
 			std::vector<DoFIndex> ind;
 
@@ -552,6 +605,18 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem );
+					
+					size_t sidesNaturalSize = sides.size();
+					
+					if (!m_bAdaptive)
+						geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
+					else{
+						geo.update_hanging(elem, &(vCorner[0]), domain.subset_handler().get(),true);
+						if (geo.num_constrained_dofs()>0){
+							dd->dof_indices(elem,0,ind,true,true);
+							get_constrained_sides_cr<side_type,secure_container,TGridFunction>(sides,*m_u,ind);
+						}
+					}
 					
 					// leave out boundary elements if boundaries were specified
 					if (m_zeroGradSg.size()>0){
@@ -578,20 +643,28 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 					MathVector<dim> grad;
 					grad *= 0;
-
-					for (size_t s=0;s<sides.size();s++){
+					
+					for (size_t i=0;i<geo.num_scv();i++){
+						const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+						size_t s = scv.node_id();
 						m_grid->template associated_elements(assoElements,sides[s]);
-						// face value is average of associated elements
 						size_t numOfAsso = assoElements.size();
-						const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 						if (numOfAsso==1){
-							for (int d=0;d<dim;d++) grad[d]+=scv.normal()[d]*elemValue;
-							continue;
-						}
-						for (size_t i=0;i<numOfAsso;i++){
-							dd->inner_dof_indices(assoElements[i],_P_,ind);
-							//UG_LOG(assoElements[i] << "\n");
-							if (assoElements[i]!=elem) break;
+							if (m_bAdaptive){
+								// hanging node subedge case, only associated element is neighbour
+								if (s>=sidesNaturalSize){
+									dd->inner_dof_indices(assoElements[0],_P_,ind);
+								}
+							} else {
+								for (int d=0;d<dim;d++) grad[d]+=scv.normal()[d]*elemValue;
+								continue;
+							}
+						} else {
+							for (size_t i=0;i<numOfAsso;i++){
+								dd->inner_dof_indices(assoElements[i],_P_,ind);
+								//UG_LOG(assoElements[i] << "\n");
+								if (assoElements[i]!=elem) break;
+							}
 						}
 						for (int d=0;d<dim;d++) grad[d]+=0.5*(elemValue+DoFRef(u,ind[0]))*scv.normal()[d];
 					}
@@ -629,7 +702,9 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			
 			position_accessor_type posAcc = m_u->domain()->position_accessor();
 			
-			typename grid_type::template traits<side_type>::secure_container sides;
+			typedef typename grid_type::template traits<side_type>::secure_container secure_container;
+			
+			secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
 			std::vector<DoFIndex> ind;
 
@@ -652,29 +727,32 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					//	get Elem
 					elem_type* elem = *iter;
 					
-					//  get sides of element
-					m_grid->template associated_elements_sorted(sides, elem );
-					
 					//	get corners of element
 					CollectCornerCoordinates(vCorner, *elem, posAcc);
 					
 					//	evaluate finite volume geometry
-					geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
-					
+					if (!m_bAdaptive)
+						geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
+					else
+						geo.update_hanging(elem, &(vCorner[0]), domain.subset_handler().get(),true);
+						
 					static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 
 					MathMatrix<maxNumSCVF,dim> uValue;
 
-					typename grid_type::template traits<side_type>::secure_container sides;
-
 					UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
 
 					domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
-
-					size_t nofsides = geo.num_scv();
-
+					
+					size_t nNaturalSides = sides.size();
+					
+					if (geo.num_constrained_dofs()>0){
+						dd->dof_indices(elem,0,ind,true,true);
+						get_constrained_sides_cr<side_type,secure_container>(sides,*m_u,multInd,0);
+					}
+					
 					for (int d0=0;d0<dim;d0++){
-						for (size_t s=0;s<nofsides;s++){
+						for (size_t s=0;s<nNaturalSides;s++){
 							dd->inner_dof_indices(sides[s], d0, multInd);
 							uValue[s][d0]=DoFRef(u,multInd[0]);
 							//UG_LOG("u(" << s << "," << d0 << ") = " << uValue[s][d0] << "\n");
@@ -684,12 +762,16 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					//	storage for global gradient
 					MathMatrix<dim,dim> globalGrad;
 					for (int d=0;d<dim;d++) for (int d1=0;d1<dim;d1++) globalGrad[d][d1]=0;
+					
+					size_t nofsides = geo.num_scv();
 
 					//	loop sides
-					for (size_t s=0;s < nofsides;s++)
+					for (size_t i=0;i < nofsides;i++)
 					{
 						//	get scv for sh
-						const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+						const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+						
+						size_t s = scv.node_id();
 
 						//	reset global gradient
 						for (int d0=0;d0<dim;d0++)
@@ -769,7 +851,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						MathVector<dim> nbhoodMax;
 						for (int d=0;d<dim;d++) nbhoodMin[d] = sideValue[d];
 						for (int d=0;d<dim;d++) nbhoodMax[d] = sideValue[d];
-						typename grid_type::template traits<side_type>::secure_container assoElementSides;
+						secure_container assoElementSides;
 						// compute max/min over associated elements
 						for (size_t el=0;el<assoElements.size();el++){
 							//  get sides of element
@@ -792,7 +874,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 							}
 							// also use neighbour sides of given side
 							for (size_t i=0;i<side->num_vertices();i++){
-								typename grid_type::template traits<side_type>::secure_container neighbourSides;
+								secure_container neighbourSides;
 								m_grid->template associated_elements(neighbourSides,side);
 								for (size_t j=0;j<neighbourSides.size();j++){
 									if (neighbourSides[j]==side) continue;
@@ -855,6 +937,8 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					//  get sides of element
 					m_grid->template associated_elements_sorted(sides, elem);
 					
+					size_t sidesNaturalSize = sides.size();
+					
 					// leave out boundary elements if boundaries were specified
 					if (m_zeroGradSg.size()>0){
 						if (zeroGradBndElem(sides)) continue;
@@ -864,8 +948,16 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					CollectCornerCoordinates(vCorner, *elem, posAcc);
 					
 					//	evaluate finite volume geometry
-					geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
-									
+					if (!m_bAdaptive)
+						geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
+					else{
+						geo.update_hanging(elem, &(vCorner[0]), domain.subset_handler().get(),true);
+						if (geo.num_constrained_dofs()>0){
+							dd->dof_indices(elem,0,ind,true,true);
+							get_constrained_sides_cr<side_type,secure_container>(sides,*m_u,ind);
+						}
+					}
+					
 					static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 					MathVector<dim> StdVel[maxNumSCVF];
 
@@ -900,19 +992,27 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 						for (int i=0;i<dim;i++) pGrad[i]=0;
 					
-						for (size_t s=0;s<sides.size();s++){
+						for (size_t i=0;i<geo.num_scv();i++){
+							const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+							size_t s = scv.node_id();
 							m_grid->template associated_elements(assoElements,sides[s]);
-							// face value is average of associated elements
 							size_t numOfAsso = assoElements.size();
-							const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
 							if (numOfAsso==1){
-								for (int d=0;d<dim;d++) pGrad[d]+=scv.normal()[d]*elemPressureValue;
-								continue;
-							}
-							for (size_t i=0;i<numOfAsso;i++){
-								dd->inner_dof_indices(assoElements[i],_P_,ind);
-								//UG_LOG(assoElements[i] << "\n");
-								if (assoElements[i]!=elem) break;
+								if (m_bAdaptive){
+									// hanging node subedge case, only associated element is neighbour
+									if (s>=sidesNaturalSize){
+										dd->inner_dof_indices(assoElements[0],_P_,ind);
+									}
+								} else {
+									for (int d=0;d<dim;d++) pGrad[d]+=scv.normal()[d]*elemPressureValue;
+									continue;
+								}
+							} else {
+								for (size_t i=0;i<numOfAsso;i++){
+									dd->inner_dof_indices(assoElements[i],_P_,ind);
+									//UG_LOG(assoElements[i] << "\n");
+									if (assoElements[i]!=elem) break;
+								}
 							}
 							for (int d=0;d<dim;d++) pGrad[d]+=0.5*(elemPressureValue+DoFRef(u,ind[0]))*scv.normal()[d];
 						}
