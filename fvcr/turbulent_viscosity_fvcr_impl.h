@@ -57,6 +57,96 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::fillAttachment(aS
 	}
 }
 
+template <typename TGridFunction,typename side_type,typename VType>
+void constrainedSideAveraging(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaData,SmartPtr<TGridFunction> m_uInfo){
+	//	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+	typedef typename domain_type::grid_type grid_type;
+	static const int dim = domain_type::dim;
+	/// side iterator
+	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	domain_type& domain = *m_uInfo->domain().get();
+	DimCRFVGeometry<dim> geo;
+	ConstrainingEdge* cEdge=NULL;
+	ConstrainingFace* cFace=NULL;
+	position_accessor_type posAcc = m_uInfo->domain()->position_accessor();
+	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
+	{
+		SideIterator sideIter = m_uInfo->template begin<side_type>(si);
+		SideIterator sideIterEnd = m_uInfo->template end<side_type>(si);
+		if (dim==2){
+			for(  ;sideIter !=sideIterEnd; ++sideIter){
+				cEdge = dynamic_cast<ConstrainingEdge*>(*sideIter);
+				if (cEdge==NULL) continue;
+				elem_type* elem;
+				typename grid_type::template traits<elem_type>::secure_container assoElements;
+				typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+				side_secure_container sides;
+				// get associated element
+				domain.grid()->template associated_elements(assoElements,*sideIter);
+				domain.grid()->template associated_elements_sorted(sides, elem);
+				std::vector<DoFIndex> ind;
+				m_uInfo->dof_indices(elem,0,ind,true,true);
+				get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,ind);
+				elem = assoElements[0];
+				std::vector<MathVector<dim> > vCorner;
+				CollectCornerCoordinates(vCorner, *elem, posAcc);
+				geo.update_hanging(elem, &(vCorner[0]), domain.subset_handler().get());
+				for (size_t i=0;i<geo.num_constrained_dofs();i++){
+					const typename DimCRFVGeometry<dim>::CONSTRAINED_DOF& cd = geo.constrained_dof(i);
+					const size_t index = cd.index();
+					if (dynamic_cast<EdgeBase*>(sides[index])!=dynamic_cast<EdgeBase*>(*sideIter)) continue;
+					VType averagedValue;
+					for (size_t j=0;j<cd.num_constraining_dofs();j++){
+						VType localValue;
+						size_t cdIndex = cd.constraining_dofs_index(j);
+						localValue = aaData[sides[cdIndex]];
+						localValue *= cd.constraining_dofs_weight(j);
+						averagedValue += localValue;
+					}
+					aaData[sides[index]] = averagedValue;
+				}
+			}
+		} else {
+			for(  ;sideIter !=sideIterEnd; ++sideIter){
+				cFace = dynamic_cast<ConstrainingFace*>(*sideIter);
+				if (cFace==NULL) continue;
+				elem_type* elem;
+				typename grid_type::template traits<elem_type>::secure_container assoElements;
+				typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+				side_secure_container sides;
+				// get associated element
+				domain.grid()->template associated_elements(assoElements,*sideIter);
+				domain.grid()->template associated_elements_sorted(sides, elem);
+				std::vector<DoFIndex> ind;
+				m_uInfo->dof_indices(elem,0,ind,true,true);
+				get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,ind);
+				elem = assoElements[0];
+				std::vector<MathVector<dim> > vCorner;
+				CollectCornerCoordinates(vCorner, *elem, posAcc);
+				geo.update_hanging(elem, &(vCorner[0]), domain.subset_handler().get());
+				for (size_t i=0;i<geo.num_constrained_dofs();i++){
+					const typename DimCRFVGeometry<dim>::CONSTRAINED_DOF& cd = geo.constrained_dof(i);
+					const size_t index = cd.index();
+					if (dynamic_cast<Face*>(sides[index])!=dynamic_cast<Face*>(*sideIter)) continue;
+					VType averagedValue;
+					for (size_t j=0;j<cd.num_constraining_dofs();j++){
+						VType localValue;
+						size_t cdIndex = cd.constraining_dofs_index(j);
+						localValue = aaData[sides[cdIndex]];
+						localValue *= cd.constraining_dofs_weight(j);
+						averagedValue += localValue;
+					}
+					aaData[sides[index]] = averagedValue;
+				}
+			}
+		}
+	}
+}
+
+
 // go over all elements, interpolate data to barycenter, average by multiplying with corresponding element volume and deviding by complete adjacent element volume
 // parameters: filtered values, filter volume (computed in function), original values
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
@@ -114,17 +204,26 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 
 			map.global_to_local(localBary,bary);
 
-			typename grid_type::template traits<side_type>::secure_container sides;
+			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+			side_secure_container sides;
 
 			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+			if (m_bAdaptive){
+				std::vector<DoFIndex> ind;
+				m_uInfo->dof_indices(elem,0,ind,true,true);
+				get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,ind);
+			}
 
 			//	memory for shapes
 			std::vector<number> vShape;
 
 			//	evaluate finite volume geometry
-			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			if (!m_bAdaptive)
+				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			else
+				geo.update_hanging(elem, &(coCoord[0]), domain.subset_handler().get());
 
 			rTrialSpace.shapes(vShape, localBary);
 
@@ -133,8 +232,9 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 			VType value;
 			value = 0;
 			number elementVolume = 0;
-			for (size_t s=0;s<nofsides;s++){
-				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+			for (size_t i=0;i<nofsides;i++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+				size_t s = scv.node_id();
 				VType localValue = aaU[sides[s]];
 				//for debug UG_LOG(localValue << "\n");
 				localValue *= vShape[s];
@@ -167,10 +267,13 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 			{
 				side_type* side = *sideIter;
 				if (pbm && pbm->is_slave(side)) continue;
+				// constrained edges
+				if (aaVol[side]==0) continue;
 				aaUHat[side]/=(number)aaVol[side];
 			}
 		}
 	}
+	if (m_bAdaptive) constrainedSideAveraging<TGridFunction,side_type,VType>(aaUHat,m_uInfo);
 }
 
 // go over all elements, interpolate data to barycenter, average by multiplying with corresponding element volume and deviding by complete adjacent element volume
@@ -230,17 +333,26 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 
 			map.global_to_local(localBary,bary);
 
-			typename grid_type::template traits<side_type>::secure_container sides;
+			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+			side_secure_container sides;
 
 			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+			if (m_bAdaptive){
+				std::vector<DoFIndex> ind;
+				m_uInfo->dof_indices(elem,0,ind,true,true);
+				get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,ind);
+			}
 
 			//	memory for shapes
 			std::vector<number> vShape;
 
 			//	evaluate finite volume geometry
-			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			if (!m_bAdaptive)
+				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			else
+				geo.update_hanging(elem, &(coCoord[0]), domain.subset_handler().get());
 
 			rTrialSpace.shapes(vShape, localBary);
 

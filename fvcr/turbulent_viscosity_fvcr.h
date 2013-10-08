@@ -20,6 +20,7 @@
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
 #include "lib_grid/tools/periodic_boundary_manager.h"
 #include "lib_grid/algorithms/attachment_util.h"
+#include "disc_constraint_fvcr.h"
 
 #ifdef UG_FOR_LUA
 #include "bindings/lua/lua_user_data.h"
@@ -159,6 +160,8 @@ class StdTurbulentViscosityData
 
 	// subset group
 	SubsetGroup m_turbZeroSg;
+
+	bool m_bAdaptive;
 };
 
 
@@ -351,6 +354,8 @@ class CRSmagorinskyTurbViscData
 	}
 
 	static const size_t max_number_of_ips = 20;
+	
+	bool m_bAdaptive;
 
 	void update();
 
@@ -612,6 +617,8 @@ class CRDynamicTurbViscData
 	bool m_spaceFilter;
 	bool m_timeFilter;
 	number m_timeFilterEps;
+	
+	bool m_bAdaptive;
 
 	void update();
 
