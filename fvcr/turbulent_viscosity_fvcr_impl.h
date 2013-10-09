@@ -283,7 +283,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 	domain_type& domain = *m_uInfo->domain().get();
 	DimCRFVGeometry<dim> geo;
 
-	 std::vector<DoFIndex> multInd;
+	std::vector<DoFIndex> multInd;
 
 	// set attachment values to zero
 	SetAttachmentValues(aaUHat , m_uInfo->template begin<side_type>(), m_uInfo->template end<side_type>(), 0);
@@ -408,6 +408,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(aSi
 			}
 		}
 	}
+	if (m_bAdaptive) constrainedSideAveraging<TGridFunction,side_type,vecDim>(aaUHat,m_uInfo);
 }
 
 // go over all elements, interpolate data to scv barycenter, average by multiplying with corresponding scv volume and deviding by volume of complete control volume
@@ -466,38 +467,46 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 
 			map.global_to_local(localBary,bary);
 
-			typename grid_type::template traits<side_type>::secure_container sides;
+			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+			side_secure_container sides;
 
 			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
 			//	evaluate finite volume geometry
-			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			if (!m_bAdaptive){
+				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			} else {
+				geo.update_hanging(elem, &(coCoord[0]), domain.subset_handler().get());
+				if (geo.num_constrained_dofs()>0){
+					std::vector<DoFIndex> multInd;
+					m_uInfo->dof_indices(elem,0,multInd,true,true);
+					get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,multInd);
+				}
+			}
 
-			size_t nofsides = geo.num_scv();
+			size_t nNaturalSides = geo.num_sh();
+			size_t nSides = geo.num_scv();
 
 			MathVector<dim> scvBary,scvLocalBary;
-			for (size_t s=0;s<nofsides;s++){
-				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+			for (size_t i=0;i<nSides;i++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+				size_t s = geo.node_id();
 				scvBary = 0;
-				size_t numScvVertices = sides[s]->num_vertices();
 				// compute barycenter of scv (average of side corner nodes + element bary)
-				for (size_t i=0;i<numScvVertices;i++){
-					scvBary += posAcc[sides[s]->vertex(i)];
+				for (size_t j=0;j<scv.num_corners();j++){
+					scvBary += scv.global_corner(j);
 				}
-				scvBary += bary;
-				scvBary/=(numScvVertices+1);
+				scvBary/=(number)scv.num_corners();
 				map.global_to_local(scvLocalBary,scvBary);
 				//	memory for shapes
 				std::vector<number> vShape;
 				rTrialSpace.shapes(vShape, scvLocalBary);
 				VType localValue = 0;
-
-				for (size_t j=0;j<nofsides;j++){
+				for (size_t j=0;j<nNaturalSides;j++){
 					localValue += vShape[j]*aaU[sides[j]];
 				}
-
 				localValue *= scv.volume();
 				aaVol[sides[s]]  += scv.volume();
 				aaUHat[sides[s]] += localValue;
@@ -527,6 +536,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 			}
 		}
 	}
+	if (m_bAdaptive) constrainedSideAveraging<TGridFunction,side_type,VType>(aaUHat,m_uInfo);
 }
 
 // go over all elements, interpolate data to scv barycenter, average by multiplying with corresponding scv volume and deviding by volume of complete control volume
@@ -587,23 +597,33 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 
 			map.global_to_local(localBary,bary);
 
-			typename grid_type::template traits<side_type>::secure_container sides;
+			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+			side_secure_container sides;
 
 			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
 			//	evaluate finite volume geometry
-			geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			if (!m_bAdaptive){
+				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+			} else {
+				geo.update_hanging(elem, &(coCoord[0]), domain.subset_handler().get());
+				if (geo.num_constrained_dofs()>0){
+					m_uInfo->dof_indices(elem,0,multInd,true,true);
+					get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,multInd);
+				}
+			}
 
-			size_t nofsides = geo.num_scv();
+			size_t nNaturalSides = geo.num_sh();
+			size_t nSides = geo.num_scv();
 
 			static const size_t MaxNumSidesOfElem = 10;
 
 			typedef MathVector<dim> MVD;
 			std::vector<MVD> uValue(MaxNumSidesOfElem);
 
-			for (size_t s=0;s<nofsides;s++){
+			for (size_t s=0;s<nNaturalSides;s++){
 				for (int d=0;d<dim;d++){
 					u->dof_indices(sides[s], d, multInd);
 					uValue[s][d]=DoFRef(*u,multInd[0]);
@@ -611,25 +631,24 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 			};
 
 			MathVector<dim> scvBary,scvLocalBary;
-			for (size_t s=0;s<nofsides;s++){
-				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
+			for (size_t i=0;i<nSides;i++){
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+				size_t s = geo.node_id();
 				scvBary = 0;
-				size_t numScvVertices = sides[s]->num_vertices();
 				// compute barycenter of scv (average of side corner nodes + element bary)
-				for (size_t i=0;i<numScvVertices;i++){
-					scvBary += posAcc[sides[s]->vertex(i)];
+				for (size_t j=0;j<geo.num_corners();j++){
+					scvBary += geo.global_corner(j);
 				}
-				scvBary += bary;
-				scvBary/=(numScvVertices+1);
+				scvBary/=(number)geo.num_corners();
 				map.global_to_local(scvLocalBary,scvBary);
 				//	memory for shapes
 				std::vector<number> vShape;
 				rTrialSpace.shapes(vShape, scvLocalBary);
 				MathVector<dim> localValue = 0;
 
-				for (size_t j=0;j<nofsides;j++)
+				for (size_t j=0;j<nNaturalSides;j++)
 					for (int d=0;d<dim;d++)
-//						localValue[d] += vShape[j]*uValue[j][d];
+						localValue[d] += vShape[j]*uValue[j][d];
 
 				localValue *= scv.volume();
 				aaVol[sides[s]]  += scv.volume();
@@ -663,6 +682,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(aSideDi
 			}
 		}
 	}
+	if (m_bAdaptive) constrainedSideAveraging<TGridFunction,side_type,vecDim>(aaUHat,m_uInfo);
 }
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
@@ -695,85 +715,99 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-			//	get iterators
-			ElemIterator iter = u->template begin<elem_type>(si);
-			ElemIterator iterEnd = u->template end<elem_type>(si);
+		//	get iterators
+		ElemIterator iter = u->template begin<elem_type>(si);
+		ElemIterator iterEnd = u->template end<elem_type>(si);
 
-			//	loop elements of dimension
-			for(  ;iter !=iterEnd; ++iter)
-			{
-				//	get Elem
-				elem_type* elem = *iter;
-				//	get vertices and extract corner coordinates
-				const size_t numVertices = elem->num_vertices();
-				for(size_t i = 0; i < numVertices; ++i){
-					vVrt[i] = elem->vertex(i);
-					coCoord[i] = posAcc[vVrt[i]];
-				};
+		//	loop elements of dimension
+		for(  ;iter !=iterEnd; ++iter)
+		{
+			//	get Elem
+			elem_type* elem = *iter;
+			//	get vertices and extract corner coordinates
+			const size_t numVertices = elem->num_vertices();
+			for(size_t i = 0; i < numVertices; ++i){
+				vVrt[i] = elem->vertex(i);
+				coCoord[i] = posAcc[vVrt[i]];
+			};
 
-				//	evaluate finite volume geometry
+			static const size_t MaxNumSidesOfElem = 10;
+
+			typedef MathVector<dim> MVD;
+			std::vector<MVD> uValue(MaxNumSidesOfElem);
+			MVD ipVelocity;
+
+			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+			side_secure_container sides;
+
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+
+			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+				
+			//	evaluate finite volume geometry
+			if (!m_bAdaptive){
 				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
-
-				static const size_t MaxNumSidesOfElem = 10;
-
-				typedef MathVector<dim> MVD;
-				std::vector<MVD> uValue(MaxNumSidesOfElem);
-				MVD ipVelocity;
-
-				typename grid_type::template traits<side_type>::secure_container sides;
-
-				UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
-
-				domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
-
-				size_t nofsides = geo.num_scv();
-
-				size_t nip = geo.num_scvf();
-
-				for (size_t s=0;s < nofsides;s++)
-				{
-					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
-					for (int d=0;d<dim;d++){
-						u->dof_indices(sides[s], d, multInd);
-						uValue[s][d]=DoFRef(*u,multInd[0]);
-					}
-					aaVol[sides[s]] += scv.volume();
+			} else {
+				geo.update_hanging(elem, &(coCoord[0]), domain.subset_handler().get());
+				if (geo.num_constrained_dofs()>0){
+					m_uInfo->dof_indices(elem,0,multInd,true,true);
+					get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,multInd);
 				}
+			}
 
-				for (size_t ip=0;ip<nip;ip++){
-					// 	get current SCVF
-					ipVelocity = 0;
-					const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
-					for (size_t s=0;s < nofsides;s++){
-						for (int d=0;d<dim;d++){
-						    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
-						};
+			size_t nNaturalSides = geo.num_sh();
+			size_t nSides = geo.num_scv();
+			size_t nip = geo.num_scvf();
+				
+			for (size_t s=0;s < nNaturalSides;s++){
+				for (int d=0;d<dim;d++){
+					u->dof_indices(sides[s], d, multInd);
+					uValue[s][d]=DoFRef(*u,multInd[0]);
+				}
+			}
+				
+			for (size_t i=0;i < nSides;i++)
+			{
+				const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+				size_t s = scv.node_id();
+				aaVol[sides[s]] += scv.volume();
+			}
+
+			for (size_t ip=0;ip<nip;ip++){
+				// 	get current SCVF
+				ipVelocity = 0;
+				const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
+				for (size_t s=0;s < nNaturalSides;s++){
+					for (int d=0;d<dim;d++){
+					    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
 					};
-					dimMat ipDefTensorFlux;
-					ipDefTensorFlux = 0;
+				};
+				dimMat ipDefTensorFlux;
+				ipDefTensorFlux = 0;
+				for (int i=0;i<dim;i++){
+					for (int j=0;j<dim;j++){
+						ipDefTensorFlux[i][j]= 0.5 * (ipVelocity[i] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[i]);
+					}
+				}
+				aaDefTensor[sides[scvf.from()]]+=ipDefTensorFlux;
+				aaDefTensor[sides[scvf.to()]]-=ipDefTensorFlux;
+			}
+			for(size_t sgi = 0; sgi < this->m_turbZeroSg.size(); ++sgi){
+				const size_t sgsi=this->m_turbZeroSg[sgi];
+				if (geo.num_bf(sgsi) == 0) continue;
+				for(size_t bfi = 0; bfi < geo.num_bf(sgsi); ++bfi){
+					const typename DimCRFVGeometry<dim>::BF& bf = geo.bf(sgsi, bfi);
+					const size_t sideID = bf.node_id();
 					for (int i=0;i<dim;i++){
 						for (int j=0;j<dim;j++){
-							ipDefTensorFlux[i][j]= 0.5 * (ipVelocity[i] * scvf.normal()[j] + ipVelocity[j] * scvf.normal()[i]);
+							// bf ip and u position are identical for CR-FV-Geometry
+							//for debug UG_LOG("[" << i << "," << j << "]" <<  0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]) << "\n");
+							aaDefTensor[sides[sideID]][i][j] -= 0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]);
 						}
-					}
-					aaDefTensor[sides[scvf.from()]]+=ipDefTensorFlux;
-					aaDefTensor[sides[scvf.to()]]-=ipDefTensorFlux;
-				}
-				for(size_t sgi = 0; sgi < this->m_turbZeroSg.size(); ++sgi){
-					const size_t sgsi=this->m_turbZeroSg[sgi];
-					if (geo.num_bf(sgsi) == 0) continue;
-					for(size_t bfi = 0; bfi < geo.num_bf(sgsi); ++bfi){
-						const typename DimCRFVGeometry<dim>::BF& bf = geo.bf(sgsi, bfi);
-						const size_t sideID = bf.node_id();
-						for (int i=0;i<dim;i++)
-							for (int j=0;j<dim;j++){
-								// bf ip and u position are identical for CR-FV-Geometry
-								//for debug UG_LOG("[" << i << "," << j << "]" <<  0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]) << "\n");
-								aaDefTensor[sides[sideID]][i][j] -= 0.5 * (uValue[sideID][i] * bf.normal()[j] + uValue[sideID][j] * bf.normal()[i]);
-							}
 					}
 				}
 			}
+		}
 	}
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
@@ -787,9 +821,9 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 			if (pbm && pbm->is_slave(side)) continue;
 			aaDefTensor[side]/=(number)aaVol[side];
 			//for debug UG_LOG("$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-			MathVector<dim> posCo;
-						for (int d=0;d<dim;d++)
-										posCo[d] = 0.5*posAcc[side->vertex(0)][d] + 0.5*posAcc[side->vertex(1)][d];
+		//	MathVector<dim> posCo;
+		//				for (int d=0;d<dim;d++)
+		//								posCo[d] = 0.5*posAcc[side->vertex(0)][d] + 0.5*posAcc[side->vertex(1)][d];
 						//for debug UG_LOG(" c=" << posCo << "\n");
 		//for debug				for (int d1=0;d1<dim;d1++)
 		//for debug					for (int d2=0;d2<dim;d2++)
@@ -797,6 +831,8 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 			//for debug UG_LOG(" norm=" << FNorm(aaDefTensor[side]) << "\n");
 		}
 	}
+	// handle constrained sides
+	if (m_bAdaptive) constrainedSideAveraging<TGridFunction,side_type,dimMat>(aaDefTensor,m_uInfo);
 }
 
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
@@ -869,30 +905,42 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 					// //for debug UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
 				};
 
-				//	evaluate finite volume geometry
-				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
-
 				static const size_t MaxNumSidesOfElem = 10;
 
 				typedef MathVector<dim> MVD;
 				std::vector<MVD> uValue(MaxNumSidesOfElem);
 				MVD ipVelocity;
 
-				typename grid_type::template traits<side_type>::secure_container sides;
+				typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+				side_secure_container sides;
 
 				UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
 
 				domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+				
+				//	evaluate finite volume geometry
+				if (!m_bAdaptive){
+					geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
+				} else {
+					geo.update_hanging(elem, &(coCoord[0]), domain.subset_handler().get());
+					if (geo.num_constrained_dofs()>0){
+						m_uInfo->dof_indices(elem,0,multInd,true,true);
+						get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,multInd);
+					}
+				}
 
-				size_t nofsides = geo.num_scv();
-
+				size_t nNaturalSides = geo.num_sh();
+				size_t nSides = geo.num_scv();
 				size_t nip = geo.num_scvf();
+				
+				for (size_t s=0;s<nNaturalSides;s++){
+					uValue[s] = aaU[sides[s]];
+				}
 
-				for (size_t s=0;s < nofsides;s++)
+				for (size_t i=0;i < nSides;i++)
 				{
-					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
-					uValue[s]=aaU[sides[s]];
-					//for debug UG_LOG("uvalue(" << s << ")=" << uValue[s] << "\n");
+					const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
+					size_t s = scv.node_id();
 					aaVol[sides[s]] += scv.volume();
 				}
 
@@ -900,7 +948,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 					// 	get current SCVF
 					ipVelocity = 0;
 					const typename DimCRFVGeometry<dim>::SCVF& scvf = geo.scvf(ip);
-					for (size_t s=0;s < nofsides;s++){
+					for (size_t s=0;s < nNaturalSides;s++){
 						for (int d=0;d<dim;d++){
 						    ipVelocity[d] += scvf.shape(s)*uValue[s][d];
 						};
@@ -951,6 +999,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 						//for debug UG_LOG(" norm=" << FNorm(aaDefTensor[side]) << "\n");*/
 		}
 	}
+	if (m_bAdaptive) constrainedSideAveraging<TGridFunction,side_type,dimMat>(aaDefTensor,m_uInfo);
 }
 
 // Frobenius norm of dim x dim matrix
@@ -1025,8 +1074,8 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
 
 	//	coord and vertex array
-//	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-//	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	//	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
+	//	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble deformation tensor fluxes
 	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u);
