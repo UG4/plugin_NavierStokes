@@ -75,12 +75,6 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 		//	set upwind shape
 			vUpShapeSh[ip][sh] = scvf.shape(sh);
 		}
-
-	//	compute convection length
-	//  \todo: (optional) A convection length is not really defined for no upwind.
-	//	       but in the computation of a stabilization the term cancels, so
-	//   	   we only have to ensure that the conv_lengh is non-zero
-        vConvLength[ip] = 1.0;
 	}
 }
 
@@ -105,12 +99,6 @@ compute(const HCRFVGeometry<TElem, dim>* geo,
 		//	set upwind shape
 			vUpShapeSh[ip][sh] = scvf.shape(sh);
 		}
-
-	//	compute convection length
-	//  \todo: (optional) A convection length is not really defined for no upwind.
-	//	       but in the computation of a stabilization the term cancels, so
-	//   	   we only have to ensure that the conv_lengh is non-zero
-        vConvLength[ip] = 1.0;
 	}
 }
 /////////////////////////////////////////////////////////////////////////////
@@ -199,6 +187,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
     }
 }
 
+// upwind shape in constraining dof is shape in constrained dof
 template <int dim>
 template <typename TElem>
 void
@@ -209,14 +198,10 @@ compute(const HCRFVGeometry<TElem, dim>* geo,
         number vUpShapeIp[maxNumSCVF][maxNumSCVF],
         number vConvLength[maxNumSCVF])
 {
-//	two help vectors
 	MathVector<dim> dist;
 
-// 	get corners of elem
-    const MathVector<dim>* elementfaces = geo->scv_global_ips();
-
     if (geo->num_constrained_dofs()>0){
-    	std::vector<size_t> constrainedShape(geo->num_scv());
+    	std::vector<size_t> constrainedShape(geo->num_scv()+geo->num_constrained_dofs());
     	for (size_t i=0;i<geo->num_sh();i++) constrainedShape[i] = i;
     	for (size_t i=0;i<geo->num_constrained_dofs();i++){
     		const typename HCRFVGeometry<TElem, dim>::CONSTRAINED_DOF& cd = geo->constrained_dof(i);
@@ -240,12 +225,10 @@ compute(const HCRFVGeometry<TElem, dim>* geo,
     	    if(flux > 0.0)
     	    {
     	      	vUpShapeSh[ip][constrainedShape[scvf.from()]] = 1.0;
-    	       	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
     	    }
     	    else
     	    {
     	      	vUpShapeSh[ip][constrainedShape[scvf.to()]] = 1.0;
-    	       	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
     	    }
     	}
     }
@@ -265,12 +248,10 @@ compute(const HCRFVGeometry<TElem, dim>* geo,
         if(flux > 0.0)
         {
         	vUpShapeSh[ip][scvf.from()] = 1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
         }
         else
         {
         	vUpShapeSh[ip][scvf.to()] = 1.0;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
         }
     }
 }
@@ -292,11 +273,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
         number vUpShapeIp[maxNumSCVF][maxNumSCVF],
         number vConvLength[maxNumSCVF])
 {
-//	two help vectors
 	MathVector<dim> dist;
-
-// 	get corners of elem
-    const MathVector<dim>* elementfaces = geo->scv_global_ips();
 
 // 	set full upwind shapes
 	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
@@ -313,12 +290,10 @@ compute(const CRFVGeometry<TElem, dim>* geo,
         if(flux > 0.0)
         {
         	vUpShapeSh[ip][scvf.from()] = this->m_weight;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.from()]);
         }
         else
         {
         	vUpShapeSh[ip][scvf.to()] = this->m_weight;
-        	vConvLength[ip] = VecDistance(scvf.global_ip(), elementfaces[scvf.to()]);
         }
 
 	//	add no upwind shapes
