@@ -1058,6 +1058,13 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 			}
 		}
 	}
+	if (m_bAdaptive){
+		if (dim==2) constrainingSideAveraging<TGridFunction,side_type,ConstrainingEdge,number>(m_acTurbulentViscosity,m_u);
+		else {
+			constrainingSideAveraging<TGridFunction,side_type,ConstrainingTriangle,number>(m_acTurbulentViscosity,m_u);
+			constrainingSideAveraging<TGridFunction,side_type,ConstrainingQuadrilateral,number>(m_acTurbulentViscosity,m_u);
+		}
+	}
 	// transfer attachment data to lower levels
 	this->transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
 }
@@ -1214,6 +1221,15 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 			}
 		}
 	}
+	if (m_bAdaptive){
+		if (dim==2) constrainingSideAveraging<TGridFunction,side_type,ConstrainingEdge,number>(m_acTurbulentViscosity,m_u);
+		else {
+			constrainingSideAveraging<TGridFunction,side_type,ConstrainingTriangle,number>(m_acTurbulentViscosity,m_u);
+			constrainingSideAveraging<TGridFunction,side_type,ConstrainingQuadrilateral,number>(m_acTurbulentViscosity,m_u);
+		}
+	}
+	// transfer attachment data to lower levels
+	this->transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
 }
 
 } // namespace NavierStokes
