@@ -16,6 +16,7 @@
 #include "bnd/symmetric_boundary_fvcr.h"
 #include "cr_reorder.h"
 #include "cr_ilut.h"
+#include "pcr_ilut.h"
 
 #include "lib_disc/function_spaces/grid_function.h"
 
@@ -210,6 +211,31 @@ static void Algebra(Registry& reg, string grp)
 					"", "info", "sets storage information output")
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "CRILUT", tag);
+	}
+	
+	//	parallel CR ILU Threshold
+	{
+		typedef PCRILUTPreconditioner<TAlgebra> T;
+		typedef IPreconditioner<TAlgebra> TBase;
+		string name = string("PCRILUT").append(suffix);
+		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
+		.add_constructor()
+		.template add_constructor<void (*)(number)>("threshold parameter")
+		.template add_constructor<void (*)(number,number)>("threshold parameters")
+		.template add_constructor<void (*)(number,number,number,number)>("threshold parameters")
+		.template add_constructor<void (*)(number,bool)>("threshold parameter,storage info output")
+		.template add_constructor<void (*)(number,number,bool)>("threshold vv,threshold vp/pv/pp,storage info output")
+		.template add_constructor<void (*)(number,number,number,number,bool)>("threshold vv,vp,pv,pp,storage info output")
+		.add_method("set_threshold",static_cast<void (T::*)(number,number,number,number)>(&T::set_threshold),
+					"", "threshold", "sets threshold of incomplete LU factorisation")
+		.add_method("set_threshold",static_cast<void (T::*)(number,number)>(&T::set_threshold),
+					"", "threshold", "sets threshold of incomplete LU factorisation")
+		.add_method("set_threshold",static_cast<void (T::*)(number)>(&T::set_threshold),
+					"", "threshold", "sets threshold of incomplete LU factorisation")
+		.add_method("set_info", &T::set_info,
+					"", "info", "sets storage information output")
+		.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "PCRILUT", tag);
 	}
 }
 
