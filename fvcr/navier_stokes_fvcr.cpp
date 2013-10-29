@@ -55,6 +55,8 @@ void NavierStokesFVCR<TDomain>::init()
 	base_type::set_density(1.0);
 
 	m_bDefectUpwind = true;
+	
+	m_gradDivFactor = 0;
 
 	//	update assemble functions
 	register_all_funcs(false);
@@ -309,6 +311,15 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 							J(d1, scvf.to()  , d2, sh) -= flux2_sh;
 						}
 				}
+								
+				if (m_gradDivFactor>0){
+					for (int d1=0;d1<dim;d1++) 
+						for (int d2=0;d2<dim;d2++){
+							number stab_flux = m_gradDivFactor * scvf.global_grad(sh)[d2] * scvf.normal()[d1];
+							J(d1, scvf.from(), d2, sh) -= stab_flux;
+							J(d1, scvf.to()  , d2, sh) += stab_flux;
+						}
+				}
 
 				////////////////////////////////////////////////////
 				// Convective Term (Momentum Equation)
@@ -546,6 +557,16 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 			{
 				d(d1, scvf.from()) += diffFlux[d1];
 				d(d1, scvf.to()  ) -= diffFlux[d1];
+			}
+			
+			if (m_gradDivFactor>0){
+				for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					for (int d1=0;d1<dim;d1++) 
+						for (int d2=0;d2<dim;d2++){
+							number stab_flux = m_gradDivFactor * scvf.global_grad(sh)[d2] * u(d2,sh) * scvf.normal()[d1];
+							d(d1, scvf.from()) -= stab_flux;
+							d(d1, scvf.to()  ) += stab_flux;
+						}
 			}
 
 			////////////////////////////////////////////////////

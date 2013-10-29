@@ -190,6 +190,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_exact_jacobian", static_cast<void (T::*)(bool)>(&T::set_exact_jacobian), "", "ExactJacobian")
 			.add_method("set_exact_jacobian", static_cast<void (T::*)(number)>(&T::set_exact_jacobian), "", "ExactJacobianFactor")
+			.add_method("set_grad_div", static_cast<void (T::*)(number)>(&T::set_grad_div), "", "GradDivFactor")
 			.add_method("set_laplace", &T::set_laplace)
 			.add_method("set_stokes", &T::set_stokes);
 		reg.add_class_to_group(name, "NavierStokesBase", tag);

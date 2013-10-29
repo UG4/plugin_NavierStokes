@@ -212,6 +212,8 @@ class NavierStokesBase
         												else m_bFullNewtonFactor=0;}
         void set_exact_jacobian(number fullNewtonFactor){ m_bFullNewtonFactor=fullNewtonFactor; };
 
+        void set_grad_div(number factor){ m_gradDivFactor = factor; }
+
   	public:
 	///	returns if local time series is needed
 		virtual bool requests_local_time_series() {return true;}
@@ -225,6 +227,9 @@ class NavierStokesBase
 
 	///	factor for exact jacobian, (1 for exact jacobian, 0 for fix point)
 		number m_bFullNewtonFactor;
+
+	/// factor for div grad stabilization
+		number m_gradDivFactor;
 
 	/// flag if solving the Stokes equation
 		bool m_bStokes;

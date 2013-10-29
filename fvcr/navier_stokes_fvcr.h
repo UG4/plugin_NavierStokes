@@ -123,6 +123,7 @@ class NavierStokesFVCR
 		using base_type::m_bFullNewtonFactor;
 		using base_type::m_bStokes;
 		using base_type::m_bLaplace;
+		using base_type::m_gradDivFactor;
 
 	public:
 		template <typename TElem, typename TFVGeom>
