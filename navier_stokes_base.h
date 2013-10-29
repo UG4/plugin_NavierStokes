@@ -223,7 +223,7 @@ class NavierStokesBase
 
 	protected:
 	///	flag if using Peclet Blending
-		int m_bPecletBlend;
+		bool m_bPecletBlend;
 
 	///	factor for exact jacobian, (1 for exact jacobian, 0 for fix point)
 		number m_bFullNewtonFactor;
