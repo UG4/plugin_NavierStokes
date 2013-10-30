@@ -96,7 +96,7 @@ class NavierStokesFE
 	///	Data import for kinematic viscosity
 		DataImport<number, dim> m_imKinViscosity;
 
-	///	Data import for kinematic viscosity
+	///	Data import for density
 		DataImport<number, dim> m_imDensity;
 
 	/// abbreviation for pressure
