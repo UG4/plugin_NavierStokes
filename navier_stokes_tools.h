@@ -13,6 +13,10 @@
 #include "lib_grid/lg_base.h"
 #include "lib_grid/tools/periodic_boundary_manager.h"
 #include "common/profiler/profiler.h"
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
 
 namespace ug{
 
@@ -1439,7 +1443,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 // Compute 1/|\Omega| \int_{\Omega} \hat{u_i} \hat{u_i} dx , where \Omega is the computational domain.
 // Elementwise approximation of integral by interpolation to barycenter.
 template<typename TGridFunction>
-void kineticEnergy(TGridFunction& u){
+number kineticEnergy(TGridFunction& u){
 	// total kinetic energy
 	number totalE=0;
 	// total volume
@@ -1553,8 +1557,19 @@ void kineticEnergy(TGridFunction& u){
 	// average
 	totalE/=(number)totalVol;
 	UG_LOG("Total kinetic energy in domain is " << totalE << "\n");
+	return totalE;
 }
 
+// clear file content
+void clearFile(std::string filename){
+	std::fstream file(filename.c_str(), std::fstream::out | std::fstream::trunc);
+}
+
+// write numbers into file
+void writeNumbers(std::string filename,const size_t step,const number t,const number data){
+	std::fstream file(filename.c_str(), std::fstream::out | std::fstream::app);
+	file << "t(" << step << ")=" << t << ";d(" << step << ")=" << data << ";" << std::endl;
+}
 
 } // end namespace ug
 

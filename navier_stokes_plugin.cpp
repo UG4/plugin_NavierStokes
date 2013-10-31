@@ -98,7 +98,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 
 	// kinetic energy
 	{
-		reg.add_function("kineticEnergy", static_cast<void (*)(function_type&)>(&kineticEnergy), grp);
+		reg.add_function("kineticEnergy", static_cast<number (*)(function_type&)>(&kineticEnergy), grp);
 	}
 	
 	// interpolate cr to lagrange 1
@@ -115,7 +115,6 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		reg.add_function("filter", static_cast<void (*)(SmartPtr<function_type>,const std::string&)>(&filter), grp);
 	}
-
 
 //	AssembledTransformingSmoother
 	{
@@ -312,7 +311,18 @@ static void Dimension(Registry& reg, string grp)
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWeightedUpwind", tag);
 	}
+}
 
+static void Common(Registry& reg, string grp)
+{
+	// write numbers into file
+	{
+		reg.add_function("writeNumbers", static_cast<void (*)(std::string filename,const size_t step,const number t,const number data)>(&writeNumbers), grp);
+	}
+	// write numbers into file
+	{
+		reg.add_function("clearFile", static_cast<void (*)(std::string filename)>(&clearFile), grp);
+	}
 }
 
 }; // end Functionality
@@ -333,6 +343,7 @@ InitUGPlugin_NavierStokes(Registry* reg, string grp)
 		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
+		RegisterCommon<Functionality>(*reg,grp);
 
 		Init___NavierStokes___FV1(reg, grp);
 		Init___NavierStokes___FVCR(reg, grp);
