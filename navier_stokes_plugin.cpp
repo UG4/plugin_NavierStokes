@@ -73,9 +73,9 @@ static void Domain(Registry& reg, string grp)
 
 //	Navier-Stokes Base
 	{
-		typedef NavierStokesBase1<TDomain> T;
+		typedef NavierStokesBase<TDomain> T;
 		typedef IElemDisc<TDomain> TBase;
-		string name = string("NavierStokesBase1").append(suffix);
+		string name = string("NavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -92,7 +92,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("disc_type", &T::disc_type)
 			.add_method("set_exact_jacobian", static_cast<void (T::*)(bool)>(&T::set_exact_jacobian), "", "ExactJacobian")
 			.add_method("set_exact_jacobian", static_cast<void (T::*)(number)>(&T::set_exact_jacobian), "", "ExactJacobianFactor");
-		reg.add_class_to_group(name, "NavierStokesBase1", tag);
+		reg.add_class_to_group(name, "NavierStokesBase", tag);
 	}
 	
 }

@@ -117,11 +117,11 @@ namespace NavierStokes{
  */
 template<	typename TDomain>
 class IncompressibleNavierStokesBase
-	: public NavierStokesBase1<TDomain>
+	: public NavierStokesBase<TDomain>
 {
 	protected:
 	///	Base class type
-		typedef NavierStokesBase1<TDomain> base_type;
+		typedef NavierStokesBase<TDomain> base_type;
 
 	///	own type
 		typedef IncompressibleNavierStokesBase<TDomain> this_type;
@@ -145,11 +145,6 @@ class IncompressibleNavierStokesBase
 	 */
 	///	\{
 		virtual void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user) = 0;
-		/*void set_kinematic_viscosity(number val);
-#ifdef UG_FOR_LUA
-		void set_kinematic_viscosity(const char* fctName);
-#endif
-	///	\}*/
 
 	///	returns kinematic viscosity
 		virtual SmartPtr<CplUserData<number, dim> > kinematic_viscosity() = 0;
@@ -178,11 +173,6 @@ class IncompressibleNavierStokesBase
 	 */
 	///	\{
 		virtual void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user) = 0;
-		/*void set_source(const std::vector<number>& vSource);
-#ifdef UG_FOR_LUA
-		void set_source(const char* fctName);
-#endif
-	///	\}*/
 
 	/// switches the convective terms off (to solve the Stokes equation)
 	/**
@@ -208,11 +198,6 @@ class IncompressibleNavierStokesBase
 
     ///	sets if peclet blending is used in momentum equation
         void set_peclet_blend(bool pecletBlend) {m_bPecletBlend = pecletBlend;}
-
-    ///	sets if the exact jacobian is computed (fixpoint approximation else)
-       /* void set_exact_jacobian(bool bExactJacobian) { if (bExactJacobian) m_bFullNewtonFactor=1;
-        												else m_bFullNewtonFactor=0;}
-        void set_exact_jacobian(number fullNewtonFactor){ m_bFullNewtonFactor=fullNewtonFactor; };*/
 
         void set_grad_div(number factor){ m_gradDivFactor = factor; }
 

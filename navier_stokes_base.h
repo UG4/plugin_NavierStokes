@@ -114,7 +114,7 @@ namespace NavierStokes{
  * \tparam	TAlgebra	Algebra
  */
 template<	typename TDomain>
-class NavierStokesBase1
+class NavierStokesBase
 	: public IElemDisc<TDomain>
 {
 	protected:
@@ -122,7 +122,7 @@ class NavierStokesBase1
 		typedef IElemDisc<TDomain> base_type;
 
 	///	own type
-		typedef NavierStokesBase1<TDomain> this_type;
+		typedef NavierStokesBase<TDomain> this_type;
 
 	public:
 	///	World dimension
@@ -131,8 +131,8 @@ class NavierStokesBase1
 	public:
 	///	Constructor (setting default values)
 	/// \{
-		NavierStokesBase1(const char* functions, const char* subsets);
-		NavierStokesBase1(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
+		NavierStokesBase(const char* functions, const char* subsets);
+		NavierStokesBase(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
 	/// \}
 
 	///	sets the kinematic viscosity

@@ -165,7 +165,7 @@ static void Domain(Registry& reg, string grp)
 //	Incompressible Navier-Stokes Base
 	{
 		typedef IncompressibleNavierStokesBase<TDomain> T;
-		typedef NavierStokesBase1<TDomain> TBase;
+		typedef NavierStokesBase<TDomain> TBase;
 		string name = string("IncompressibleNavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_method("set_peclet_blend", &T::set_peclet_blend)

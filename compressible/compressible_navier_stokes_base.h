@@ -117,11 +117,11 @@ namespace NavierStokes{
  */
 template<	typename TDomain>
 class CompressibleNavierStokesBase
-	: public NavierStokesBase1<TDomain>
+	: public NavierStokesBase<TDomain>
 {
 	protected:
 	///	Base class type
-		typedef NavierStokesBase1<TDomain> base_type;
+		typedef NavierStokesBase<TDomain> base_type;
 
 	///	own type
 		typedef CompressibleNavierStokesBase<TDomain> this_type;
@@ -159,7 +159,6 @@ class CompressibleNavierStokesBase
 	///	returns adiabatic index
 		virtual SmartPtr<CplUserData<number, dim> > adiabatic_index() = 0;
 
-
 	///	sets the source function
 	/**
 	 * This method sets the source value. A zero value is assumed as default.
@@ -167,11 +166,6 @@ class CompressibleNavierStokesBase
 	 */
 	///	\{
 		virtual void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user) = 0;
-
-    ///	sets if the exact jacobian is computed (fixpoint approximation else)
-      /*  void set_exact_jacobian(bool bExactJacobian) { if (bExactJacobian) m_bFullNewtonFactor=1;
-        												else m_bFullNewtonFactor=0;}
-        void set_exact_jacobian(number fullNewtonFactor){ m_bFullNewtonFactor=fullNewtonFactor; };*/
 
 	///	sets if Mach-number blending is used in momentum equation
 		void set_mach_number_blend(bool machNrBlend) {m_bMachNrBlend = machNrBlend;}

@@ -26,7 +26,7 @@ namespace NavierStokes{
 ////////////////////////////////////////////////////////////////////////////////
 
 template<typename TDomain>
-NavierStokesBase1<TDomain>::NavierStokesBase1(const char* functions,
+NavierStokesBase<TDomain>::NavierStokesBase(const char* functions,
                                     const char* subsets)
 : IElemDisc<TDomain>(functions, subsets),
   m_bFullNewtonFactor(0)
@@ -34,7 +34,7 @@ NavierStokesBase1<TDomain>::NavierStokesBase1(const char* functions,
 };
 
 template<typename TDomain>
-NavierStokesBase1<TDomain>::NavierStokesBase1(const std::vector<std::string>& vFct,
+NavierStokesBase<TDomain>::NavierStokesBase(const std::vector<std::string>& vFct,
                                     const std::vector<std::string>& vSubset)
 : IElemDisc<TDomain>(vFct, vSubset),
   m_bFullNewtonFactor(0)
@@ -45,7 +45,7 @@ NavierStokesBase1<TDomain>::NavierStokesBase1(const std::vector<std::string>& vF
 /////////// kinematic Viscosity
 
 template<typename TDomain>
-void NavierStokesBase1<TDomain>::
+void NavierStokesBase<TDomain>::
 set_kinematic_viscosity(number val)
 {
 	set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
@@ -53,7 +53,7 @@ set_kinematic_viscosity(number val)
 
 #ifdef UG_FOR_LUA
 template<typename TDomain>
-void NavierStokesBase1<TDomain>::
+void NavierStokesBase<TDomain>::
 set_kinematic_viscosity(const char* fctName)
 {
 	set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
@@ -64,7 +64,7 @@ set_kinematic_viscosity(const char* fctName)
 /////////// Source
 
 template<typename TDomain>
-void NavierStokesBase1<TDomain>::
+void NavierStokesBase<TDomain>::
 set_source(const std::vector<number>& vSource)
 {
 	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>(vSource));
@@ -73,7 +73,7 @@ set_source(const std::vector<number>& vSource)
 
 #ifdef UG_FOR_LUA
 template<typename TDomain>
-void NavierStokesBase1<TDomain>::
+void NavierStokesBase<TDomain>::
 set_source(const char* fctName)
 {
 	set_source(LuaUserDataFactory<MathVector<dim>, dim>::create(fctName));
@@ -85,13 +85,13 @@ set_source(const char* fctName)
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef UG_DIM_1
-template class NavierStokesBase1<Domain1d>;
+template class NavierStokesBase<Domain1d>;
 #endif
 #ifdef UG_DIM_2
-template class NavierStokesBase1<Domain2d>;
+template class NavierStokesBase<Domain2d>;
 #endif
 #ifdef UG_DIM_3
-template class NavierStokesBase1<Domain3d>;
+template class NavierStokesBase<Domain3d>;
 #endif
 
 } // namespace NavierStokes

@@ -70,7 +70,7 @@ static void Domain(Registry& reg, string grp)
 //	Compressible Navier-Stokes Base
 	{
 		typedef CompressibleNavierStokesBase<TDomain> T;
-		typedef NavierStokesBase1<TDomain> TBase;
+		typedef NavierStokesBase<TDomain> TBase;
 		string name = string("CompressibleNavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_method("set_mach_number_blend", &T::set_mach_number_blend, "", "Set mach number blending");

@@ -28,7 +28,7 @@ namespace NavierStokes{
 template<typename TDomain>
 CompressibleNavierStokesBase<TDomain>::CompressibleNavierStokesBase(const char* functions,
                                     const char* subsets)
-: NavierStokesBase1<TDomain>(functions, subsets),
+: NavierStokesBase<TDomain>(functions, subsets),
   m_bMachNrBlend(false)
 {
 };
@@ -36,7 +36,7 @@ CompressibleNavierStokesBase<TDomain>::CompressibleNavierStokesBase(const char* 
 template<typename TDomain>
 CompressibleNavierStokesBase<TDomain>::CompressibleNavierStokesBase(const std::vector<std::string>& vFct,
                                     const std::vector<std::string>& vSubset)
-: NavierStokesBase1<TDomain>(vFct, vSubset),
+: NavierStokesBase<TDomain>(vFct, vSubset),
   m_bMachNrBlend(false)
 {
 };

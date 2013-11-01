@@ -28,7 +28,7 @@ namespace NavierStokes{
 template<typename TDomain>
 IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const char* functions,
                                     const char* subsets)
-: NavierStokesBase1<TDomain>(functions, subsets),
+: NavierStokesBase<TDomain>(functions, subsets),
   m_bPecletBlend(false),
   m_bStokes(false),
   m_bLaplace(false)
@@ -38,31 +38,13 @@ IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const ch
 template<typename TDomain>
 IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const std::vector<std::string>& vFct,
                                     const std::vector<std::string>& vSubset)
-: NavierStokesBase1<TDomain>(vFct, vSubset),
+: NavierStokesBase<TDomain>(vFct, vSubset),
   m_bPecletBlend(false),
   m_bStokes(false),
   m_bLaplace(false)
 {
 };
 
-
-/////////// kinematic Viscosity
-
-/*template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_kinematic_viscosity(number val)
-{
-	set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
-}
-
-#ifdef UG_FOR_LUA
-template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_kinematic_viscosity(const char* fctName)
-{
-	set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
-}
-#endif*/
 
 /////////// density
 
@@ -82,24 +64,7 @@ set_density(const char* fctName)
 }
 #endif
 
-/////////// Source
 
-/*template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_source(const std::vector<number>& vSource)
-{
-	SmartPtr<ConstUserVector<dim> > f(new ConstUserVector<dim>(vSource));
-	set_source(f);
-}
-
-#ifdef UG_FOR_LUA
-template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_source(const char* fctName)
-{
-	set_source(LuaUserDataFactory<MathVector<dim>, dim>::create(fctName));
-}
-#endif*/
 
 ////////////////////////////////////////////////////////////////////////////////
 //	explicit template instantiations
