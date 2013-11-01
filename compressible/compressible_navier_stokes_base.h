@@ -28,7 +28,8 @@ namespace NavierStokes{
 /// Finite Volume Element Discretization for the compressible Navier-Stokes Equation
 /**
  * This class implements the IElemDisc interface to provide element local
- * assemblings for the compressible Navier-Stokes equation.
+ * assemblings for the compressible Navier-Stokes equation for an thermical and caloric
+ * ideal gas.
  *
  * The unknowns of the equation are:
  * <ul>
@@ -58,69 +59,38 @@ namespace NavierStokes{
  *
  * with
  * <ul>
+ * <li> \f$ \gamma \f$ is the adiabatic index
  * <li> \f$ \tau \f$ is the shear stress tensor \f$ \tau = \rho \nu (\nabla \vec{u} + (\nabla \vec{u})^T)
  * 		- \frac{2}{3} Id * \nabla \vec{u} \f$
  * <li>	\f$ \nu \f$ is the kinematic viscosity (temporarily constant, implement)
- * <li>	\f$ \vec{f} \equiv f(\vec{x},t) \f$ is a Source Term (not implemented yet)
+ * <li>	\f$ \vec{f}_m \equiv f_m(\vec{x},t) \f$
+ * 		is a Source Term for the momentum equation (not implemented yet)
+ * <li> \f$ f_c \f$ is a Source Term for the continuity equation (not implemented yet)
+ * <li> \f$ f_e \f$ is a Source Term for the energy preserving equation (not implemented yet)
  * </ul>
  *
  * The first equation models the conservation of momentum and is therefore
  * referred to as the <b>Momentum equation</b>. The second equation models the
  * conservation of mass and is known as the <b>Mass continuity equation</b> or
- * simply <b>Continuity equation</b>.
+ * simply <b>Continuity equation</b>. The third equation models the conservation
+ * of energy and is therefore referred to as the <b>Energy equation</b>.
  *
- * In component-wise notation, the equation reads
- *
- * \f{align*}
- * \frac{\partial \rho u_{d_1}}{\partial t}
- * - \sum_{d_2 = 1}^{\text{dim}} \frac{\partial}{\partial x_{d_2}}
- * 		\left( \rho \nu \left( \frac{\partial u_{d_1}}{\partial x_{d_2}}
- * 			+ \frac{\partial u_{d_2}}{\partial x_{d_1}} \right)\right)
- * + \sum_{d_2 = 1}^{\text{dim}}  \frac{\partial}{\partial x_{d_2}}
- * 		\left( \rho u_{d_2} u_{d_1} \right)
- * + \frac{\partial p}{\partial x_{d_1}}
- * &= f_{d_1} \qquad \forall \quad d_1 = 1, \dots, \text{dim}\\
- *
- * \sum_{d = 1}^{\text{dim}}  \frac{\partial \rho u_d}{\partial x_{d}} &= 0
- * \f}
- *
- * Since the density is assumed to be constant, it set to \f$\rho \equiv 1 \f$.
- *
- * The finite volume element discretization uses a dual mesh consisting of
- * Control Volumes \f$\mathcal{B}_h\f$, that cover the domain. For each
- * control volume \f$B \in \mathcal{B}_h\f$ the following equation is solved
- *
- * \f{align*}
- * 	\frac{\partial}{\partial t} \int_{B} \begin{pmatrix} \vec{u} \\ 0 \end{pmatrix} dV
- *  + \int_{\partial B}
- *  	\begin{pmatrix}
- *  		- \rho \nu \left(\nabla \vec{u} + (\nabla \vec{u})^T \right) \vec{n}
- *  		+ \vec{u} \vec{u}^T \vec{n} + p \vec{n} \\
- * 		 	\vec{u} \vec{n}
- * 		\end{pmatrix} dS
- * = \int_B \begin{pmatrix} \vec{f} \\ 0 \end{pmatrix} dV
- * \f}
- *
- * where \f$ \vec{n}\f$ is the outer normal on the boundary of the control volume
- * and \f$\int_B \cdot \; dV \f$ and \f$\int_{\partial B} \cdot \; dS \f$ are the
- * integration over the control volume and the integration over the boundary of
- * the control volume. By \$f B_{sh} \$f is denoted the control volume associated
- * to a shape function (i.e. vertices, since we use P1 Lagrange ansatz functions),
- * T usually denotes the Element.
- *
- * In order to number the local unknowns, we use the following notation.
+ * These three equations are normalized by reference quantities (c.f. A. Gordner
+ * 'Numerische Simulation nichtlinearer Aeroakustik bei kleinen Machzahlen'),
  * <ul>
- * <li> \f$ sh = 0, \dots, n_{sh} - 1\f$ loop the \f$n_{sh}\f$ shape functions. For
- * 		this implementation these are the corners of the element
- * <li> \f$ d = 0, \dots, \text{dim} - 1 \f$ are the velocity component of each
- * 		corner
- * <li> _P_ := dim indicates the pressure component
+ * <li> \f$ M_{ref}^2 \f$ the squared reference Mach number
+ * 		\f$ M_{ref}^2 = \frac{\rho_{ref} \vec{u}_{ref}^2}{p_{ref}} \f$
+  * <li> \f$ Re \f$ the Reynolds number
+ * 		\f$ Re = \frac{\rho_{ref} L_{ref} \vec{u}_{ref}}{\nu} \f$
  * </ul>
- * The access to local unknowns of local vectors and matrices is now given by
- * \f{align*}
- * 	&\mathbf{d}(d_1, sh), \mathbf{d}(\text{\_P\_}, sh),\\
- *  &\mathcal{J}(d_1, sh_1, d_2, sh_2), \mathcal{J}(d_1, sh_1, \text{\_P\_}, sh_2),
- * \f}
+ *
+ * with
+ * <ul>
+ * <li> \f$ \vec{u}_{ref} = \max_{x,t} |\vec{u}(x,t)|\f$
+ * <li> \f$ p_{ref} = \max_{x,t} |p(x,t)|\f$
+ * <li> \f$ \rho_{ref} = \max_{x,t} |\rho(x,t)|\f$
+ * <li> \f$ L_{ref} \f$ is a reference length.
+ * </ul>
  *
  * \tparam	TDomain		Domain
  * \tparam	TAlgebra	Algebra
