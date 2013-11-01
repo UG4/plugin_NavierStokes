@@ -1,12 +1,15 @@
 /*
- * register_compressible.cpp
+ * compressible_navier_stokes_plugin.cpp
  *
- *  Created on: 31.10.2013
+ *  Created on: 01.11.2013
  *      Author: raphaelprohl
  */
 
+
 #include "bridge/util.h"
 #include "bridge/util_domain_algebra_dependent.h"
+
+#include "../register_navier_stokes.h"
 
 #include "compressible_navier_stokes_base.h"
 
@@ -94,11 +97,11 @@ static void Dimension(Registry& reg, string grp)
 }; // end Functionality
 } // end namespace NavierStokes
 
-
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___CompressibleNavierStokes(Registry* reg, string grp)
+extern "C" void
+InitUGPlugin_CompressibleNavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/CompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityComp Functionality;
@@ -109,9 +112,11 @@ void Init___CompressibleNavierStokes(Registry* reg, string grp)
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 
+		Init___NavierStokes(reg, grp);
 		Init___CompressibleNavierStokes___FV1(reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
+
 
 }// namespace ug

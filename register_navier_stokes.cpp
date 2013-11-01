@@ -12,8 +12,6 @@
 #include "navier_stokes_base.h"
 #include "upwind.h"
 
-#include "incompressible/register_incompressible.h"
-#include "compressible/register_compressible.h"
 
 using namespace std;
 using namespace ug::bridge;
@@ -94,7 +92,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_exact_jacobian", static_cast<void (T::*)(number)>(&T::set_exact_jacobian), "", "ExactJacobianFactor");
 		reg.add_class_to_group(name, "NavierStokesBase", tag);
 	}
-	
+
 }
 
 /**
@@ -115,7 +113,7 @@ static void Dimension(Registry& reg, string grp)
 /////////////////////////////////////////////////////////////////////////////
 // Upwind
 /////////////////////////////////////////////////////////////////////////////
-	
+
 //	INavierStokesUpwind
 	{
 		typedef INavierStokesUpwind<dim> T;
@@ -200,43 +198,24 @@ static void Dimension(Registry& reg, string grp)
 		.add_method("set_weight", &T::set_weight, "", "")
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWeightedUpwind", tag);
-	}	
+	}
 }
 
 }; // end Functionality
 } // end namespace NavierStokes
 
+/**
+ * This function is called when the plugin is loaded.
+ */
+void Init___NavierStokes(Registry* reg, string grp)
+{
 #ifdef UG_IncompressibleNavierStokes
-/**
- * This function is called when the plugin is loaded.
- */
-extern "C" void
-InitUGPlugin_IncompressibleNavierStokes(Registry* reg, string grp)
-{
 	grp.append("SpatialDisc/IncompressibleNavierStokes/");
-	typedef NavierStokes::Functionality Functionality;
-
-	try{
-		RegisterDimension2d3dDependent<Functionality>(*reg,grp);
-		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
-//		RegisterAlgebraDependent<Functionality>(*reg,grp);
-		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
-
-		Init___IncompressibleNavierStokes(reg, grp);
-	}
-	UG_REGISTRY_CATCH_THROW(grp);
-}
 #endif
-
-
 #ifdef UG_CompressibleNavierStokes
-/**
- * This function is called when the plugin is loaded.
- */
-extern "C" void
-InitUGPlugin_CompressibleNavierStokes(Registry* reg, string grp)
-{
 	grp.append("SpatialDisc/CompressibleNavierStokes/");
+#endif
+
 	typedef NavierStokes::Functionality Functionality;
 
 	try{
@@ -244,11 +223,9 @@ InitUGPlugin_CompressibleNavierStokes(Registry* reg, string grp)
 		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
-
-		Init___CompressibleNavierStokes(reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
-#endif
+
 
 }// namespace ug

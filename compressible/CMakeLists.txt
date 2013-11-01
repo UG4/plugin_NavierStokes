@@ -23,10 +23,9 @@ set(SOURCES	../navier_stokes_base.cpp
 			fv1/compressible_navier_stokes_fv1.cpp
 			fv1/register_fv1.cpp
 			
-			register_compressible.cpp
 			
-			
-			../navier_stokes_plugin.cpp)
+			../register_navier_stokes.cpp
+			compressible_navier_stokes_plugin.cpp)
 
 
 

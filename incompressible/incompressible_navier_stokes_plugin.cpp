@@ -1,4 +1,3 @@
-
 /**
  * File for registration of navier stokes routines.
  *
@@ -9,6 +8,8 @@
 
 #include "bridge/util.h"
 #include "bridge/util_domain_algebra_dependent.h"
+
+#include "../register_navier_stokes.h"
 
 #include "lib_disc/function_spaces/grid_function.h"
 #include "lib_algebra/operator/debug_writer.h"
@@ -220,7 +221,8 @@ static void Common(Registry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___IncompressibleNavierStokes(Registry* reg, string grp)
+extern "C" void
+InitUGPlugin_IncompressibleNavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/IncompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityIncomp Functionality;
@@ -232,6 +234,7 @@ void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 		RegisterCommon<Functionality>(*reg,grp);
 
+		Init___NavierStokes(reg, grp);
 		Init___NavierStokes___FV1(reg, grp);
 		Init___NavierStokes___FVCR(reg, grp);
 		Init___NavierStokes___FV(reg, grp);
@@ -240,5 +243,6 @@ void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 	UG_REGISTRY_CATCH_THROW(grp);
 }
 
-}// namespace ug
 
+
+}// namespace ug

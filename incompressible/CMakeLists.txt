@@ -42,10 +42,8 @@ set(SOURCES	../navier_stokes_base.cpp
 			fvcr/register_fvcr.cpp
 			fe/register_fe.cpp	
 			
-			register_incompressible.cpp
-		
-			
-			../navier_stokes_plugin.cpp)
+			../register_navier_stokes.cpp
+			incompressible_navier_stokes_plugin.cpp)
 
 
 

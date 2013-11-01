@@ -25,21 +25,23 @@ namespace NavierStokes{
 /// \ingroup lib_disc_elem_disc
 /// @{
 
-/// Finite Volume Element Discretization for the incompressible Navier-Stokes Equation
+/// Finite Volume Element Discretization for the compressible Navier-Stokes Equation
 /**
  * This class implements the IElemDisc interface to provide element local
- * assemblings for the incompressible Navier-Stokes equation.
+ * assemblings for the compressible Navier-Stokes equation.
  *
  * The unknowns of the equation are:
  * <ul>
  * <li> \f$ \vec{u} \f$ velocity
- * <li> \f$ p \f$ pressure.
+ * <li> \f$ p \f$ pressure
+ * <li> \f$ \rho \f$ density.
  * </ul>
  *
  * The equation takes the form
  * \f{align*}
  * 	\frac{\partial \rho \vec{u}}{\partial t}
- * 	- \nabla \left( \rho \nu (\nabla \vec{u} + (\nabla \vec{u})^T) \right)
+ * 	- \nabla \left( \rho \nu (\nabla \vec{u} + (\nabla \vec{u})^T)
+ * 		- \frac{2.0}{3.0} Id * \nabla \vec{u} \right)
  * 	+ \nabla \cdot \left( \rho \vec{u} \vec{u}^T \right)
  *  + \nabla p
  *  &= \vec{f}\\
