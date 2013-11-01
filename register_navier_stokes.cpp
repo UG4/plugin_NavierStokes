@@ -69,6 +69,13 @@ static void Domain(Registry& reg, string grp)
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
+//    check whether those classes have already been registered
+   {
+	   string name = string("NavierStokesBase").append(suffix);
+	   if(reg.get_class(name))
+		   return;
+   }
+
 //	Navier-Stokes Base
 	{
 		typedef NavierStokesBase<TDomain> T;
@@ -109,6 +116,13 @@ static void Dimension(Registry& reg, string grp)
 {
 	string suffix = GetDimensionSuffix<dim>();
 	string tag = GetDimensionTag<dim>();
+
+//    check whether those classes have already been registered
+   {
+	   string name = string("INavierStokesUpwind").append(suffix);
+	   if(reg.get_class(name))
+		   return;
+   }
 
 /////////////////////////////////////////////////////////////////////////////
 // Upwind
@@ -209,13 +223,7 @@ static void Dimension(Registry& reg, string grp)
  */
 void Init___NavierStokes(Registry* reg, string grp)
 {
-#ifdef UG_IncompressibleNavierStokes
-	grp.append("SpatialDisc/IncompressibleNavierStokes/");
-#endif
-#ifdef UG_CompressibleNavierStokes
-	grp.append("SpatialDisc/CompressibleNavierStokes/");
-#endif
-
+	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::Functionality Functionality;
 
 	try{

@@ -224,7 +224,7 @@ static void Common(Registry& reg, string grp)
 extern "C" void
 InitUGPlugin_IncompressibleNavierStokes(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/IncompressibleNavierStokes/");
+	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::FunctionalityIncomp Functionality;
 
 	try{

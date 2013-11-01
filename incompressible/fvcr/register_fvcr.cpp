@@ -319,7 +319,7 @@ static void Dimension(Registry& reg, string grp)
  */
 void Init___NavierStokes___FVCR(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/IncompressibleNavierStokes/");
+	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::FunctionalityFVCR Functionality;
 
 	try{

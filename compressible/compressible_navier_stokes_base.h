@@ -41,17 +41,25 @@ namespace NavierStokes{
  * \f{align*}
  * 	\frac{\partial \rho \vec{u}}{\partial t}
  * 	- \nabla \left( \rho \nu (\nabla \vec{u} + (\nabla \vec{u})^T)
- * 		- \frac{2.0}{3.0} Id * \nabla \vec{u} \right)
+ * 		- \frac{2}{3} Id * \nabla \vec{u} \right)
  * 	+ \nabla \cdot \left( \rho \vec{u} \vec{u}^T \right)
  *  + \nabla p
- *  &= \vec{f}\\
+ *  &= \vec{f}_m\\
  *
- *  \nabla \cdot (\rho \vec{u}) &= 0
+ *  \frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \vec{u}) &= f_c \\
+ *
+ *  \frac{1}{\gamma - 1}\frac{\partial \rho}{\partial t}
+ *  + \frac{1}{2} \frac{\partial \rho \vec{u}^2}{\partial t}
+ *  + \frac{\gamma}{\gamma - 1} \nabla \cdot (\rho \vec{u}^T)
+ *  + \frac{1}{2} \nabla \cdot (\rho \vec{u}^2 \vec{u}^T)
+ *  - \nabla \left( \vec{u}^T \cdot \tau \right) &= f_e \\
+ *
  * \f}
  *
  * with
  * <ul>
- * <li>	\f$ \rho \f$ is the constant density
+ * <li> \f$ \tau \f$ is the shear stress tensor \f$ \tau = \rho \nu (\nabla \vec{u} + (\nabla \vec{u})^T)
+ * 		- \frac{2}{3} Id * \nabla \vec{u} \f$
  * <li>	\f$ \nu \f$ is the kinematic viscosity (temporarily constant, implement)
  * <li>	\f$ \vec{f} \equiv f(\vec{x},t) \f$ is a Source Term (not implemented yet)
  * </ul>
