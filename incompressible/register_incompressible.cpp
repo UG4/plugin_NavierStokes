@@ -222,7 +222,7 @@ static void Common(Registry& reg, string grp)
  */
 void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/NavierStokes/");
+	grp.append("SpatialDisc/IncompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityIncomp Functionality;
 
 	try{

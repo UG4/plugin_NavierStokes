@@ -100,7 +100,7 @@ static void Dimension(Registry& reg, string grp)
  */
 void Init___CompressibleNavierStokes(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/NavierStokes/");
+	grp.append("SpatialDisc/CompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityComp Functionality;
 
 	try{

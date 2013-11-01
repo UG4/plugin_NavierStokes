@@ -133,7 +133,7 @@ static void Dimension(Registry& reg, string grp)
  */
 void Init___NavierStokes___FV(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/NavierStokes/");
+	grp.append("SpatialDisc/IncompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityFV Functionality;
 
 	try{

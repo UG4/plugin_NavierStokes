@@ -206,14 +206,14 @@ static void Dimension(Registry& reg, string grp)
 }; // end Functionality
 } // end namespace NavierStokes
 
-
+#ifdef UG_IncompressibleNavierStokes
 /**
  * This function is called when the plugin is loaded.
  */
 extern "C" void
-InitUGPlugin_NavierStokes(Registry* reg, string grp)
+InitUGPlugin_IncompressibleNavierStokes(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/NavierStokes/");
+	grp.append("SpatialDisc/IncompressibleNavierStokes/");
 	typedef NavierStokes::Functionality Functionality;
 
 	try{
@@ -223,9 +223,32 @@ InitUGPlugin_NavierStokes(Registry* reg, string grp)
 		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 
 		Init___IncompressibleNavierStokes(reg, grp);
+	}
+	UG_REGISTRY_CATCH_THROW(grp);
+}
+#endif
+
+
+#ifdef UG_CompressibleNavierStokes
+/**
+ * This function is called when the plugin is loaded.
+ */
+extern "C" void
+InitUGPlugin_CompressibleNavierStokes(Registry* reg, string grp)
+{
+	grp.append("SpatialDisc/CompressibleNavierStokes/");
+	typedef NavierStokes::Functionality Functionality;
+
+	try{
+		RegisterDimension2d3dDependent<Functionality>(*reg,grp);
+		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
+//		RegisterAlgebraDependent<Functionality>(*reg,grp);
+		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
+
 		Init___CompressibleNavierStokes(reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
+#endif
 
 }// namespace ug
