@@ -1,12 +1,12 @@
 /*
- * navier_stokes_base.h
+ * incompressible_navier_stokes_base.h
  *
  *  Created on: 20.09.2010
  *      Author: andreasvogel
  */
 
-#ifndef __H__UG__PLUGINS__NAVIER_STOKES__NAVIER_STOKES_BASE__
-#define __H__UG__PLUGINS__NAVIER_STOKES__NAVIER_STOKES_BASE__
+#ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__INCOMPRESSIBLE_NAVIER_STOKES_BASE__
+#define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__INCOMPRESSIBLE_NAVIER_STOKES_BASE__
 
 // other ug4 modules
 #include "common/common.h"
@@ -16,6 +16,8 @@
 #include "lib_disc/spatial_disc/elem_disc/elem_disc_interface.h"
 #include "lib_disc/spatial_disc/user_data/data_export.h"
 #include "lib_disc/spatial_disc/user_data/data_import.h"
+
+#include "../navier_stokes_base.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -114,15 +116,15 @@ namespace NavierStokes{
  * \tparam	TAlgebra	Algebra
  */
 template<	typename TDomain>
-class NavierStokesBase1
-	: public IElemDisc<TDomain>
+class IncompressibleNavierStokesBase
+	: public NavierStokesBase1<TDomain>
 {
 	protected:
 	///	Base class type
-		typedef IElemDisc<TDomain> base_type;
+		typedef NavierStokesBase1<TDomain> base_type;
 
 	///	own type
-		typedef NavierStokesBase1<TDomain> this_type;
+		typedef IncompressibleNavierStokesBase<TDomain> this_type;
 
 	public:
 	///	World dimension
@@ -131,8 +133,8 @@ class NavierStokesBase1
 	public:
 	///	Constructor (setting default values)
 	/// \{
-		NavierStokesBase1(const char* functions, const char* subsets);
-		NavierStokesBase1(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
+		IncompressibleNavierStokesBase(const char* functions, const char* subsets);
+		IncompressibleNavierStokesBase(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
 	/// \}
 
 	///	sets the kinematic viscosity
@@ -143,14 +145,31 @@ class NavierStokesBase1
 	 */
 	///	\{
 		virtual void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user) = 0;
-		void set_kinematic_viscosity(number val);
+		/*void set_kinematic_viscosity(number val);
 #ifdef UG_FOR_LUA
 		void set_kinematic_viscosity(const char* fctName);
 #endif
-	///	\}
+	///	\}*/
 
 	///	returns kinematic viscosity
 		virtual SmartPtr<CplUserData<number, dim> > kinematic_viscosity() = 0;
+
+	///	sets the density
+	/**
+	 * This method sets the density value.
+	 *
+	 * \param[in]	data		density
+	 */
+	///	\{
+		virtual void set_density(SmartPtr<CplUserData<number, dim> > user) = 0;
+		void set_density(number val);
+#ifdef UG_FOR_LUA
+		void set_density(const char* fctName);
+#endif
+	///	\}
+
+	///	returns density
+		virtual SmartPtr<CplUserData<number, dim> > density() = 0;
 
 	///	sets the source function
 	/**
@@ -159,16 +178,43 @@ class NavierStokesBase1
 	 */
 	///	\{
 		virtual void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user) = 0;
-		void set_source(const std::vector<number>& vSource);
+		/*void set_source(const std::vector<number>& vSource);
 #ifdef UG_FOR_LUA
 		void set_source(const char* fctName);
 #endif
-	///	\}
+	///	\}*/
+
+	/// switches the convective terms off (to solve the Stokes equation)
+	/**
+	 * \param[in]	Stokes		true to solve Stokes (i.e. without the convective terms)
+	 */
+		void set_stokes(bool Stokes) {m_bStokes = Stokes;}
+		bool stokes() {return m_bStokes;}
+
+	///	sets assembling of diffusive term to laplace
+	/**
+	 * Flag to indicate, that in the diffusive term only the laplacian should
+	 * be computed. This is valid only in cases, where the viscosity is
+	 * constant, since then it holds that
+	 *
+	 *  div ( \nu (grad) v + (grad v)^T )
+	 *  	=  \nu laplace v + \nu grad( div v )
+	 *  	=  \nu laplace v
+	 *
+	 * for incompressible flow (i.e. div v = 0).
+	 */
+		void set_laplace(bool bLaplace) {m_bLaplace = bLaplace;}
+		bool laplace() {return m_bLaplace;}
+
+    ///	sets if peclet blending is used in momentum equation
+        void set_peclet_blend(bool pecletBlend) {m_bPecletBlend = pecletBlend;}
 
     ///	sets if the exact jacobian is computed (fixpoint approximation else)
-        void set_exact_jacobian(bool bExactJacobian) { if (bExactJacobian) m_bFullNewtonFactor=1;
+       /* void set_exact_jacobian(bool bExactJacobian) { if (bExactJacobian) m_bFullNewtonFactor=1;
         												else m_bFullNewtonFactor=0;}
-        void set_exact_jacobian(number fullNewtonFactor){ m_bFullNewtonFactor=fullNewtonFactor; };
+        void set_exact_jacobian(number fullNewtonFactor){ m_bFullNewtonFactor=fullNewtonFactor; };*/
+
+        void set_grad_div(number factor){ m_gradDivFactor = factor; }
 
   	public:
 	///	returns if local time series is needed
@@ -178,8 +224,20 @@ class NavierStokesBase1
 		virtual std::string disc_type() const = 0;
 
 	protected:
+	///	flag if using Peclet Blending
+		bool m_bPecletBlend;
+
 	///	factor for exact jacobian, (1 for exact jacobian, 0 for fix point)
-		number m_bFullNewtonFactor;
+		using base_type::m_bFullNewtonFactor;
+
+	/// factor for div grad stabilization
+		number m_gradDivFactor;
+
+	/// flag if solving the Stokes equation
+		bool m_bStokes;
+
+	///	flag if using only laplace term
+		bool m_bLaplace;
 };
 
 /// @}
@@ -187,4 +245,5 @@ class NavierStokesBase1
 } // namespace NavierStokes
 } // end namespace ug
 
-#endif /*__H__UG__PLUGINS__NAVIER_STOKES__NAVIER_STOKES_BASE__*/
+#endif /*__H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__INCOMPRESSIBLE_NAVIER_STOKES_BASE__*/
+
