@@ -12,8 +12,7 @@
 #include "lib_disc/function_spaces/approximation_space.h"
 #include "common/profiler/profiler.h"
 #include <boost/graph/adjacency_list.hpp>
-#include "lib_disc/dof_manager/surface_dof_distribution.h"
-#include "lib_disc/dof_manager/level_dof_distribution.h"
+#include "lib_disc/dof_manager/dof_distribution.h"
 
 namespace ug{
 

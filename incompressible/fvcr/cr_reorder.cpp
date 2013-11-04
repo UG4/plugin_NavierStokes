@@ -17,8 +17,7 @@
 #include <boost/graph/bandwidth.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/math/special_functions/round.hpp>
-#include "lib_disc/dof_manager/surface_dof_distribution.h"
-#include "lib_disc/dof_manager/level_dof_distribution.h"
+#include "lib_disc/dof_manager/dof_distribution.h"
 #include "cr_reorder.h"
 
 namespace ug{
