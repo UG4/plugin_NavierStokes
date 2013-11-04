@@ -67,6 +67,7 @@ static void Algebra(Registry& reg, string grp)
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
+	const int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
@@ -76,6 +77,11 @@ static void Domain(Registry& reg, string grp)
 		typedef NavierStokesBase<TDomain> TBase;
 		string name = string("CompressibleNavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
+			.add_method("set_adiabatic_index", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_adiabatic_index), "", "AdiabaticIndex")
+			.add_method("set_adiabatic_index", static_cast<void (T::*)(number)>(&T::set_adiabatic_index), "", "AdiabaticIndex")
+#ifdef UG_FOR_LUA
+			.add_method("set_adiabatic_index", static_cast<void (T::*)(const char*)>(&T::set_adiabatic_index), "", "AdiabaticIndex")
+#endif
 			.add_method("set_mach_number_blend", &T::set_mach_number_blend, "", "Set mach number blending");
 		reg.add_class_to_group(name, "CompressibleNavierStokesBase", tag);
 	}

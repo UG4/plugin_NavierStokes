@@ -160,6 +160,7 @@ static void Algebra(Registry& reg, string grp)
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
+	const int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
@@ -169,6 +170,11 @@ static void Domain(Registry& reg, string grp)
 		typedef NavierStokesBase<TDomain> TBase;
 		string name = string("IncompressibleNavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
+			.add_method("set_density", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_density), "", "Density")
+			.add_method("set_density", static_cast<void (T::*)(number)>(&T::set_density), "", "Density")
+#ifdef UG_FOR_LUA
+			.add_method("set_density", static_cast<void (T::*)(const char*)>(&T::set_density), "", "Density")
+#endif
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_grad_div", static_cast<void (T::*)(number)>(&T::set_grad_div), "", "GradDivFactor")
 			.add_method("set_laplace", &T::set_laplace)
