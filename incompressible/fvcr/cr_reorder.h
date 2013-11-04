@@ -171,21 +171,14 @@ void CROrderCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 		}
 	}
 	
+	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+
 	//	order levels
-	if(approxSpace.levels_enabled())
-		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
+	for(size_t i = 0; i < vDD.size(); ++i){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
 			CRCuthillMcKee(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
-			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
-		}
-	
-	//	order surface
-	if(approxSpace.top_surface_enabled()){
-		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
-		CRCuthillMcKee(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
-		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
+			vDD[i]->permute_indices(newIndex);
 	}
 }
 
@@ -225,21 +218,12 @@ void CROrderSloan(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 		}
 	}
 	
-	//	order levels
-	if(approxSpace.levels_enabled())
-		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
+	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	for(size_t i = 0; i < vDD.size(); ++i){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
 			CRSloan(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
-			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
-		}
-	
-	//	order surface
-	if(approxSpace.top_surface_enabled()){
-		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
-		CRSloan(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
-		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
+			vDD[i]->permute_indices(newIndex);
 	}
 }
 
@@ -278,22 +262,13 @@ void CROrderKing(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 			UG_THROW("Component dim in approximation space must be of piecewise constant type.");
 		}
 	}
-	
-	//	order levels
-	if(approxSpace.levels_enabled())
-		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
+
+	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	for(size_t i = 0; i < vDD.size(); ++i){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
 			CRKing(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
-			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
-		}
-	
-	//	order surface
-	if(approxSpace.top_surface_enabled()){
-		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
-		CRKing(newIndex,vvConnection,dim,minpind,bReverse,bseparate,orderp,orderv);
-		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
+			vDD[i]->permute_indices(newIndex);
 	}
 }
 
@@ -332,22 +307,13 @@ void CROrderMinimumDegree(ApproximationSpace<TDomain>& approxSpace,TGridFunction
 			UG_THROW("Component dim in approximation space must be of piecewise constant type.");
 		}
 	}
-	
-	//	order levels
-	if(approxSpace.levels_enabled())
-		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
+
+	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	for(size_t i = 0; i < vDD.size(); ++i){
 			std::vector<size_t> newIndex;
-			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
 			CRMinimumDegree(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
-			approxSpace.level_dof_distribution(lev)->permute_indices(newIndex);
-		}
-	
-	//	order surface
-	if(approxSpace.top_surface_enabled()){
-		std::vector<size_t> newIndex;
-		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
-		CRMinimumDegree(newIndex,vvConnection,dim,minpind,bseparate,orderp,orderv);
-		approxSpace.surface_dof_distribution()->permute_indices(newIndex);
+			vDD[i]->permute_indices(newIndex);
 	}
 }
 
@@ -387,31 +353,18 @@ void OrderCRCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 		}
 	}
 
-	if(approxSpace.levels_enabled())
-		for(size_t lev = 0; lev < approxSpace.num_levels(); ++lev){
+	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	for(size_t i = 0; i < vDD.size(); ++i){
 			//	get adjacency graph
 			std::vector<std::vector<size_t> > vvConnection;
 			size_t minpind;
-			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.level_dof_distribution(lev),u);
+			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
 			//	get mapping for cuthill-mckee order
 			std::vector<size_t> vNewIndex;
 			ComputeCRCuthillMcKeeOrder(vNewIndex,vvConnection,minpind,bReverse);
 			//	reorder indices
-			approxSpace.level_dof_distribution(lev)->permute_indices(vNewIndex);
+			vDD[i]->permute_indices(vNewIndex);
 		}
-
-//	order surface
-	if(approxSpace.top_surface_enabled()){
-		//	get adjacency graph
-		std::vector<std::vector<size_t> > vvConnection;
-		size_t minpind;
-		cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*approxSpace.surface_dof_distribution(),u);
-		//	get mapping for cuthill-mckee order
-		std::vector<size_t> vNewIndex;
-		ComputeCRCuthillMcKeeOrder(vNewIndex,vvConnection,minpind,bReverse);
-		//	reorder indices
-		approxSpace.surface_dof_distribution()->permute_indices(vNewIndex);
-	}
 }
 
 } // end namespace ug

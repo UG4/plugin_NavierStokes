@@ -19,8 +19,8 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::transferToLowe
 	for(int si = 0; si < approximationSpace.domain()->subset_handler()->num_subsets(); ++si){
 		// transfer to lower levels, averaging over child edges (2d) / child faces (3d)
 		for (size_t lev=approximationSpace.num_levels()-2; ;lev--){
-			const DoFDistribution& lDD = *approximationSpace.level_dof_distribution(lev);
-			const MultiGrid& grid = lDD.multi_grid();
+			const DoFDistribution& lDD = *approximationSpace.dof_distribution(GridLevel(lev, GridLevel::LEVEL));
+			const MultiGrid& grid = *lDD.multi_grid();
 			typedef typename DoFDistribution::traits<VertexBase>::const_iterator coarseLevelVertexIter;
 			coarseLevelVertexIter clvIter, clvIterEnd;
 			clvIter = lDD.template begin<VertexBase>(si);
