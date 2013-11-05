@@ -171,7 +171,7 @@ void CROrderCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 		}
 	}
 	
-	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	std::vector<SmartPtr<DoFDistribution> > vDD = approxSpace.dof_distributions();
 
 	//	order levels
 	for(size_t i = 0; i < vDD.size(); ++i){
@@ -218,7 +218,7 @@ void CROrderSloan(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 		}
 	}
 	
-	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	std::vector<SmartPtr<DoFDistribution> > vDD = approxSpace.dof_distributions();
 	for(size_t i = 0; i < vDD.size(); ++i){
 			std::vector<size_t> newIndex;
 			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
@@ -263,7 +263,7 @@ void CROrderKing(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 		}
 	}
 
-	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	std::vector<SmartPtr<DoFDistribution> > vDD = approxSpace.dof_distributions();
 	for(size_t i = 0; i < vDD.size(); ++i){
 			std::vector<size_t> newIndex;
 			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
@@ -308,7 +308,7 @@ void CROrderMinimumDegree(ApproximationSpace<TDomain>& approxSpace,TGridFunction
 		}
 	}
 
-	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	std::vector<SmartPtr<DoFDistribution> > vDD = approxSpace.dof_distributions();
 	for(size_t i = 0; i < vDD.size(); ++i){
 			std::vector<size_t> newIndex;
 			cr_get_connections<elem_type,TGridFunction>(vvConnection,minpind,*vDD[i],u);
@@ -353,7 +353,7 @@ void OrderCRCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 		}
 	}
 
-	std::vector<SmartPtr<DoFDistribution> >& vDD = approxSpace.dof_distributions();
+	std::vector<SmartPtr<DoFDistribution> > vDD = approxSpace.dof_distributions();
 	for(size_t i = 0; i < vDD.size(); ++i){
 			//	get adjacency graph
 			std::vector<std::vector<size_t> > vvConnection;
