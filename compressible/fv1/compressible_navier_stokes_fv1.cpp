@@ -530,8 +530,8 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
-	const DataImport<MathVector<dim>, dim>* pSource = NULL;
-	if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
+	//const DataImport<MathVector<dim>, dim>* pSource = NULL;
+	//if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
 
 //	interpolate velocity at ip with standard lagrange interpolation
 	static const size_t numSCVF = TFVGeom::numSCVF;
