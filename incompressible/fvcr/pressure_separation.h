@@ -163,7 +163,7 @@ bool solveLS(std::vector<number>& x,/* solution */
 		z[i]=s;
 	};
 	// Loese U*x = z
-	for (i=n-1;i>=0;i--){
+	for (i=n-1; ;i--){
 		number s=z[i];
 		for (j=n-1;j>i;j--){
 			s=s-x[j]*U[i][j];
