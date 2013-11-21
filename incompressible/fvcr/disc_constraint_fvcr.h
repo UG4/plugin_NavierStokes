@@ -100,8 +100,8 @@ void constrainingSideAveraging(PeriodicAttachmentAccessor<side_type,Attachment<V
 	domain_type& domain = *m_uInfo->domain().get();
 	DimCRFVGeometry<dim> geo;
 	position_accessor_type posAcc = m_uInfo->domain()->position_accessor();
-	cSideIterator cSideIter = m_uInfo->template begin<constraining_side_type>(SurfaceView::SHADOW);
-	cSideIterator cSideIterEnd = m_uInfo->template end<constraining_side_type>(SurfaceView::SHADOW);
+	cSideIterator cSideIter = m_uInfo->template begin<constraining_side_type>(SurfaceView::SHADOW_RIM);
+	cSideIterator cSideIterEnd = m_uInfo->template end<constraining_side_type>(SurfaceView::SHADOW_RIM);
 	for(  ;cSideIter !=cSideIterEnd; ++cSideIter){
 		constraining_side_type* cSide = *cSideIter;
 		typename grid_type::template traits<elem_type>::secure_container assoElements;
