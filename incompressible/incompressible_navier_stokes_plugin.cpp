@@ -105,7 +105,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 
 	// interpolate cr to lagrange 1
 	{
-		reg.add_function("interpolateToNodes", static_cast<void (*)(function_type&,function_type&)>(&interpolateToNodes), grp);
+		reg.add_function("CRToLagrange", static_cast<void (*)(function_type&,function_type&)>(&interpolateCRToLagrange), grp);
 	}
 
 	// driven cavity data evaluation

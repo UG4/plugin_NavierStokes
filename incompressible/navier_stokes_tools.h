@@ -24,7 +24,7 @@ namespace ug{
 
 // Crouzeix-Raviart function is interpolated to Lagrange 1 function
 template <typename TGridFunction>
-void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
+void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
 
@@ -67,6 +67,16 @@ void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
 		}
 		if (uCR.local_finite_element_id(i) != LFEID(LFEID::CROUZEIX_RAVIART, TGridFunction::dim, 1)){
 			UG_THROW("Second parameter must be of CR type.");
+		}
+	}
+	if (uLagrange.num_fct()==dim+1){
+		if (uLagrange.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, TGridFunction::dim, 0)){
+					UG_THROW("Parameter dim must be of piecewise type.");
+		}
+	}
+	if (uCR.num_fct()==dim+1){
+		if (uCR.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, TGridFunction::dim, 0)){
+					UG_THROW("Parameter dim must be of piecewise constant 1 type.");
 		}
 	}
 
@@ -115,7 +125,6 @@ void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
 			for(size_t i = 0; i < numVertices; ++i){
 				vVrt[i] = elem->vertex(i);
 				coCoord[i] = posAcc[vVrt[i]];
-				// UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
 			}
 
 			typename grid_type::template traits<side_type>::secure_container sides;
@@ -146,11 +155,15 @@ void interpolateToNodes(TGridFunction& uLagrange,TGridFunction& uCR){
 				MathVector<dim> localValue = 0;
 				for (size_t s=0;s<nofsides;s++)
 					for (int d=0;d<dim;d++)
-						localValue[d]=vShape[s]*uValue[s][d];
+						localValue[d]+=vShape[s]*uValue[s][d];
 				for (int d=0;d<dim;d++){
 					uLagrange.inner_dof_indices(vVrt[i], d, multInd);
 					DoFRef(uLagrange,multInd[0])+=scvVol*localValue[d];
 				}
+			}
+			if (uLagrange.num_fct()==dim+1){
+				uLagrange.inner_dof_indices(elem,dim,multInd);
+				DoFRef(uLagrange,multInd[0])=DoFRef(uCR,multInd[0]);
 			}
 		}
 	}
