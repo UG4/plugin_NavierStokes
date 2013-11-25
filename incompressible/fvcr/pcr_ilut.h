@@ -164,7 +164,7 @@ protected:
 
 		// we use new instead (A.Vogel)
 		m_A = mat;
-		MatCopySlaveRowsToMasterRowOverlap0(m_A);
+		MatAddSlaveRowsToMasterRowOverlap0(m_A);
 
 		//	set zero on slaves
 		std::vector<IndexLayout::Element> vIndex;
