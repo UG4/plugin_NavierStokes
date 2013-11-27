@@ -111,6 +111,9 @@ class PCRILUTPreconditioner : public IPreconditioner<TAlgebra>
 		{
 		};
 
+	///	returns if parallel solving is supported
+		virtual bool supports_parallel() const {return true;}
+
 	///	sets threshold for incomplete LU factorisation
 	void set_threshold(number threshvv,number threshvp,number threshpv,number threshpp)
 	{
