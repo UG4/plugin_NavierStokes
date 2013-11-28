@@ -52,6 +52,9 @@ class AssembledTransformingSmoother :
 	///	name
 		virtual const char* name() const {return "Assembled Transform Smoother";}
 
+	///	returns if parallel solving is supported
+		virtual bool supports_parallel() const {return true;}
+
 	/// Prepare for Operator J(u) and linearization point u (current solution)
 		virtual bool init(SmartPtr<ILinearOperator<vector_type> > J, const vector_type& u);
 
