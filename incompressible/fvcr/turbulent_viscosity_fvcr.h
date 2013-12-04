@@ -61,7 +61,7 @@ class StdTurbulentViscosityData
 	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
 
 	/// attachment accessor types
-	typedef MathMatrix<dim,dim> dimMat;
+	typedef MathSymmetricMatrix<dim> dimMat;
 	typedef Attachment<dimMat> ATensor;
 
 	typedef MathVector<dim> vecDim;
@@ -70,7 +70,9 @@ class StdTurbulentViscosityData
 	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
 	typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
 	typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
+	
 	public:
+	
 	virtual void operator() (TData& value,
 	                         const MathVector<dim>& globIP,
 	                         number time, int si) const
@@ -84,22 +86,87 @@ class StdTurbulentViscosityData
 	{
 		UG_THROW("StdTurbulentViscosityData: Need element.");
 	}
+	
+	grid_type* m_grid;
+	
+	//  turbulent viscosity attachment
+	aSideNumber m_acTurbulentViscosity;
+	ANumber m_aTurbulentViscosity;
+	
+	//  volume attachment
+	aSideNumber m_acVolume;
+	ANumber m_aVolume;
+	
+	//	deformation tensor attachment
+	aSideTensor m_acDeformation;
+	ATensor m_aDeformation;
+	
+	static const size_t max_number_of_ips = 20;
 
 	template <int refDim>
-	void evaluate(TData vValue[],
-	             const MathVector<dim> vGlobIP[],
-	             number time, int si,
-	             GeometricObject* elem,
-	             const MathVector<dim> vCornerCoords[],
-	             const MathVector<refDim> vLocIP[],
-	             const size_t nip,
-	             LocalVector* u,
-	             const MathMatrix<refDim, dim>* vJT = NULL) const
+	inline void evaluate(number vValue[],
+	                     const MathVector<dim> vGlobIP[],
+	                     number time, int si,
+	                     GeometricObject* elem,
+	                     const MathVector<dim> vCornerCoords[],
+	                     const MathVector<refDim> vLocIP[],
+	                     const size_t nip,
+	                     LocalVector* u,
+	                     const MathMatrix<refDim, dim>* vJT = NULL) const
 	{
-		getImpl().template evaluate<refDim>(vValue,vGlobIP,time,si,elem,
-		                                    vCornerCoords,vLocIP,nip,u,vJT);
+		//	reference object id
+		ReferenceObjectID roid = elem->reference_object_id();
+		
+		typename grid_type::template traits<side_type>::secure_container sides;
+		
+		UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
+		
+		m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
+		
+		//	get trial space
+		try{
+			const LocalShapeFunctionSet<refDim>& rTrialSpace =
+			LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, refDim, 1));
+			
+			//	memory for shapes
+			std::vector<number> vShape;
+			
+			//	loop ips
+			for(size_t ip = 0; ip < nip; ++ip)
+			{
+				//	evaluate at shapes at ip
+				rTrialSpace.shapes(vShape, vLocIP[ip]);
+				
+				// 	compute solution at integration point
+				vValue[ip] = 0.0;
+				for(size_t sh = 0; sh < vShape.size(); ++sh)
+				{
+					const number valSH = m_acTurbulentViscosity[sides[sh]];
+					vValue[ip] += valSH * vShape[sh];
+				}
+				//	UG_LOG(ip << " " << vValue[ip] << "\n");
+			}
+			
+		}
+		UG_CATCH_THROW("TurbulentViscosityData: trial space missing, Reference Object: "
+					   <<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
+		
+		number kinViscValues[max_number_of_ips];
+		(*m_imKinViscosity)(kinViscValues,
+							vGlobIP,
+							time, si,
+							elem,
+							vCornerCoords,
+							vLocIP,
+							nip,
+							u,
+							vJT);
+		for (size_t ip=0;ip < nip;ip++){
+			// UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
+			vValue[ip] += kinViscValues[ip];
+		}
 	}
-
+	
 	virtual void compute(LocalVector* u, GeometricObject* elem,
 	                     const MathVector<dim> vCornerCoords[], bool bDeriv = false)
 	{
@@ -117,24 +184,16 @@ class StdTurbulentViscosityData
 	///	returns if grid function is needed for evaluation
 	virtual bool requires_grid_fct() const {return true;}
 
-	void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
-	void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,aSideDimVector aaU);
+	void assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u,aSideDimVector* aaU);
 
-	number FNorm(MathMatrix<dim,dim> M);
-
-	void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,aSideDimVector aaU);
-	void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,SmartPtr<TGridFunction> u);
+	void addUiUjTerm(aSideTensor& aaDefTensor,const number factor,SmartPtr<TGridFunction> u,aSideDimVector* aaU);
 
 	template <typename VType>
-	void elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU);
-
-	void elementFilter(aSideDimVector& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
+	void elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
 
 	template <typename VType>
-	void scvFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,const PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU);
-
-	void scvFilter(aSideDimVector& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u);
-
+	void scvFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
+	
 	void fillAttachment(aSideDimVector& aaU,SmartPtr<TGridFunction> u);
 
 	void transferToLowerLevels(aSideNumber& aaData,ApproximationSpace<domain_type>& approximationSpace);
@@ -162,6 +221,34 @@ class StdTurbulentViscosityData
 	SubsetGroup m_turbZeroSg;
 
 	bool m_bAdaptive;
+	
+public:
+	/**
+	 * This method sets the kinematic viscosity value. Kinematic viscosity is added to turbulent viscosity in evaluation routine.
+	 *
+	 * \param[in]	data		kinematic Viscosity
+	 */
+	///	\{
+	void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user){
+		m_imKinViscosity = user;
+	}
+	void set_kinematic_viscosity(number val){
+		m_viscosityNumber = val;
+		set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
+	}
+#ifdef UG_FOR_LUA
+	void set_kinematic_viscosity(const char* fctName){
+		set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
+	}
+#endif
+	///	\}
+	
+protected:
+	///	Data import for kinematic viscosity
+	SmartPtr<CplUserData<number,dim> > m_imKinViscosity;
+	
+	number m_viscosityNumber;
+	
 };
 
 
@@ -170,6 +257,12 @@ class CRSmagorinskyTurbViscData
 : public StdTurbulentViscosityData<number, TGridFunction::dim,
   CRSmagorinskyTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
   {
+	///	own type
+	typedef CRSmagorinskyTurbViscData<TGridFunction> this_type;
+	  
+	/// base class type
+	typedef StdTurbulentViscosityData<number,TGridFunction::dim,this_type,TGridFunction> base_type;
+	  
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
 
@@ -198,53 +291,29 @@ class CRSmagorinskyTurbViscData
 	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
 
 	/// attachment accessor types
-	typedef MathMatrix<dim,dim> dimMat;
+	typedef MathSymmetricMatrix<dim> dimMat;
 	typedef Attachment<dimMat> ATensor;
 
 	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
 	typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
 
-	  public:
-	/**
-	 * This method sets the kinematic viscosity value. Kinematic viscosity is added to turbulent viscosity in evaluation routine.
-	 *
-	 * \param[in]	data		kinematic Viscosity
-	 */
-	///	\{
-	void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user){
-		m_imKinViscosity = user;
-	}
-	void set_kinematic_viscosity(number val){
-		set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
-	}
-#ifdef UG_FOR_LUA
-	void set_kinematic_viscosity(const char* fctName){
-		set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
-	}
-#endif
-	///	\}
-
-	  private:
-	///	Data import for kinematic viscosity
-	SmartPtr<CplUserData<number,dim> > m_imKinViscosity;
-
 	  private:
 	// grid function
 	SmartPtr<TGridFunction> m_u;
 
-	grid_type* m_grid;
+	using base_type::m_grid;
 
 	//  turbulent viscosity attachment
-	aSideNumber m_acTurbulentViscosity;
-	ANumber m_aTurbulentViscosity;
+	using base_type::m_acTurbulentViscosity;
+	using base_type::m_aTurbulentViscosity;
 
 	//  volume attachment
-	aSideNumber m_acVolume;
-	ANumber m_aVolume;
+	using base_type::m_acVolume;
+	using base_type::m_aVolume;
 
 	//	deformation tensor attachment
-	aSideTensor m_acDeformation;
-	ATensor m_aDeformation;
+	using base_type::m_acDeformation;
+	using base_type::m_aDeformation;
 
 	//  Smagorinsky model parameter, typical values [0.01 0.1]
 	number m_c;
@@ -289,75 +358,14 @@ class CRSmagorinskyTurbViscData
 		m_c = c;
 	}
 
-	template <int refDim>
-	inline void evaluate(number vValue[],
-	                     const MathVector<dim> vGlobIP[],
-	                     number time, int si,
-	                     GeometricObject* elem,
-	                     const MathVector<dim> vCornerCoords[],
-	                     const MathVector<refDim> vLocIP[],
-	                     const size_t nip,
-	                     LocalVector* u,
-	                     const MathMatrix<refDim, dim>* vJT = NULL) const
-	{
-		//	reference object id
-		ReferenceObjectID roid = elem->reference_object_id();
-
-		typename grid_type::template traits<side_type>::secure_container sides;
-
-		UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
-
-		m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
-
-		//	get trial space
-		try{
-			const LocalShapeFunctionSet<refDim>& rTrialSpace =
-					LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, refDim, 1));
-
-			//	memory for shapes
-			std::vector<number> vShape;
-
-			//	loop ips
-			for(size_t ip = 0; ip < nip; ++ip)
-			{
-				//	evaluate at shapes at ip
-				rTrialSpace.shapes(vShape, vLocIP[ip]);
-
-				// 	compute solution at integration point
-				vValue[ip] = 0.0;
-				for(size_t sh = 0; sh < vShape.size(); ++sh)
-				{
-					const number valSH = m_acTurbulentViscosity[sides[sh]];
-					vValue[ip] += valSH * vShape[sh];
-				}
-				//	UG_LOG(ip << " " << vValue[ip] << "\n");
-			}
-
-		}
-		UG_CATCH_THROW("TurbulentViscosityData: trial space missing, Reference Object: "
-				<<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
-
-		number kinViscValues[max_number_of_ips];
-		(*m_imKinViscosity)(kinViscValues,
-				vGlobIP,
-				time, si,
-				elem,
-				vCornerCoords,
-				vLocIP,
-				nip,
-				u,
-				vJT);
-		for (size_t ip=0;ip < nip;ip++){
-			// UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
-			vValue[ip] += kinViscValues[ip];
-		}
-	}
-
-	static const size_t max_number_of_ips = 20;
-	
 	bool m_bAdaptive;
 
 	void update();
+	  
+  protected:
+	  using base_type::m_imKinViscosity;
+	  using base_type::m_viscosityNumber;
+	  using base_type::m_turbZeroSg;
 
   };
 
@@ -366,6 +374,12 @@ class CRDynamicTurbViscData
 : public StdTurbulentViscosityData<number, TGridFunction::dim,
   CRDynamicTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
   {
+	///	own type
+	typedef CRDynamicTurbViscData<TGridFunction> this_type;
+	  
+	/// base class type
+	typedef StdTurbulentViscosityData<number,TGridFunction::dim,this_type,TGridFunction> base_type;
+	  
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
 
@@ -394,7 +408,7 @@ class CRDynamicTurbViscData
 	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
 
 	/// attachment accessor types
-	typedef MathMatrix<dim,dim> dimMat;
+	typedef MathSymmetricMatrix<dim> dimMat;
 	typedef Attachment<dimMat> ATensor;
 
 	typedef MathVector<dim> vecDim;
@@ -404,32 +418,7 @@ class CRDynamicTurbViscData
 	typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
 	typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
 
-	  public:
-	/**
-	 * This method sets the kinematic viscosity value. Kinematic viscosity is added to turbulent viscosity in evaluation routine.
-	 *
-	 * \param[in]	data		kinematic Viscosity
-	 */
-	///	\{
-	void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user){
-		m_imKinViscosity = user;
-	}
-	void set_kinematic_viscosity(number val){
-		m_viscosityNumber = val;
-		set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
-	}
-#ifdef UG_FOR_LUA
-	void set_kinematic_viscosity(const char* fctName){
-		set_kinematic_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
-	}
-#endif
-	///	\}
-
 	  private:
-	///	Data import for kinematic viscosity
-	SmartPtr<CplUserData<number,dim> > m_imKinViscosity;
-
-	number m_viscosityNumber;
 
 	static const number m_small = 1e-8;
 
@@ -437,11 +426,19 @@ class CRDynamicTurbViscData
 	// grid function
 	SmartPtr<TGridFunction> m_u;
 
-	grid_type* m_grid;
-
+	using base_type::m_grid;
+	  
 	//  turbulent viscosity attachment
-	aSideNumber m_acTurbulentViscosity;
-	ANumber m_aTurbulentViscosity;
+	using base_type::m_acTurbulentViscosity;
+	using base_type::m_aTurbulentViscosity;
+	  
+	//  volume attachment
+	using base_type::m_acVolume;
+	using base_type::m_aVolume;
+	  
+	//	deformation tensor attachment
+	using base_type::m_acDeformation;
+	using base_type::m_aDeformation;
 
 	//  turbulent model parameter attachment
 	aSideNumber m_acTurbulentC;
@@ -451,10 +448,6 @@ class CRDynamicTurbViscData
 	aSideNumber m_acTurbulentCNew;
 	ANumber m_aTurbulentCNew;
 
-	//  volume attachment
-	aSideNumber m_acVolume;
-	ANumber m_aVolume;
-
 	//  coarser grid volume attachment
 	aSideNumber m_acVolumeHat;
 	ANumber m_aVolumeHat;
@@ -462,10 +455,6 @@ class CRDynamicTurbViscData
 	//  filtered u attachment
 	aSideDimVector m_acUHat;
 	AMathVectorDim m_aUHat;
-
-	//	deformation tensor attachment
-	aSideTensor m_acDeformation;
-	ATensor m_aDeformation;
 
 	//	coarser grid deformation tensor attachment
 	aSideTensor m_acDeformationHat;
@@ -549,71 +538,6 @@ class CRDynamicTurbViscData
 		grid.template detach_from<side_type>(m_aMij);
 	};
 
-	template <int refDim>
-	inline void evaluate(number vValue[],
-	                     const MathVector<dim> vGlobIP[],
-	                     number time, int si,
-	                     GeometricObject* elem,
-	                     const MathVector<dim> vCornerCoords[],
-	                     const MathVector<refDim> vLocIP[],
-	                     const size_t nip,
-	                     LocalVector* u,
-	                     const MathMatrix<refDim, dim>* vJT = NULL) const
-	{
-		//	reference object id
-		ReferenceObjectID roid = elem->reference_object_id();
-
-		typename grid_type::template traits<side_type>::secure_container sides;
-
-		UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
-
-		m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
-
-		//	get trial space
-		try{
-			const LocalShapeFunctionSet<refDim>& rTrialSpace =
-					LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, refDim, 1));
-
-			//	memory for shapes
-			std::vector<number> vShape;
-
-			//	loop ips
-			for(size_t ip = 0; ip < nip; ++ip)
-			{
-				//	evaluate at shapes at ip
-				rTrialSpace.shapes(vShape, vLocIP[ip]);
-
-				// 	compute solution at integration point
-				vValue[ip] = 0.0;
-				for(size_t sh = 0; sh < vShape.size(); ++sh)
-				{
-					number valSH = m_acTurbulentViscosity[sides[sh]];
-					vValue[ip] += valSH * vShape[sh];
-				}
-			}
-
-		}
-		UG_CATCH_THROW("TurbulentViscosityData: trial space missing, Reference Object: "
-				<<roid<<", Trial Space: CROUZEIX_RAVIART, refDim="<<refDim);
-
-		number kinViscValues[max_number_of_ips];
-		(*m_imKinViscosity)(kinViscValues,
-				vGlobIP,
-				time, si,
-				elem,
-				vCornerCoords,
-				vLocIP,
-				nip,
-				u,
-				vJT);
-		for (size_t ip=0;ip < nip;ip++){
-			//  UG_LOG("turbVis(" << ip << ")=" << vValue[ip] << "+" << kinViscValues[ip] << "\n");
-			vValue[ip] += kinViscValues[ip];
-		}
-	}
-
-	static const size_t max_number_of_ips = 20;
-
 	bool m_spaceFilter;
 	bool m_timeFilter;
 	number m_timeFilterEps;
@@ -636,6 +560,10 @@ class CRDynamicTurbViscData
 			m_timeFilter=false;
 		m_timeFilterEps=eps;
 	}
+  protected:
+	  using base_type::m_imKinViscosity;
+	  using base_type::m_viscosityNumber;
+	  using base_type::m_turbZeroSg;
   };
 
 
