@@ -366,7 +366,7 @@ class CRSmagorinskyTurbViscData
 	  using base_type::m_imKinViscosity;
 	  using base_type::m_viscosityNumber;
 	  using base_type::m_turbZeroSg;
-
+	  using base_type::assembleDeformationTensor;
   };
 
 template <typename TGridFunction>

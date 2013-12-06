@@ -621,7 +621,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	//	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble deformation tensor fluxes
-	assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,NULL);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,NULL);
 	// compute turbulent viscosity , loop over sides
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
@@ -662,7 +662,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 		}
 	}
 	// transfer attachment data to lower levels
-	transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
+	this->transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
 }
 
 template<typename TGridFunction>
@@ -687,29 +687,29 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 
 	// compute Lij term \hat{u_i u_j} - \hat{u_i} \hat{u_j}
 	// \hat{u}
-	elementFilter(m_acUHat,m_acVolumeHat,m_u,&m_acUHat);
+	this->elementFilter(m_acUHat,m_acVolumeHat,m_u,&m_acUHat);
 	// use Mij attachment to store first Lij part
 	// u_i u_j
-	addUiUjTerm(m_acMij,1.0,m_u,NULL);
+	this->addUiUjTerm(m_acMij,1.0,m_u,NULL);
 	// \hat{u_i u_j}
-	elementFilter(m_acLij,m_acVolumeHat,NULL,&m_acMij);
+	this->elementFilter(m_acLij,m_acVolumeHat,NULL,&m_acMij);
 	// \hat{u_i u_j} - \hat{u_i} \hat{u_j}
-	addUiUjTerm(m_acLij,-1.0,NULL,&m_acUHat);
+	this->addUiUjTerm(m_acLij,-1.0,NULL,&m_acUHat);
 
 	// Mij term
 	// first term |\hat{S}| \hat{S}
 	// assemble \hat{S} using \hat{u}
-	assembleDeformationTensor(m_acDeformationHat,m_acVolume,NULL,&m_acUHat);
+	this->assembleDeformationTensor(m_acDeformationHat,m_acVolume,NULL,&m_acUHat);
 	// normalize \hat{S}
-	scaleTensorByNorm(m_acDeformationHat);
+	this->scaleTensorByNorm(m_acDeformationHat);
 	// Mij second term \hat{|S|S}
 	// compute S
-	assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,NULL);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,NULL);
 	// compute |S| S
-	scaleTensorByNorm(m_acDeformation);
+	this->scaleTensorByNorm(m_acDeformation);
 	// filter |S| S
 	//for debug UG_LOG("------------------------------------------------------\n");
-	elementFilter(m_acMij,m_acVolumeHat,NULL,&m_acDeformation);
+	this->elementFilter(m_acMij,m_acVolumeHat,NULL,&m_acDeformation);
 
 	bool use_filter = false;
 
@@ -825,7 +825,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 		}
 	}
 	// transfer attachment data to lower levels
-	transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
+	this->transferToLowerLevels(m_acTurbulentViscosity,*m_spApproxSpace);
 }
 
 } // namespace NavierStokes
