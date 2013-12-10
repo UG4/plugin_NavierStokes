@@ -793,9 +793,9 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 		// filter c
 		if (m_timeFilter==false)
 			// c has been stored in viscosity attachment
-			elementFilter(m_acTurbulentC,m_acVolumeHat,NULL,&m_acTurbulentViscosity);
+			this->elementFilter(m_acTurbulentC,m_acVolumeHat,NULL,&m_acTurbulentViscosity);
 		else
-			elementFilter(m_acTurbulentCNew,m_acVolumeHat,NULL,&m_acTurbulentViscosity);
+			this->elementFilter(m_acTurbulentCNew,m_acVolumeHat,NULL,&m_acTurbulentViscosity);
 		// compute turbulent viscosity
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 		{
