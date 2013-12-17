@@ -628,30 +628,15 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 		if ((m_turbZeroSg.size()!=0) && (m_turbZeroSg.contains(si)==true)) continue;
 		SideIterator sideIter = m_u->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_u->template end<side_type>(si);
-		bool periodic_subset = false;
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
 			//	get Elem
 			side_type* side = *sideIter;
-			if (m_pbm && m_pbm->is_slave(side)){
-				periodic_subset = true;
-				continue;
-			}
+			if (m_pbm && m_pbm->is_slave(side)) continue;
 			number delta = m_acVolume[side];
 			// for possible other choices of delta see Fr�hlich p 160
 			delta = pow(delta,(number)1.0/(number)dim);
-			m_acTurbulentViscosity[side] = m_c * delta*delta * m_acDeformation[side].fnorm();
-		}
-		// fill slave elements
-		if (periodic_subset==true){
-			for(  ;sideIter !=sideIterEnd; sideIter++)
-			{
-				//	get Elem
-				side_type* side = *sideIter;
-				if (m_pbm && m_pbm->is_slave(side)){
-
-				}
-			}
+			m_acTurbulentViscosity[side] = m_c*m_c * delta*delta * m_acDeformation[side].fnorm();
 		}
 	}
 	if (m_bAdaptive){
@@ -671,8 +656,10 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	domain_type& domain = *m_u->domain().get();
 
 	//	get position accessor
-	// for debug typedef typename domain_type::position_accessor_type position_accessor_type;
-	// for debug const position_accessor_type& posAcc = domain.position_accessor();
+	// for debug 
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+	// for debug 
+	const position_accessor_type& posAcc = domain.position_accessor();
 
 	// initialize attachment values with 0
 //	SetAttachmentValues(m_acDeformation , m_grid->template begin<side_type>(), m_grid->template end<side_type>(), 0);
@@ -711,55 +698,28 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	//for debug UG_LOG("------------------------------------------------------\n");
 	this->elementFilter(m_acMij,m_acVolumeHat,NULL,&m_acDeformation);
 
-	bool use_filter = false;
-
-	//	create Multiindex
-	std::vector<DoFIndex> multInd;
-
 	// complete Mij term computation by scaling and adding the two terms,
 	// solve the local least squares problem and compute local c and local turbulent viscosity
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		if (use_filter==false)
-			if ((m_turbZeroSg.size()!=0) && (m_turbZeroSg.contains(si)==true)) continue;
+		if ((m_turbZeroSg.size()!=0) && (m_turbZeroSg.contains(si)==true)) continue;
 		SideIterator sideIter = m_u->template begin<side_type>(si);
 		SideIterator sideIterEnd = m_u->template end<side_type>(si);
 		for(  ;sideIter !=sideIterEnd; sideIter++){
 			side_type* side = *sideIter;
 			if (m_pbm && m_pbm->is_slave(side)) continue;
-			// use c to compute turbulent viscosity
-			number delta = m_acVolume[side];
-			delta = pow(delta,(number)1.0/(number)dim);
-			number deltaHat = m_acVolumeHat[side];
-			deltaHat = pow(deltaHat,(number)1.0/(number)dim);
-			m_u->dof_indices(side, 0, multInd);
-			//for debug UG_LOG("--------------------------------------------------");
-			//for debug UG_LOG("co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
-			//for debug UG_LOG("u = " << DoFRef(*m_u,multInd[0]) << "\n");
-			m_u->dof_indices(side, 1, multInd);
-			//for debug UG_LOG("v = " << DoFRef(*m_u,multInd[0]) << "\n");
-			//for debug UG_LOG("uHat = " << m_acUHat[side] << "\n");
-			//for debug UG_LOG("deformNorm = " << FNorm(m_acDeformation[side]) << "\n");
-			//UG_LOG("deformHatNorm = " << FNorm( m_acDeformationHat[side]) << "\n");
-			//for debug UG_LOG("hatDeform = " << m_acMij[side] << "\n");
-			// complete Mij term computation
-			m_acDeformationHat[side] *= -2*deltaHat*deltaHat;
-			m_acMij[side] *= 2*delta*delta;
+			// use fixed ratio \hat{delta} / delta or compute it from filter width
+			number kappa;
+			if (m_fixedRatio) kappa = m_kappa;
+			else {
+				number delta = m_acVolume[side];
+				delta = pow(delta,(number)1.0/(number)dim);
+				number deltaHat = m_acVolumeHat[side];
+				deltaHat = pow(deltaHat,(number)1.0/(number)dim);
+				kappa = deltaHat /(number) delta;
+			}
+			m_acDeformationHat[side] *= -kappa*kappa;
 			m_acMij[side] += m_acDeformationHat[side];
-			//for debug UG_LOG("Mij " << FNorm(m_acMij[side]) << "\n");
-			for (int d1=0;d1<dim;d1++){
-				for (int d2=0;d2<dim;d2++){
-					//for debug UG_LOG(m_acMij[side][d1][d2] << " ");
-				}
-				//for debug UG_LOG("\n");
-			}
-			//for debug UG_LOG("Lij " << FNorm(m_acLij[side]) << "\n");
-			for (int d1=0;d1<dim;d1++){
-				for (int d2=0;d2<dim;d2++){
-					//for debug UG_LOG(m_acLij[side][d1][d2] << " ");
-				}
-				//for debug UG_LOG("\n");
-			}
 			// compute local c
 			// solve least squares problem
 			number c = 0;
@@ -772,15 +732,18 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 				for (int d2=0;d2<dim;d2++)
 					denom += m_acMij[side](d1,d2)*m_acMij[side](d1,d2);
 			if (denom>1e-15)
-				c/=(number)denom;
+				c/=(number)(2.0*denom);
 			else c=0;
+
+//			UG_LOG("c=" << c << "\n");
 
 			if (m_spaceFilter==false){
 				if (m_timeFilter==false){
-					m_acTurbulentViscosity[side] = c * delta*delta * m_acDeformation[side].fnorm();
+					m_acTurbulentViscosity[side] = c * m_acDeformation[side].fnorm();
+					UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << c << " kappa = " << kappa << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
 				} else {
 					m_acTurbulentC[side]= (m_timeFilterEps * c + (1-m_timeFilterEps)*m_acTurbulentC[side]);
-					m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * m_acDeformation[side].fnorm();
+					m_acTurbulentViscosity[side] = m_acTurbulentC[side] * m_acDeformation[side].fnorm();
 				}
 				if (m_acTurbulentViscosity[side]+m_viscosityNumber<m_small) m_acTurbulentViscosity[side] = m_viscosityNumber + m_small;			}
 			else{
@@ -806,14 +769,14 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 			for(  ;sideIter !=sideIterEnd; sideIter++){
 				side_type* side = *sideIter;
 				if (m_pbm && m_pbm->is_slave(side)) continue;
-				number delta = m_acVolume[side];
-				delta = pow(delta,(number)1.0/(number)dim);
 				if (m_timeFilter==true)
 					// time averaging, note that c has been stored in m_acVolumeHat
 					m_acTurbulentC[side]= (m_timeFilterEps * m_acTurbulentCNew[side] + (1-m_timeFilterEps)*m_acTurbulentC[side]);
-				m_acTurbulentViscosity[side] = m_acTurbulentC[side] * delta*delta * m_acDeformation[side].fnorm();
+				m_acTurbulentViscosity[side] = m_acTurbulentC[side] * m_acDeformation[side].fnorm();
+				UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << m_acTurbulentC[side] << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
 				if (m_acTurbulentViscosity[side]+m_viscosityNumber<m_small) m_acTurbulentViscosity[side] = m_viscosityNumber+m_small;
-				//for debug UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << m_acTurbulentC[side] << " delta = " << delta << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
+				// for debug 
+				// UG_LOG("nu_t = " << m_acTurbulentViscosity[side]  << " c = " << m_acTurbulentC[side] << " co=[" << 0.5*(posAcc[side->vertex(0)][0] + posAcc[side->vertex(1)][0]) << "," << 0.5*(posAcc[side->vertex(0)][1] + posAcc[side->vertex(1)][1]) << "]\n");
 			}
 		}
 	}

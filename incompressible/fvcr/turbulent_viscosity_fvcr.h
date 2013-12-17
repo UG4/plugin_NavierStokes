@@ -475,7 +475,7 @@ class CRDynamicTurbViscData
 	PeriodicBoundaryManager* m_pbm;
 
 	  public:
-	void init(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,bool spaceFilter,number timeFilterEps){
+	void init(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,bool spaceFilter,number timeFilterEps,bool bFixedRatio){
 		m_u = spGridFct;
 		this->m_uInfo = m_u;
 		m_spApproxSpace = approxSpace;
@@ -508,19 +508,20 @@ class CRDynamicTurbViscData
 		m_spaceFilter=spaceFilter;
 		m_timeFilterEps=timeFilterEps;
 		if (timeFilterEps==1) m_timeFilter=false;
+		m_fixedRatio = bFixedRatio;
 	}
 	/// constructor
 	CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct){
 		// use default settings for filtering of model constant c, use space filter, no time filter (timeFilter eps=1)
-		init(approxSpace,spGridFct,true,1);
+		init(approxSpace,spGridFct,true,1,true);
 	}
 
 	CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,bool spaceFilter,number timeFilter){
-		init(approxSpace,spGridFct,spaceFilter,timeFilter);
+		init(approxSpace,spGridFct,spaceFilter,timeFilter,true);
 	}
 
 	CRDynamicTurbViscData(SmartPtr<ApproximationSpace<domain_type> > approxSpace,SmartPtr<TGridFunction> spGridFct,bool spaceFilter,bool timeFilter){
-		init(approxSpace,spGridFct,spaceFilter,1);
+		init(approxSpace,spGridFct,spaceFilter,1,true);
 		set_time_filter(timeFilter);
 	}
 
@@ -541,7 +542,12 @@ class CRDynamicTurbViscData
 	bool m_spaceFilter;
 	bool m_timeFilter;
 	number m_timeFilterEps;
-	
+
+	// fixed ratio boolean \hat{delta} / delta
+	bool m_fixedRatio;
+	// value \hat{delta} / delta
+	static const number m_kappa = 2;
+
 	bool m_bAdaptive;
 
 	void update();
