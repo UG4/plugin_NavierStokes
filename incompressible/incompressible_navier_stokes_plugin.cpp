@@ -88,6 +88,17 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesWall", tag);
 	}
 
+//  ConstantTophatFilter
+	{
+		string name = string("ConstantBoxFilter").append(suffix);
+		typedef ConstantBoxFilter<function_type> T;
+		reg.add_class_<T>(name,grp)
+			.template add_constructor<void (*)(number)>("filter width")
+			.template add_constructor<void (*)(SmartPtr<function_type>,number)>("domain,element size scale")
+			.add_method("apply filter",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter");
+		reg.add_class_to_group(name, "ConstantBoxFilter", tag);
+	}
+	
 	// CFL number computation
 	{
 		reg.add_function("cflNumber",static_cast<void (*)(function_type&,number)>(&cflNumber),grp);
@@ -120,7 +131,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 
 
 //	AssembledTransformingSmoother
-	{
+/*	{
 		typedef AssembledTransformingSmoother<TDomain, TAlgebra> T;
 		typedef ILinearIterator<typename TAlgebra::vector_type> TBase;
 		typedef DebugWritingObject<TAlgebra> TBase2;
@@ -129,7 +140,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 			.template add_constructor<void (*)(SmartPtr<IAssemble<TAlgebra> >, SmartPtr<IAssemble<TAlgebra> >, SmartPtr<ILinearIterator<typename TAlgebra::vector_type> >)>("RightTrafoAss, TrafoSystemAss, Smoother")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "AssembledTransformingSmoother", tag);
-	}
+	}*/
 }
 
 /**

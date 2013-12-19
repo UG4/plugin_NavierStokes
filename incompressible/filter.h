@@ -19,6 +19,7 @@
 #include "lib_grid/algorithms/attachment_util.h"
 
 namespace ug{
+namespace NavierStokes{
 
 template <int dim,typename elem_type,typename TGridFunction>
 void copyAttachmentToGridFunction(SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<elem_type,Attachment<MathVector<dim> > >& aaU){
@@ -67,6 +68,304 @@ void copyGridFunctionToAttachment(PeriodicAttachmentAccessor<elem_type,Attachmen
 		}
 	}
 }
+
+// wrapper class for filtering
+template <typename TImpl,typename TGridFunction>
+class FilterBaseClass{
+	public:
+	/// dimension
+	static const size_t dim = TGridFunction::dim;
+	
+    /// element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	
+	///	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+
+	///	grid type
+	typedef typename domain_type::grid_type grid_type;
+
+	/// side type
+	typedef typename elem_type::side side_type;
+	
+	// vertex type
+	typedef VertexBase vertex_type;
+	
+	// filter for crouzeix-raviart type attachment
+	template <typename VType>
+	void apply(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,
+			PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU){
+		getImpl().apply_filter(aaUHat,NULL,aaU);
+	}
+
+	// filter for crouzeix-raviart type grid function
+	template <typename VType>
+	void apply(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,
+			SmartPtr<TGridFunction> u){
+			getImpl().apply_filter(aaUHat,u,aaUHat);
+	}
+			
+	// filter for fv1 type attachment
+	template <typename VType>
+	void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaUHat,
+			PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaU){
+		getImpl().apply_filter(aaUHat,NULL,aaU);
+	}
+
+	// filter for general grid function, result stored in nodes
+	template <typename VType>
+		void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaUHat,
+			SmartPtr<TGridFunction> u){
+			if (u->local_finite_element_id(0) == LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
+				getImpl().apply_filter(aaUHat,u);
+			} else {
+				getImpl().apply_filter(aaUHat,u,aaUHat);
+			}
+	}
+
+	template <typename TElem>
+	void apply_(SmartPtr<TGridFunction> u){
+		// define attachment types
+		Attachment<MathVector<dim> > aUHat;
+		PeriodicAttachmentAccessor<TElem,Attachment<MathVector<dim> > > acUHat;
+
+		domain_type& domain = *u->domain().get();
+		grid_type& grid = *domain.grid();
+
+		// attach
+		grid.template attach_to<TElem>(aUHat);
+		acUHat.access(grid,aUHat);
+		apply(acUHat,u);
+		copyAttachmentToGridFunction<dim,TElem,TGridFunction>(u,acUHat);
+	}
+
+	// filter grid function
+	void apply(SmartPtr<TGridFunction> u){
+		if (u->local_finite_element_id(0) == LFEID(LFEID::CROUZEIX_RAVIART, dim, 1)){
+			apply_<side_type>(u);
+		} else {
+			apply_<vertex_type>(u);
+		}
+	}
+	
+	protected:
+	///	access to implementation
+		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
+
+	///	const access to implementation
+		const TImpl& getImpl() const {return static_cast<const TImpl&>(*this);}
+};
+	
+// Box filter with constant filter width
+template <typename TGridFunction>
+class ConstantBoxFilter
+	: public FilterBaseClass<ConstantBoxFilter<TGridFunction>,TGridFunction>	
+{
+public:
+	// dimension
+	static const size_t dim = TGridFunction::dim;
+	
+    // element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	
+	//	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+	
+	// side type
+	typedef typename elem_type::side side_type;
+	
+	// vertex type
+	typedef VertexBase vertex_type;
+	
+	//	grid type
+	typedef typename domain_type::grid_type grid_type;	
+	
+	//	position accessor type
+	typedef typename domain_type::position_accessor_type position_accessor_type;
+
+	/// element iterator
+	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+
+	/// side iterator
+	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+
+	/// vertex iterator
+	typedef typename TGridFunction::template traits<vertex_type>::const_iterator VertexIterator;
+
+	// filter for crouzeix-raviart type data
+	template <typename VType>
+	void apply_filter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,
+			   SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaU){};
+			
+	// filter for fv1 type data
+	template <typename VType>
+	void apply_filter(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaUHat,
+			   SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaU);
+
+	// filter for crouzeix-raviart grid function with output in node attachment
+	template <typename VType>
+	void apply_filter(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaUHat,
+			   SmartPtr<TGridFunction> u){};
+	
+	// compute average mesh size
+	number compute_average_element_size(SmartPtr<TGridFunction> u);
+	
+	template <typename TElem>
+	inline number width(TElem elem){ return m_width; }
+	
+	// constructors
+	ConstantBoxFilter(number width){ m_width = width; }
+	
+	ConstantBoxFilter(SmartPtr<TGridFunction> u,number alpha = 1.0){
+		m_width = compute_average_element_size(u);
+		m_width *= alpha;
+	}
+	
+	template <typename TAElem,typename TDofElem>
+	void handleNeighbors(std::vector<TAElem> nb,number filterWidth,std::vector<MathVector<dim> > ipCo,
+			std::vector<MathVector<dim> > ipVol,std::vector<MathVector<dim> > ipVolVal,
+			PeriodicAttachmentAccessor<TDofElem,Attachment<MathVector<dim> > >& aaU,
+			PeriodicAttachmentAccessor<TDofElem,Attachment<number > >& aaVol);
+
+private:
+
+	number m_width;
+	
+	position_accessor_type m_posAcc;
+
+	grid_type* m_grid;
+
+	// grid function
+	SmartPtr<TGridFunction> m_uInfo;
+};
+
+
+
+/*
+// Box filter with variable filter width
+template <int dim,typename TGridFunction>
+class VariableBoxFilter{
+    /// element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	///	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+
+	/// side type
+	typedef typename elem_type::side side_type;
+
+	// vertex type
+	typedef typename VertexBase vertex_type;
+
+	// filter for crouzeix-raviart type data
+	template <typename VType>
+	void apply(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
+			SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
+
+	// filter for fv1 type data
+	template <typename VType,typename >
+	void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
+			SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
+
+	// filter grid function
+	void apply(SmartPtr<TGridFunction> u);
+
+	template <typename TElem>
+	inline number width(TElem elem){ return m_width; }
+
+	/// constructors
+	VariableBox(number width){ m_width = width; }
+
+	private:
+
+}
+
+// Element Box filter, averaging over neighbour elements
+template <int dim,typename TGridFunction>
+class ElementBoxFilter{
+    /// element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	///	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+
+	/// side type
+	typedef typename elem_type::side side_type;
+
+	// vertex type
+	typedef typename VertexBase vertex_type;
+
+	// filter for crouzeix-raviart type data
+	template <typename VType>
+	void apply(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
+			SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
+
+	// filter for fv1 type data
+	template <typename VType,typename >
+	void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
+			SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
+
+	// filter grid function
+	void apply(SmartPtr<TGridFunction> u);
+
+	/// return filter width
+	inline number width(vertex_type vrt){ return m_acVertexVolume[vrt]; }
+
+	inline number width(side_type side){ return m_acSideVolume[side]; }
+
+	/// constructors
+	ElementBox(){ init(); }
+
+	private:
+	//  volume attachment
+	ANumber m_aSideVolume;
+	aSideNumber m_acSideVolume;
+	aVertexNumber m_acVertexVolume;
+}
+
+// Element Box filter, averaging over neighbour elements
+template <int dim,typename TGridFunction>
+class ScvBoxFilter{
+    /// element type
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+
+	///	domain type
+	typedef typename TGridFunction::domain_type domain_type;
+
+	/// side type
+	typedef typename elem_type::side side_type;
+
+	// vertex type
+	typedef typename VertexBase vertex_type;
+
+	// filter for crouzeix-raviart type data
+	template <typename VType>
+	void apply(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
+			SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
+
+	// filter for fv1 type data
+	template <typename VType,typename >
+	void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
+			SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU);
+
+	// filter grid function
+	void apply(SmartPtr<TGridFunction> u);
+
+	/// return filter width
+	inline number width(vertex_type vrt){ return m_acVertexVolume[vrt]; }
+
+	inline number width(side_type side){ return m_acSideVolume[side]; }
+
+	/// constructors
+	ScvBox(){ init(); }
+
+	private:
+	//  volume attachment
+	ANumber m_aSideVolume;
+	aSideNumber m_acSideVolume;
+	aVertexNumber m_acVertexVolume;
+}
+*/
 
 template <int dim,typename TGridFunction>
 void elementFilterFVCR(SmartPtr<TGridFunction> u){
@@ -686,6 +985,9 @@ void filter(SmartPtr<TGridFunction> u,const std::string& name){
 	if ((disc==FV1)&&(filter==SCV_FILTER)) scvFilterFV1<dim,TGridFunction>(u);
 }
 
+} // end namespace NavierStokes
 } // end namespace ug
+
+#include "filter_impl.h"
 
 #endif /* __H__UG__LIB_DISC__NAVIER_STOKES__INCOMPRESSIBLE__FILTER__ */
