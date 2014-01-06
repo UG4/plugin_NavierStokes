@@ -95,7 +95,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_<T>(name,grp)
 			.template add_constructor<void (*)(number)>("filter width")
 			.template add_constructor<void (*)(SmartPtr<function_type>,number)>("domain,element size scale")
-			.add_method("apply filter",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter");
+			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter");
 		reg.add_class_to_group(name, "ConstantBoxFilter", tag);
 	}
 	
