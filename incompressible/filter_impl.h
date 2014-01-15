@@ -109,8 +109,8 @@ template <typename TGridFunction>
 template <typename VType>
 void ConstantBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& acUHat,
 			   SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& aaU){
-	bool useGridFunction = true;
-	if (u==NULL) useGridFunction = false;
+//	bool useGridFunction = true;
+//	if (u==NULL) useGridFunction = false;
 
 	std::vector<DoFIndex> multInd;
 
