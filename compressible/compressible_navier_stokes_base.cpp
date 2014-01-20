@@ -47,7 +47,7 @@ template<typename TDomain>
 void CompressibleNavierStokesBase<TDomain>::
 set_adiabatic_index(number val)
 {
-	set_adiabatic_index(CreateSmartPtr(new ConstUserNumber<dim>(val)));
+	set_adiabatic_index(make_sp(new ConstUserNumber<dim>(val)));
 }
 
 #ifdef UG_FOR_LUA

@@ -52,7 +52,7 @@ template<typename TDomain>
 void IncompressibleNavierStokesBase<TDomain>::
 set_density(number val)
 {
-	set_density(CreateSmartPtr(new ConstUserNumber<dim>(val)));
+	set_density(make_sp(new ConstUserNumber<dim>(val)));
 }
 
 #ifdef UG_FOR_LUA
