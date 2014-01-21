@@ -1124,11 +1124,11 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			/// \{
 		virtual void adjust_defect(vector_type& d, const vector_type& u,
 				                           ConstSmartPtr<DoFDistribution> dd, number time = 0.0,
-				                           ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = NULL,
+				                           ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = SPNULL,
 										   const std::vector<number>* vScaleMass = NULL,
 										   const std::vector<number>* vScaleStiff = NULL)
 		{
-			if (vSol == NULL)
+			if (vSol == SPNULL)
 				if (m_bLinUpConvDefect==false)
 					add_pressure_defect(d,u,dd);
 				else

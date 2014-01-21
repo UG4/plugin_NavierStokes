@@ -84,7 +84,7 @@ template <typename VType>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
 																			 SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU){
 	bool useGridFunction = true;
-	if (u==NULL) useGridFunction = false;
+	if (u==SPNULL) useGridFunction = false;
 	
 	std::vector<DoFIndex> multInd;
 	
@@ -380,7 +380,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u,aSideDimVector* aaU){
 	bool useGridFunction = true;
-	if (u==NULL) useGridFunction = false;
+	if (u==SPNULL) useGridFunction = false;
 
 	//	get domain
 	domain_type& domain = *m_uInfo->domain().get();
@@ -573,7 +573,7 @@ template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,
 																		   SmartPtr<TGridFunction> u,aSideDimVector* aaU){
 	bool useGridFunction = true;
-	if (u==NULL) useGridFunction = false;
+	if (u==SPNULL) useGridFunction = false;
 	
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
@@ -679,14 +679,14 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	// u_i u_j
 	this->addUiUjTerm(m_acMij,1.0,m_u,NULL);
 	// \hat{u_i u_j}
-	this->elementFilter(m_acLij,m_acVolumeHat,NULL,&m_acMij);
+	this->elementFilter(m_acLij,m_acVolumeHat,SPNULL,&m_acMij);
 	// \hat{u_i u_j} - \hat{u_i} \hat{u_j}
-	this->addUiUjTerm(m_acLij,-1.0,NULL,&m_acUHat);
+	this->addUiUjTerm(m_acLij,-1.0,SPNULL,&m_acUHat);
 
 	// Mij term
 	// first term |\hat{S}| \hat{S}
 	// assemble \hat{S} using \hat{u}
-	this->assembleDeformationTensor(m_acDeformationHat,m_acVolume,NULL,&m_acUHat);
+	this->assembleDeformationTensor(m_acDeformationHat,m_acVolume,SPNULL,&m_acUHat);
 	// normalize \hat{S}
 	this->scaleTensorByNorm(m_acDeformationHat);
 	// Mij second term \hat{|S|S}
@@ -696,7 +696,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	this->scaleTensorByNorm(m_acDeformation);
 	// filter |S| S
 	//for debug UG_LOG("------------------------------------------------------\n");
-	this->elementFilter(m_acMij,m_acVolumeHat,NULL,&m_acDeformation);
+	this->elementFilter(m_acMij,m_acVolumeHat,SPNULL,&m_acDeformation);
 
 	// complete Mij term computation by scaling and adding the two terms,
 	// solve the local least squares problem and compute local c and local turbulent viscosity
@@ -756,9 +756,9 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 		// filter c
 		if (m_timeFilter==false)
 			// c has been stored in viscosity attachment
-			this->elementFilter(m_acTurbulentC,m_acVolumeHat,NULL,&m_acTurbulentViscosity);
+			this->elementFilter(m_acTurbulentC,m_acVolumeHat,SPNULL,&m_acTurbulentViscosity);
 		else
-			this->elementFilter(m_acTurbulentCNew,m_acVolumeHat,NULL,&m_acTurbulentViscosity);
+			this->elementFilter(m_acTurbulentCNew,m_acVolumeHat,SPNULL,&m_acTurbulentViscosity);
 		// compute turbulent viscosity
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 		{

@@ -94,7 +94,7 @@ compute_upwind(const TFVGeom& geo,
                const MathVector<dim> vStdVel[])
 {
 //	check, that upwind has been set
-	if(m_spUpwind == NULL)
+	if(m_spUpwind == SPNULL)
        	UG_THROW("No upwind method has been specified.");
 
 //	compute upwind
@@ -109,7 +109,7 @@ compute_downwind(const TFVGeom& geo,
                  const MathVector<dim> vStdVel[])
 {
 //	check, that upwind has been set
-	if(m_spUpwind == NULL)
+	if(m_spUpwind == SPNULL)
        	UG_THROW("No upwind method has been specified.");
 
 //	compute downwind
