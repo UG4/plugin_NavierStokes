@@ -177,17 +177,15 @@ class NavierStokesFV1
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)
         void set_upwind(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
-        	{m_spConvStab = spStab; m_spConvUpwind = SmartPtr<INavierStokesUpwind<dim> >();}
+        	{m_spConvStab = spStab; m_spConvUpwind = NULL;}
 
 	///	sets an upwinding for the convective term of momentum equation
 		void set_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
-			{m_spConvStab = SmartPtr<INavierStokesFV1Stabilization<dim> >();
-			m_spConvUpwind = spUpwind;}
+			{m_spConvStab = NULL; m_spConvUpwind = spUpwind;}
 
 	///	sets the upwind based on a string identifier
 		void set_upwind(const std::string& name)
-			{m_spConvStab = SmartPtr<INavierStokesFV1Stabilization<dim> >();
-			m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);
+			{m_spConvStab = NULL; m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);
 			if(m_spStab.valid() && m_spStab->upwind().invalid()) m_spStab->set_upwind(m_spConvUpwind);}
 
 		void set_pac_upwind(bool bPac)

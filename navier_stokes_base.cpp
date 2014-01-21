@@ -48,7 +48,7 @@ template<typename TDomain>
 void NavierStokesBase<TDomain>::
 set_kinematic_viscosity(number val)
 {
-	set_kinematic_viscosity(make_sp(new ConstUserNumber<dim>(val)));
+	set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
 }
 
 #ifdef UG_FOR_LUA

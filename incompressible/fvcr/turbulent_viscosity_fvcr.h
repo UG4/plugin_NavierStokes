@@ -234,7 +234,7 @@ public:
 	}
 	void set_kinematic_viscosity(number val){
 		m_viscosityNumber = val;
-		set_kinematic_viscosity(make_sp(new ConstUserNumber<dim>(val)));
+		set_kinematic_viscosity(CreateSmartPtr(new ConstUserNumber<dim>(val)));
 	}
 #ifdef UG_FOR_LUA
 	void set_kinematic_viscosity(const char* fctName){
