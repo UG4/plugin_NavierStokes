@@ -60,8 +60,12 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 	position_accessor_type& posAcc = uLagrange.domain()->position_accessor();
+	
+	// scalar function or vector function
+	int spaceDim = uLagrange.num_fct();
+	if ((int)uLagrange.num_fct()==dim) spaceDim=dim;
 
-	for (int i=0;i<dim;i++){
+	for (int i=0;i<spaceDim;i++){
 		if (uLagrange.local_finite_element_id(i) != LFEID(LFEID::LAGRANGE, TGridFunction::dim, 1)){
 			UG_THROW("First parameter must be of Lagrange 1 type.");
 		}
@@ -69,7 +73,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 			UG_THROW("Second parameter must be of CR type.");
 		}
 	}
-	if (uLagrange.num_fct()==dim+1){
+/*	if (uLagrange.num_fct()==dim+1){
 		if (uLagrange.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, TGridFunction::dim, 0)){
 					UG_THROW("Parameter dim must be of piecewise type.");
 		}
@@ -78,7 +82,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 		if (uCR.local_finite_element_id(dim) != LFEID(LFEID::PIECEWISE_CONSTANT, TGridFunction::dim, 0)){
 					UG_THROW("Parameter dim must be of piecewise constant 1 type.");
 		}
-	}
+	}*/
 
 	DimFV1Geometry<dim> geo;
 
@@ -100,6 +104,21 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 
 	typedef MathVector<dim> MVD;
 	std::vector<MVD> uValue(MaxNumSidesOfElem);
+	
+	// set lagrange function to zero
+	for(int si = 0; si < uLagrange.num_subsets(); ++si){
+		//	get iterators
+		VertexIterator iter = uLagrange.template begin<VertexBase>(si);
+		VertexIterator iterEnd = uLagrange.template end<VertexBase>(si);
+		for(  ;iter !=iterEnd; ++iter){
+			VertexBase* vrt = *iter;
+			if (pbm && pbm->is_slave(vrt)) continue;
+			for (int d=0;d<spaceDim;d++){
+				uLagrange.inner_dof_indices(vrt, d, multInd);
+				DoFRef(uLagrange,multInd[0])=0;
+			}
+		}
+	}
 
 	for(int si = 0; si < uLagrange.num_subsets(); ++si)
 	{
@@ -136,7 +155,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 			size_t nofsides = sides.size();
 			for (size_t s=0;s < nofsides;s++)
 			{
-				for (int d=0;d<dim;d++){
+				for (int d=0;d<spaceDim;d++){
 					//	get indices of function fct on vertex
 					uCR.inner_dof_indices(sides[s], d, multInd);
 					//	read value of index from vector
@@ -154,9 +173,9 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 				crTrialSpace.shapes(vShape, scv.local_ip());
 				MathVector<dim> localValue = 0;
 				for (size_t s=0;s<nofsides;s++)
-					for (int d=0;d<dim;d++)
+					for (int d=0;d<spaceDim;d++)
 						localValue[d]+=vShape[s]*uValue[s][d];
-				for (int d=0;d<dim;d++){
+				for (int d=0;d<spaceDim;d++){
 					uLagrange.inner_dof_indices(vVrt[i], d, multInd);
 					DoFRef(uLagrange,multInd[0])+=scvVol*localValue[d];
 				}
@@ -175,7 +194,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 		for(  ;iter !=iterEnd; ++iter){
 			VertexBase* vrt = *iter;
 			if (pbm && pbm->is_slave(vrt)) continue;
-			for (int d=0;d<dim;d++){
+			for (int d=0;d<spaceDim;d++){
 				uLagrange.inner_dof_indices(vrt, d, multInd);
 				DoFRef(uLagrange,multInd[0])/=m_acVolume[vrt];
 			}
@@ -267,7 +286,6 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 			for(size_t i = 0; i < numVertices; ++i){
 				vVrt[i] = elem->vertex(i);
 				coCoord[i] = posAcc[vVrt[i]];
-				// UG_LOG("co_coord(" << i<< "+1,:)=" << coCoord[i] << "\n");
 			}
 			//	evaluate finite volume geometry
 			geo.update(elem, &(coCoord[0]), u.domain()->subset_handler().get());
@@ -303,7 +321,7 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 				for(size_t sh = 0 ; sh < nofsides; ++sh){
 					localvort += uValue[sh][1] * scv.global_grad(sh)[0] - uValue[sh][0] * scv.global_grad(sh)[1];
 				};
-
+				
 				number vol = scv.volume();
 
 				localvort*=vol;
@@ -313,10 +331,13 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 				m_acVolume[sides[s]] += vol;
 			}
 		}
-		// average vorticity
+	}
+	// average vorticity
+	number maxvort = 0;
+	for(int si = 0; si < u.num_subsets(); ++si)
+	{
 		SideIterator sideIter = vort.template begin<side_type>(si);
 		SideIterator sideIterEnd = vort.template end<side_type>(si);
-		number maxvort = 0;
 		for(  ;sideIter !=sideIterEnd; sideIter++)
 		{
 			//	get Elem
@@ -325,6 +346,8 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 			if (pbm && pbm->is_slave(elem)) continue;
 			vort.dof_indices(elem, 0, multInd);
 			DoFRef(vort,multInd[0])/=m_acVolume[elem];
+			//UG_LOG("[" << 0.5*(posAcc[elem->vertex(0)][0] + posAcc[elem->vertex(0)][0]) << "," << 
+			//	   0.5*(posAcc[elem->vertex(0)][1] + posAcc[elem->vertex(0)][1]) << "]" << " " << DoFRef(vort,multInd[0]) << "\n");
 			if (DoFRef(vort,multInd[0])*DoFRef(vort,multInd[0])>maxvort*maxvort){
 				maxvort = DoFRef(vort,multInd[0]);
 			}
@@ -450,10 +473,14 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 				m_acVolume[elem->vertex(co)] += vol;
 			}
 		}
+	}
+	// average vorticity
+	number maxvort = 0;
+	for(int si = 0; si < u.num_subsets(); ++si)
+	{
 		// average vorticity
 		VertexBaseConstIterator vertexIter = vort.template begin<VertexBase>(si);
 		VertexBaseConstIterator vertexIterEnd = vort.template end<VertexBase>(si);
-		number maxvort = 0;
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
 			//	get Elem
