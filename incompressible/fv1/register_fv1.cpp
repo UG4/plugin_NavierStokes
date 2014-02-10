@@ -3,6 +3,7 @@
 #include "bridge/util_domain_algebra_dependent.h"
 
 #include "navier_stokes_fv1.h"
+#include "navier_stokes_fv1_IB.h"
 #include "bnd/inflow_fv1.h"
 #include "bnd/no_normal_stress_outflow_fv1.h"
 #include "bnd/symmetric_boundary_fv1.h"
@@ -48,6 +49,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		string name = string("NavierStokesInflowFV1").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesFV1<TDomain> >)>("MasterElemDisc")
+			.template add_constructor<void (*)(SmartPtr< NavierStokesFV1IB<TDomain> >)>("MasterElemDisc")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflowFV1", tag);
 	}
@@ -148,6 +150,25 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_pac_upwind", &T::set_pac_upwind, "", "Set pac upwind")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFV1", tag);
+	}
+
+// NavierStokesFV1IB
+	{
+		typedef NavierStokesFV1IB<TDomain> T;
+		typedef IncompressibleNavierStokesBase<TDomain> TBase;
+		string name = string("NavierStokesFV1IB").append(suffix);
+		reg.add_class_<T, TBase >(name, grp)
+			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
+			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
+			.add_method("set_stabilization",  static_cast<void (T::*)(SmartPtr<INavierStokesFV1Stabilization<dim> >)>(&T::set_stabilization))
+			.add_method("set_stabilization",  static_cast<void (T::*)(const std::string&)>(&T::set_stabilization))
+			.add_method("set_stabilization",  static_cast<void (T::*)(const std::string&, const std::string&)>(&T::set_stabilization))
+			.add_method("set_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesFV1Stabilization<dim> >)>(&T::set_upwind))
+			.add_method("set_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_upwind))
+			.add_method("set_upwind",  static_cast<void (T::*)(const std::string&)>(&T::set_upwind))
+			.add_method("set_pac_upwind", &T::set_pac_upwind, "", "Set pac upwind")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesFV1IB", tag);
 	}
 
 	//	NavierStokesNoNormalStressOutflow FV1

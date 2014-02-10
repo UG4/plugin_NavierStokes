@@ -200,7 +200,7 @@ class NavierStokesFV1
 			
 	public:
 	///	type of trial space for each function used
-		void prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid);
+		virtual void prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid);
 
 	///	returns string identifying disc type
 		virtual std::string disc_type() const {return "fv1";};
@@ -518,12 +518,12 @@ class NavierStokesFV1
 		using base_type::m_bStokes;
 		using base_type::m_bLaplace;
 
-		void init();
+		virtual void init();
 
-	private:
+	protected:
 	///	register utils
 	///	\{
-		void register_all_funcs(bool bHang);
+		virtual void register_all_funcs(bool bHang);
 		template <typename TElem, typename TFVGeom> void register_func();
 	/// \}
 };
