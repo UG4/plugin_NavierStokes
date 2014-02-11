@@ -48,6 +48,9 @@ class NavierStokesFE
 		NavierStokesFE(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
 	/// \}
 
+	///	sets the quad order
+		void set_quad_order(size_t order);
+
 	///	sets the kinematic viscosity
 		void set_kinematic_viscosity(SmartPtr<CplUserData<number, dim> > user);
 
@@ -78,6 +81,7 @@ class NavierStokesFE
 		number m_stabParam;
 
 	///	quadrature order
+		bool m_bQuadOrderUserDef;
 		int m_quadOrder;
 
 	///	current shape function set

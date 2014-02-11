@@ -43,6 +43,7 @@ void NavierStokesFE<TDomain>::init()
 					   " needs exactly "<<dim+1<<" symbolic function.");
 
 	m_stabParam = 0.0;
+	m_bQuadOrderUserDef = false;
 
 //	register imports
 	this->register_import(m_imSource);
@@ -58,6 +59,14 @@ void NavierStokesFE<TDomain>::init()
 	// use fast assembling
 	this->enable_fast_add_elem(true);
 }
+
+template<typename TDomain>
+void NavierStokesFE<TDomain>::set_quad_order(size_t order)
+{
+	m_quadOrder = order;
+	m_bQuadOrderUserDef = true;
+}
+
 
 template<typename TDomain>
 void NavierStokesFE<TDomain>::
@@ -79,7 +88,7 @@ prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 	m_vLFEID = vLfeID[0];
 	m_pLFEID = vLfeID[dim];
 
-	m_quadOrder = 2*m_vLFEID.order()+1;
+	if(!m_bQuadOrderUserDef) m_quadOrder = 2*m_vLFEID.order()+1;
 
 	//	update assemble functions
 	register_all_funcs(m_vLFEID, m_pLFEID, m_quadOrder);
