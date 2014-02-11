@@ -396,7 +396,7 @@ class SeparatedPressureSource
 		typedef typename domain_type::position_accessor_type position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
-		position_accessor_type aaPos = m_u->domain()->position_accessor();
+//		position_accessor_type aaPos = m_u->domain()->position_accessor();
 
 		// coord and vertex array
 		MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
