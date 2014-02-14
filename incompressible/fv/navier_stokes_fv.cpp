@@ -284,6 +284,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 				for (int d1 = 0; d1 < dim; ++d1){
 					for (size_t sh = 0; sh < scvf.num_sh(); ++sh){
 						J(d1, scvf.from(), d1, sh) += prod * scvf.shape(i, sh);
+						J(d1, scvf.to(), d1, sh)   -= prod * scvf.shape(i, sh);
 					}
 				}
 
@@ -295,7 +296,8 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 							const number prod =  m_bFullNewtonFactor * scvf.shape(i, sh)
 												 * m_imDensitySCVF[ip] * scvf.weight(i);
 							for (int d2 = 0; d2 < dim; ++d2){
-							J(d1, scvf.from(), d2, sh) += Vel[d1] * scvf.normal()[d2] * prod;
+								J(d1, scvf.from(), d2, sh) += Vel[d1] * scvf.normal()[d2] * prod;
+								J(d1, scvf.to(), d2, sh)   -= Vel[d1] * scvf.normal()[d2] * prod;
 							}
 						}
 					}
