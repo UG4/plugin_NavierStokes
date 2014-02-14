@@ -91,6 +91,7 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
+			.add_method("set_quad_order", &T::set_quad_order)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFV", tag);
 	}

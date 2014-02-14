@@ -49,6 +49,8 @@ void NavierStokesFV<TDomain>::init()
 	this->register_import(m_imDensitySCVFp);
 	this->register_import(m_imDensitySCV);
 
+	m_bQuadOrderUserDef = false;
+
 	m_imSource.set_rhs_part();
 	m_imDensitySCV.set_mass_part();
 
@@ -57,6 +59,13 @@ void NavierStokesFV<TDomain>::init()
 
 	//	update assemble functions
 	this->enable_fast_add_elem(true);
+}
+
+template<typename TDomain>
+void NavierStokesFV<TDomain>::set_quad_order(size_t order)
+{
+	m_quadOrder = order;
+	m_bQuadOrderUserDef = true;
 }
 
 template<typename TDomain>
@@ -78,7 +87,7 @@ prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 //	remember lfeID;
 	m_vLFEID = vLfeID[0];
 	m_pLFEID = vLfeID[dim];
-	m_quadOrder = std::max(m_vLFEID.order(), m_pLFEID.order()) + 1;
+	if(!m_bQuadOrderUserDef) m_quadOrder = std::max(m_vLFEID.order(), m_pLFEID.order()) + 1;
 
 	//	update assemble functions
 	register_all_funcs(m_vLFEID, m_pLFEID);

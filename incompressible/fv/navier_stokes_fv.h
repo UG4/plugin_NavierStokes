@@ -69,12 +69,16 @@ class NavierStokesFV
 	///	returns string identifying disc type
 		virtual std::string disc_type() const {return "fv";};
 
+	///	sets the quad order
+		void set_quad_order(size_t order);
+
 	protected:
 	///	current shape function set
 		LFEID m_vLFEID;
 		LFEID m_pLFEID;
 
 	///	quadrature order
+		bool m_bQuadOrderUserDef;
 		int m_quadOrder;
 
 		void init();
