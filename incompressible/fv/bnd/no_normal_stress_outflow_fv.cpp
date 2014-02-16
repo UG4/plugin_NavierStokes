@@ -220,29 +220,32 @@ diffusive_flux_Jac
 {
 	MathMatrix<dim,dim> diffFlux, tang_diffFlux;
 	MathVector<dim> normalStress;
-	
+
+	MathVector<dim> Normal;
+	VecNormalize(Normal, bf.normal());
+
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh) // loop shape functions
 	{
 	//	1. Compute the total flux
 	//	- add \nabla u
 		MatSet (diffFlux, 0);
-		MatDiagSet (diffFlux, VecDot (bf.global_grad(i, sh), bf.normal()));
+		MatDiagSet (diffFlux, VecDot (bf.global_grad(i, sh), Normal));
 	
 	//	- add (\nabla u)^T
 		if(!m_spMaster->laplace())
 			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-					diffFlux(d1,d2) += bf.global_grad(i, sh)[d1] * bf.normal()[d2];
+					diffFlux(d1,d2) += bf.global_grad(i, sh)[d1] * Normal[d2];
 	
 	//	2. Subtract the normal part:
 		tang_diffFlux = diffFlux;
-		TransposedMatVecMult(normalStress, diffFlux, bf.normal ());
+		TransposedMatVecMult(normalStress, diffFlux, Normal);
 		for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
+				tang_diffFlux(d1,d2) -= Normal[d1] * normalStress[d2];
 	
 	//	3. Scale by viscosity
-		tang_diffFlux *= - m_imKinViscosity[ip] * bf.weight(i);
+		tang_diffFlux *= - m_imKinViscosity[ip] * bf.weight(i) * bf.volume();
 	
 	//	4. Add flux to local Jacobian
 		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -279,18 +282,21 @@ diffusive_flux_defect
 
 //	2. Compute the total flux
 
+	MathVector<dim> Normal;
+	VecNormalize(Normal, bf.normal());
+
 //	- add (\nabla u) \cdot \vec{n}
-	MatVecMult(diffFlux, gradVel, bf.normal());
+	MatVecMult(diffFlux, gradVel, Normal);
 
 //	- add (\nabla u)^T \cdot \vec{n}
 	if(!m_spMaster->laplace())
-		TransposedMatVecMultAdd(diffFlux, gradVel, bf.normal());
+		TransposedMatVecMultAdd(diffFlux, gradVel, Normal);
 
 //	3. Subtract the normal part:
-	VecScaleAppend (diffFlux, - VecDot (diffFlux, bf.normal()), bf.normal());
+	VecScaleAppend (diffFlux, - VecDot (diffFlux, Normal), Normal);
 
 //	A4. Scale by viscosity
-	diffFlux *= - m_imKinViscosity[ip] * bf.weight(i);
+	diffFlux *= - m_imKinViscosity[ip] * bf.weight(i) * bf.volume();
 
 //	5. Add flux to local defect
 	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -402,7 +408,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 			typename std::vector<BF>::const_iterator bf;
 			for(bf = vBF.begin(); bf != vBF.end(); ++bf){
 				for(size_t i = 0; i < bf->num_ip(); ++i, ++ipP){
-					for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
+					for(size_t sh = 0; sh < m_vvVShape[ipP].size(); ++sh) // loop shape functions
 						for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
 							J(_P_, bf->node_id (), d2, sh) += m_vvVShape[ipP][sh] * bf->normal()[d2]
 															   * m_imDensityP [ipP] * bf->weight(i);
@@ -455,7 +461,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 				// Compute Velocity at ip
 					MathVector<dim> stdVel(0.0);
 					for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						for(size_t sh = 0; sh < m_vvVShape[ipP].size(); ++sh)
 							stdVel[d1] += u(d1, sh) * m_vvVShape[ipP][sh];
 
 					d(_P_, bf->node_id()) += VecDot (stdVel, bf->normal())
