@@ -129,6 +129,11 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_function("filter", static_cast<void (*)(SmartPtr<function_type>,const std::string&)>(&filter), grp);
 	}
 
+	// filter data
+	{
+		reg.add_function("DragLift", &DragLift<function_type>, grp);
+	}
+
 
 //	AssembledTransformingSmoother
 /*	{

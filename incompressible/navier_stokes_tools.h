@@ -15,6 +15,7 @@
 #include "common/profiler/profiler.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
+#include "lib_disc/quadrature/quadrature_provider.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -1612,6 +1613,258 @@ void writeNumbers(std::string filename,const size_t step,const number t,const nu
 	std::fstream file(filename.c_str(), std::fstream::out | std::fstream::app);
 	file << "t(" << step << ")=" << t << ";d(" << step << ")=" << data << ";" << std::endl;
 }
+
+
+
+template <typename TGridFunction>
+std::vector<number> DragLift(SmartPtr<TGridFunction> spGridFct,
+                              const char* vCmp,
+                              const char* BndSubsets, const char* InnerSubsets,
+                              number kinVisco, number density,
+                              int quadOrder)
+{
+	static const int dim = TGridFunction::dim;
+	static const int WorldDim = TGridFunction::dim;
+	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object geometric_base_object;
+	typedef typename TGridFunction::template dim_traits<dim>::const_iterator const_iterator;
+
+
+//	read subsets
+	SubsetGroup innerSSGrp(spGridFct->domain()->subset_handler());
+	if(InnerSubsets != NULL){
+		innerSSGrp.add(TokenizeString(InnerSubsets));
+		if(!SameDimensionsInAllSubsets(innerSSGrp))
+			UG_THROW("DragDrift: Subsets '"<<InnerSubsets<<"' do not have same dimension."
+					 "Can not integrate on subsets of different dimensions.");
+	}
+	else{
+		innerSSGrp.add_all();
+		RemoveLowerDimSubsets(innerSSGrp);
+	}
+
+//	read subsets
+	SubsetGroup bndSSGrp(spGridFct->domain()->subset_handler());
+	if(BndSubsets != NULL)
+		bndSSGrp.add(TokenizeString(BndSubsets));
+	else
+		UG_THROW("DragDrift: No boundary subsets passed.");
+
+//	get function group
+	const FunctionGroup vFctID = spGridFct->fct_grp_by_name(vCmp);
+	std::vector<LFEID> vLFEID;
+	for(size_t fct = 0; fct < vFctID.size(); ++fct){
+		vLFEID.push_back(spGridFct->lfeid(vFctID[fct]));
+	}
+
+//	reset the result
+	number int_lift = 0;
+	number int_drag = 0;
+
+//	loop subsets
+	for(size_t i = 0; i < innerSSGrp.size(); ++i)
+	{
+	//	get subset index
+		const int si = innerSSGrp[i];
+
+	//	skip empty subset
+		if(innerSSGrp.dim(i) == DIM_SUBSET_EMPTY_GRID) continue;
+
+	//	check dimension
+		if(innerSSGrp.dim(i) != dim)
+			UG_THROW("DragDrift: Dimension of inner subset is "<<
+					 innerSSGrp.dim(i)<<", but only World Dimension "<<dim<<
+					 " subsets can be used for inner subsets.");
+
+	//	note: this iterator is for the base elements, e.g. Face and not
+	//			for the special type, e.g. Triangle, Quadrilateral
+		const_iterator iterBegin = spGridFct->template begin<geometric_base_object>(si);
+		const_iterator iterEnd = spGridFct->template end<geometric_base_object>(si);
+		const_iterator iter = iterBegin;
+
+		typename domain_traits<TGridFunction::dim>::position_accessor_type& aaPos
+			= spGridFct->domain()->position_accessor();
+		const ISubsetHandler* ish = spGridFct->domain()->subset_handler().get();
+		Grid& grid = *spGridFct->domain()->grid();
+
+	//	this is the base element type (e.g. Face). This is the type when the
+	//	iterators above are dereferenciated.
+		typedef typename domain_traits<dim>::element_type Element;
+		typedef typename domain_traits<dim>::side_type Side;
+
+	//	vector of corner coordinates of element corners (to be filled for each elem)
+		std::vector<MathVector<WorldDim> > vCorner;
+		std::vector<int> vSubsetIndex;
+
+	// 	iterate over all elements
+		for(; iter != iterEnd; ++iter)
+		{
+		//	get element
+			Element* pElem = *iter;
+
+		//	get all corner coordinates
+			CollectCornerCoordinates(vCorner, *pElem, aaPos, true);
+
+		//	get reference object id
+			const ReferenceObjectID elemRoid = pElem->reference_object_id();
+
+		//	get sides
+			typename Grid::traits<Side>::secure_container vSide;
+			grid.associated_elements_sorted(vSide, pElem);
+			vSubsetIndex.resize(vSide.size());
+			for(size_t i = 0; i < vSide.size(); ++i)
+				vSubsetIndex[i] = ish->get_subset_index(vSide[i]);
+
+			DimReferenceMapping<dim, WorldDim>& rMapping
+				= ReferenceMappingProvider::get<dim, WorldDim>(elemRoid, vCorner);
+
+			const DimReferenceElement<dim>& rRefElem
+				= ReferenceElementProvider::get<dim>(elemRoid);
+
+		//	get element values
+			std::vector<DoFIndex> vInd;
+			std::vector<std::vector<number> > vvValue(vFctID.size());
+			for(size_t fct = 0; fct < vvValue.size(); ++fct){
+				spGridFct->dof_indices(pElem, vFctID[fct], vInd);
+				vvValue[fct].resize(vInd.size());
+				for(size_t sh = 0; sh < vInd.size(); ++sh)
+					vvValue[fct][sh] = DoFRef(*spGridFct, vInd[sh]);
+			}
+			const static int _P_ = dim;
+
+		//	loop sub elements
+			for(size_t side = 0; side < vSide.size(); ++side)
+			{
+			//	check if side used
+				if(!bndSSGrp.contains(vSubsetIndex[side])) continue;
+
+			//	get side
+				Side* pSide = vSide[side];
+
+				std::vector<MathVector<WorldDim> > vSideCorner(rRefElem.num(dim-1, side, 0));
+				std::vector<MathVector<dim> > vLocalSideCorner(rRefElem.num(dim-1, side, 0));
+				for(size_t co = 0; co < vSideCorner.size(); ++co){
+					vSideCorner[co] = vCorner[rRefElem.id(dim-1, side, 0, co)];
+					vLocalSideCorner[co] = rRefElem.corner(rRefElem.id(dim-1, side, 0, co));
+				}
+
+			//	side quad rule
+				const ReferenceObjectID sideRoid = pSide->reference_object_id();
+				const QuadratureRule<dim-1>& rSideQuadRule
+						= QuadratureRuleProvider<dim-1>::get(sideRoid, quadOrder);
+
+			// 	normal
+				MathVector<WorldDim> Normal;
+				ElementNormal<WorldDim>(sideRoid, Normal, &vSideCorner[0]);
+				VecNormalize(Normal, Normal);
+				VecScale(Normal, Normal, -1); // inner normal
+
+			//	a tangental
+				MathVector<WorldDim> Tangental(0.0);
+				Tangental[0] = Normal[dim-1];
+				Tangental[dim-1] = -Normal[0];
+
+			//	quadrature points
+				const number* vWeight = rSideQuadRule.weights();
+				const size_t nip = rSideQuadRule.size();
+				std::vector<MathVector<dim> > vLocalIP(nip);
+				std::vector<MathVector<dim> > vGlobalIP(nip);
+
+				DimReferenceMapping<dim-1, dim>& map
+					= ReferenceMappingProvider::get<dim-1, dim>(sideRoid, vLocalSideCorner);
+
+				for(size_t ip = 0; ip < nip; ++ip)
+					map.local_to_global(vLocalIP[ip], rSideQuadRule.point(ip));
+
+				for(size_t ip = 0; ip < nip; ++ip)
+					rMapping.local_to_global(vGlobalIP[ip], vLocalIP[ip]);
+
+			//	compute transformation matrices
+				DimReferenceMapping<dim-1, dim>& map2
+					= ReferenceMappingProvider::get<dim-1, dim>(sideRoid, vSideCorner);
+				std::vector<MathMatrix<dim-1, WorldDim> > vJT(nip);
+				map2.jacobian_transposed(&(vJT[0]), rSideQuadRule.points(), nip);
+
+				std::vector<MathMatrix<dim, WorldDim> > vElemJT(nip);
+				rMapping.jacobian_transposed(&(vElemJT[0]), &vLocalIP[0], nip);
+
+			//	loop integration points
+				for(size_t ip = 0; ip < nip; ++ip)
+				{
+				// 	1. Interpolate Functional Matrix of velocity at ip
+					std::vector<MathVector<dim> > vvLocGradV[dim];
+					std::vector<MathVector<dim> > vvGradV[dim];
+					MathMatrix<dim, dim> JTInv;
+					Inverse(JTInv, vElemJT[ip]);
+					for(int d1 = 0; d1 < dim; ++d1){
+						const LocalShapeFunctionSet<dim>& rTrialSpaceP =
+								LocalFiniteElementProvider::get<dim>(elemRoid, vLFEID[d1]);
+						rTrialSpaceP.grads(vvLocGradV[d1], vLocalIP[ip]);
+
+						vvGradV[d1].resize(vvLocGradV[d1].size());
+						for(size_t sh = 0; sh < vvGradV[d1].size(); ++sh)
+							MatVecMult(vvGradV[d1][sh], JTInv, vvLocGradV[d1][sh]);
+					}
+
+					MathMatrix<dim, dim> gradVel;
+					for(int d1 = 0; d1 < dim; ++d1){
+						for(int d2 = 0; d2 <dim; ++d2){
+							gradVel(d1, d2) = 0.0;
+							for(size_t sh = 0; sh < vvValue[d1].size(); ++sh)
+								gradVel(d1, d2) += vvValue[d1][sh] * vvGradV[d1][sh][d2];
+						}
+					}
+
+				//	1. Interpolate pressure at ip
+					const LocalShapeFunctionSet<dim>& rTrialSpaceP =
+							LocalFiniteElementProvider::get<dim>(elemRoid, vLFEID[_P_]);
+					std::vector<number> vShapeP;
+					rTrialSpaceP.shapes(vShapeP, vLocalIP[ip]);
+
+					number pressure = 0.0;
+					for(size_t sh = 0; sh < vvValue[_P_].size(); ++sh)
+						pressure += vShapeP[sh] * vvValue[_P_][sh];
+
+				//	2. Compute flux
+					MathVector<dim> diffFlux;
+					MatVecMult(diffFlux, gradVel, Normal);
+
+				//	get quadrature weight
+					const number weightIP = vWeight[ip];
+
+				//	get determinate of mapping
+					const number det = SqrtGramDeterminant(vJT[ip]);
+
+				//	add contribution of integration point
+					int_drag +=  weightIP * det *
+								(kinVisco*density *VecDot(diffFlux, Tangental) * Normal[dim-1]
+								                                    - pressure * Normal[0]);
+					int_lift -=  weightIP * det *
+								(kinVisco*density *VecDot(diffFlux, Tangental) * Normal[0]
+								                                    + pressure * Normal[dim-1]);
+				}
+			} // end bf
+		} // end elem
+	} // end subsets
+
+#ifdef UG_PARALLEL
+	// sum over processes
+	if(pcl::NumProcs() > 1)
+	{
+		pcl::ProcessCommunicator com;
+		number local = int_drag;
+		com.allreduce(&local, &int_drag, 1, PCL_DT_DOUBLE, PCL_RO_SUM);
+		local = int_lift;
+		com.allreduce(&local, &int_lift, 1, PCL_DT_DOUBLE, PCL_RO_SUM);
+	}
+#endif
+
+//	return the summed integral contributions of all elements
+	std::vector<number> vals(2);
+	vals[0] = int_drag;
+	vals[1] = int_lift;
+	return vals;
+}
+
 
 } // end namespace ug
 
