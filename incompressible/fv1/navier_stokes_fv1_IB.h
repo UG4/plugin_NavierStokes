@@ -24,9 +24,12 @@
 
 #include "lib_disc/spatial_disc/disc_util/fv1ib_geom.h"
 
+#include "../../../particle_laden_flow/particle.h"
+
 
 namespace ug{
 namespace NavierStokes{
+
 
 /// \ingroup lib_disc_elem_disc
 /// @{
@@ -119,9 +122,8 @@ namespace NavierStokes{
  * \f}
  *
  * \tparam	TDomain		Domain
- * \tparam	TAlgebra	Algebra
- */
-template<	typename TDomain>
+  */
+template<typename TDomain>
 class NavierStokesFV1IB
  	 : public NavierStokesFV1<TDomain>
 
@@ -137,6 +139,7 @@ class NavierStokesFV1IB
 	///	World dimension
 		static const int dim = base_type::dim;
 
+
 	public:
 	///	Constructor (setting default values)
 	/// \{
@@ -144,12 +147,26 @@ class NavierStokesFV1IB
  		NavierStokesFV1IB(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset) : NavierStokesFV1<TDomain>(vFct, vSubset){};
 	/// \}
 
+ 		void set_particle(SmartPtr<ParticleBase<TDomain> > particle ){ m_myParticle = particle;}
+
 		template <typename TElem>
  		void adapt_FVGeometry(FV1IBGeometry<TElem, dim> geo, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]){};
 
 		template <typename TElem, typename TFVGeom>
-		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
+ 		void prep_elem_IB(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
+		template <typename TElem, typename TFVGeom>
+		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
+		{
+
+			if ( m_myParticle->elemIsCut(elem) )
+				prep_elem_IB<TElem, FV1IBGeometry<TElem, dim> >(u, elem, vCornerCoords);
+			else
+				this->NavierStokesFV1<TDomain>::template prep_elem<TElem, TFVGeom>(u, elem, vCornerCoords);
+				//this->NavierStokesFV1<TDomain>::template add_jac_A_elem<TElem, FV1Geometry<TElem, dim> >(J, u, elem, vCornerCoords);
+
+		}
+   
 	/// copy of the original 'add_jac_A_elem()' implementation with adaptions due to the inner boundary:
 	/// ImpEq-P1: No pressure term for the momentum equation for scvf being part of the IB
 	/// ImpEq-P2: Pressure value for computation of the pressure term in ImpEq in ip's of the remaining
@@ -168,13 +185,11 @@ class NavierStokesFV1IB
 		template <typename TElem, typename TFVGeom>
 		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 		{
-			bool elemIsCut_byIB = false;
-
-			if ( elemIsCut_byIB )
-				add_jac_A_elem_IB<TElem, TFVGeom>(J, u, elem, vCornerCoords);
-			else
+ 			if ( m_myParticle->elemIsCut(elem) )
+ 				add_jac_A_elem_IB<TElem, FV1IBGeometry<TElem, dim> >(J, u, elem, vCornerCoords);
+				//this->NavierStokesFV1<TDomain>::template add_jac_A_elem<TElem, FV1IBGeometry<TElem, dim> >(J, u, elem, vCornerCoords);
+ 			else
 				this->NavierStokesFV1<TDomain>::template add_jac_A_elem<TElem, TFVGeom>(J, u, elem, vCornerCoords);
-				//this->NavierStokesFV1<TDomain>::template add_jac_A_elem<TElem, FV1Geometry<TElem, dim> >(J, u, elem, vCornerCoords);
 
 		}
 
@@ -182,16 +197,12 @@ class NavierStokesFV1IB
 		template <typename TElem, typename TFVGeom>
 		void add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 		{
-			UG_LOG("hier Aufruf: add_def_A_elem()...\n");
-			UG_LOG("jeppa!...\n");
-
-			bool elemIsCut_byIB = false;
-
-			if ( elemIsCut_byIB )
-				add_def_A_elem_IB<TElem, TFVGeom>(d, u, elem, vCornerCoords);
-			else
+ 			if ( m_myParticle->elemIsCut(elem) )
+			{
+ 				add_def_A_elem_IB<TElem, FV1IBGeometry<TElem, dim> >(d, u, elem, vCornerCoords);
+			}
+ 			else
 				this->NavierStokesFV1<TDomain>::template add_def_A_elem<TElem,TFVGeom>(d, u, elem, vCornerCoords);
-				//this->NavierStokesFV1<TDomain>::template add_def_A_elem<TElem, FV1Geometry<TElem, dim> >(d, u, elem, vCornerCoords);
 
  		}
 
@@ -205,6 +216,10 @@ class NavierStokesFV1IB
 		template <typename TElem, typename TFVGeom>
 		void register_substitutes();
 
+
+
+ 	/// particle object the transfer is implemented for
+		SmartPtr<ParticleBase<TDomain> > m_myParticle;
 
 
 };
