@@ -86,7 +86,7 @@ class NavierStokesSymBCFV1
 
 	///	prepares the element for evaluation
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
@@ -94,18 +94,18 @@ class NavierStokesSymBCFV1
 
 	///	adds the stiffness part to the local jacobian
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	adds the stiffness part to the local defect
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
+		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]) {}
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
+		void add_def_M_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]) {}
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[]) {}
+		void add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoords[]) {}
 
 	private:
 	/// The master discretization:

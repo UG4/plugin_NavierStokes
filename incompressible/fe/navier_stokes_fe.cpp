@@ -156,7 +156,7 @@ fsh_elem_loop()
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
-prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	m_pElem = elem;
 
@@ -178,7 +178,7 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
-add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 //	request geometry
 	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
@@ -305,7 +305,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 	// stabilization
 	if(m_stabParam != 0)
 	{
-		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, *this->domain());
+		const number scale = m_stabParam * ElementDiameterSq<GridObject, TDomain>(*m_pElem, *this->domain());
 		for (size_t ip = 0; ip < pgeo.num_ip(); ++ip){
 			for (size_t psh = 0; psh < pgeo.num_sh(); ++psh){
 				for (size_t psh2 = 0; psh2 < pgeo.num_sh(); ++psh2){
@@ -322,7 +322,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
-add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 //	request geometry
 	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
@@ -431,7 +431,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 	// stabilization
 	if(m_stabParam != 0)
 	{
-		const number scale = m_stabParam * ElementDiameterSq<GeometricObject, TDomain>(*m_pElem, *this->domain());
+		const number scale = m_stabParam * ElementDiameterSq<GridObject, TDomain>(*m_pElem, *this->domain());
 		for (size_t ip = 0; ip < pgeo.num_ip(); ++ip){
 
 			MathVector<dim> pressGrad; VecSet(pressGrad, 0.0);
@@ -454,7 +454,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
-add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	//	request geometry
 	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
@@ -479,7 +479,7 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
-add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_def_M_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	//	request geometry
 	const DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
@@ -508,7 +508,7 @@ add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, cons
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
-add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	//	if zero data given, return
 	if(!m_imSource.data_given()) return;

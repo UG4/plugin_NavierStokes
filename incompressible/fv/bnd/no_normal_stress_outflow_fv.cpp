@@ -135,7 +135,7 @@ fsh_elem_loop()
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesNoNormalStressOutflowFV<TDomain>::
-prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Update Geometry for this element
 	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
@@ -372,7 +372,7 @@ convective_flux_defect
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesNoNormalStressOutflowFV<TDomain>::
-add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	get finite volume geometry
 	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
@@ -421,7 +421,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, cons
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesNoNormalStressOutflowFV<TDomain>::
-add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	get finite volume geometry
 	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);

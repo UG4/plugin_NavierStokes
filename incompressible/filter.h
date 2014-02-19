@@ -77,7 +77,7 @@ class FilterBaseClass{
 	static const size_t dim = TGridFunction::dim;
 	
     /// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
@@ -166,7 +166,7 @@ public:
 	static const size_t dim = TGridFunction::dim;
 	
     // element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	
 	//	domain type
 	typedef typename TGridFunction::domain_type domain_type;
@@ -246,7 +246,7 @@ private:
 template <int dim,typename TGridFunction>
 class VariableBoxFilter{
     /// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
@@ -284,7 +284,7 @@ class VariableBoxFilter{
 template <int dim,typename TGridFunction>
 class ElementBoxFilter{
     /// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
@@ -327,7 +327,7 @@ class ElementBoxFilter{
 template <int dim,typename TGridFunction>
 class ScvBoxFilter{
     /// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
@@ -370,7 +370,7 @@ class ScvBoxFilter{
 template <int dim,typename TGridFunction>
 void elementFilterFVCR(SmartPtr<TGridFunction> u){
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	/// side type
 	typedef typename elem_type::side side_type;
 	/// element iterator
@@ -514,7 +514,7 @@ void elementFilterFVCR(SmartPtr<TGridFunction> u){
 template <int dim,typename TGridFunction>
 void scvFilterFVCR(SmartPtr<TGridFunction> u){
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	/// side type
 	typedef typename elem_type::side side_type;
 	/// element iterator
@@ -671,7 +671,7 @@ void scvFilterFVCR(SmartPtr<TGridFunction> u){
 template <int dim,typename TGridFunction>
 void elementFilterFV1(SmartPtr<TGridFunction> u){
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 	/// side iterator
@@ -807,7 +807,7 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 template <int dim,typename TGridFunction>
 void scvFilterFV1(SmartPtr<TGridFunction> u){
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 	/// side iterator

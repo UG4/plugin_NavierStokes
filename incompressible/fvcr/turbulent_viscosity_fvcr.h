@@ -49,7 +49,7 @@ class StdTurbulentViscosityData
 	typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// side type
 	typedef typename elem_type::side side_type;
@@ -107,7 +107,7 @@ class StdTurbulentViscosityData
 	inline void evaluate(number vValue[],
 	                     const MathVector<dim> vGlobIP[],
 	                     number time, int si,
-	                     GeometricObject* elem,
+	                     GridObject* elem,
 	                     const MathVector<dim> vCornerCoords[],
 	                     const MathVector<refDim> vLocIP[],
 	                     const size_t nip,
@@ -167,7 +167,7 @@ class StdTurbulentViscosityData
 		}
 	}
 	
-	virtual void compute(LocalVector* u, GeometricObject* elem,
+	virtual void compute(LocalVector* u, GridObject* elem,
 	                     const MathVector<dim> vCornerCoords[], bool bDeriv = false)
 	{
 		const number t = this->time();
@@ -279,7 +279,7 @@ class CRSmagorinskyTurbViscData
 	typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// side type
 	typedef typename elem_type::side side_type;
@@ -396,7 +396,7 @@ class CRDynamicTurbViscData
 	typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// side type
 	typedef typename elem_type::side side_type;

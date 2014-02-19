@@ -89,7 +89,7 @@ class NavierStokesFE
 		LFEID m_pLFEID;
 
 	///	current element
-		GeometricObject* m_pElem;
+		GridObject* m_pElem;
 
 		void init();
 
@@ -116,7 +116,7 @@ class NavierStokesFE
 		void prep_elem_loop(const ReferenceObjectID roid, const int si);
 
 		template<typename TElem, typename VGeom, typename PGeom>
-		void prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the loop over all elements
 		template<typename TElem, typename VGeom, typename PGeom>
@@ -124,23 +124,23 @@ class NavierStokesFE
 
 	///	assembles the local stiffness matrix using a finite volume scheme
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the local mass matrix using a finite volume scheme
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the stiffness part of the local defect
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the mass part of the local defect
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_def_M_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_def_M_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	assembles the local right hand side
 		template<typename TElem, typename VGeom, typename PGeom>
-		void add_rhs_elem(LocalVector& d, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	// 	FVHO Assemblings
 		void register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder);

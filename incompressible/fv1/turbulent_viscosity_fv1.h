@@ -48,7 +48,7 @@ class StdTurbulentViscosityDataFV1
 		typedef typename domain_type::grid_type grid_type;
 
 		/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 		/// element iterator
 		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
@@ -88,7 +88,7 @@ class StdTurbulentViscosityDataFV1
 		void evaluate(TData vValue[],
 						const MathVector<dim> vGlobIP[],
 						number time, int si,
-						GeometricObject* elem,
+						GridObject* elem,
 						const MathVector<dim> vCornerCoords[],
 						const MathVector<refDim> vLocIP[],
 						const size_t nip,
@@ -99,7 +99,7 @@ class StdTurbulentViscosityDataFV1
 			                                    vCornerCoords,vLocIP,nip,u,vJT);
 		}
 
-		virtual void compute(LocalVector* u, GeometricObject* elem,
+		virtual void compute(LocalVector* u, GridObject* elem,
 		                     const MathVector<dim> vCornerCoords[], bool bDeriv = false)
 		{
 			const number t = this->time();
@@ -183,7 +183,7 @@ class FV1SmagorinskyTurbViscData
 		typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// element iterator
 		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
@@ -287,7 +287,7 @@ class FV1SmagorinskyTurbViscData
 		inline void evaluate(number vValue[],
 		                     const MathVector<dim> vGlobIP[],
 		                     number time, int si,
-		                     GeometricObject* elem,
+		                     GridObject* elem,
 		                     const MathVector<dim> vCornerCoords[],
 		                     const MathVector<refDim> vLocIP[],
 		                     const size_t nip,
@@ -371,7 +371,7 @@ class FV1DynamicTurbViscData
 		typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// element iterator
 		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
@@ -521,7 +521,7 @@ class FV1DynamicTurbViscData
 		inline void evaluate(number vValue[],
 									 const MathVector<dim> vGlobIP[],
 				                     number time, int si,
-				                     GeometricObject* elem,
+				                     GridObject* elem,
 				                     const MathVector<dim> vCornerCoords[],
 				                     const MathVector<refDim> vLocIP[],
 				                     const size_t nip,

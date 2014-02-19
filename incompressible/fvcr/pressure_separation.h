@@ -248,7 +248,7 @@ class SeparatedPressureSource
 	typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// MathVector<dim> attachment
 	//		typedef MathVector<dim> vecDim;
@@ -375,7 +375,7 @@ class SeparatedPressureSource
 	inline void evaluate(MathVector<dim> vValue[],
 	                     const MathVector<dim> vGlobIP[],
 	                     number time, int si,
-	                     GeometricObject* elem,
+	                     GridObject* elem,
 	                     const MathVector<dim> vCornerCoords[],
 	                     const MathVector<refDim> vLocIP[],
 	                     const size_t nip,
@@ -536,7 +536,7 @@ class SeparatedPressureSource
 		UG_THROW("LevelSetUserData: Need element.");
 	}
 
-	virtual void compute(LocalVector* u, GeometricObject* elem,
+	virtual void compute(LocalVector* u, GridObject* elem,
 	                     const MathVector<dim> vCornerCoords[], bool bDeriv = false)
 	{
 		const number t = this->time();
@@ -575,7 +575,7 @@ class SeparatedPressureSourceInter
 	typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// MathVector<dim> attachment
 	//		typedef MathVector<dim> vecDim;
@@ -702,7 +702,7 @@ class SeparatedPressureSourceInter
 	inline void evaluate(MathVector<dim> vValue[],
 	                     const MathVector<dim> vGlobIP[],
 	                     number time, int si,
-	                     GeometricObject* elem,
+	                     GridObject* elem,
 	                     const MathVector<dim> vCornerCoords[],
 	                     const MathVector<refDim> vLocIP[],
 	                     const size_t nip,
@@ -863,7 +863,7 @@ class SeparatedPressureSourceInter
 		UG_THROW("LevelSetUserData: Need element.");
 	}
 
-	virtual void compute(LocalVector* u, GeometricObject* elem,
+	virtual void compute(LocalVector* u, GridObject* elem,
 	                     const MathVector<dim> vCornerCoords[], bool bDeriv = false)
 	{
 		const number t = this->time();

@@ -96,7 +96,7 @@ void constrainingSideAveraging(PeriodicAttachmentAccessor<side_type,Attachment<V
 	/// side iterator
 	typedef typename TGridFunction::template traits<constraining_side_type>::const_iterator cSideIterator;
 	typedef typename domain_type::position_accessor_type position_accessor_type;
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	domain_type& domain = *m_uInfo->domain().get();
 	DimCRFVGeometry<dim> geo;
 	position_accessor_type posAcc = m_uInfo->domain()->position_accessor();
@@ -164,7 +164,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		typedef typename domain_type::grid_type grid_type;
 
 	/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// side type
 		typedef typename elem_type::side side_type;
@@ -178,7 +178,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		static const size_t _P_ = dim;
 
 	///	Type of geometric base object
-		typedef typename domain_traits<TDomain::dim>::geometric_base_object geometric_base_object;
+		typedef typename domain_traits<TDomain::dim>::grid_base_object grid_base_object;
 
 	/// position accessor
 		typedef typename domain_type::position_accessor_type position_accessor_type;

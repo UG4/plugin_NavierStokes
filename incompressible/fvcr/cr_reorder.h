@@ -150,7 +150,7 @@ void CROrderCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 	static const int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -197,7 +197,7 @@ void CROrderSloan(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 	static const int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -242,7 +242,7 @@ void CROrderKing(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
 	static const int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -287,7 +287,7 @@ void CROrderMinimumDegree(ApproximationSpace<TDomain>& approxSpace,TGridFunction
 	static const int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -335,7 +335,7 @@ void OrderCRCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
 	static const int dim = domain_type::dim;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	for (int si=0;si<u.num_subsets();++si){
 		if (u.num_fct(si)<2){

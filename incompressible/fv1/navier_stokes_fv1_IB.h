@@ -145,10 +145,10 @@ class NavierStokesFV1IB
 	/// \}
 
 		template <typename TElem>
- 		void adapt_FVGeometry(FV1IBGeometry<TElem, dim> geo, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]){};
+ 		void adapt_FVGeometry(FV1IBGeometry<TElem, dim> geo, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]){};
 
 		template <typename TElem, typename TFVGeom>
-		void prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	/// copy of the original 'add_jac_A_elem()' implementation with adaptions due to the inner boundary:
 	/// ImpEq-P1: No pressure term for the momentum equation for scvf being part of the IB
@@ -160,13 +160,13 @@ class NavierStokesFV1IB
 	///		amount of scvf's (= 1scvf (2d); = 3scvf (3d)) depend ONLY on
 	/// 	the "participating" corners of the ip, i.e. pressure = average of the pressure in corners
 		template <typename TElem, typename TFVGeom>
-		void add_jac_A_elem_IB(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_jac_A_elem_IB(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 		template <typename TElem, typename TFVGeom>
-		void add_def_A_elem_IB(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[]);
+		void add_def_A_elem_IB(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 		template <typename TElem, typename TFVGeom>
-		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 		{
 			bool elemIsCut_byIB = false;
 
@@ -180,7 +180,7 @@ class NavierStokesFV1IB
 
 
 		template <typename TElem, typename TFVGeom>
-		void add_def_A_elem(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+		void add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 		{
 			UG_LOG("hier Aufruf: add_def_A_elem()...\n");
 			UG_LOG("jeppa!...\n");

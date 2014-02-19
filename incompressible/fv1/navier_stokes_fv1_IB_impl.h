@@ -60,7 +60,7 @@ prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFV1IB<TDomain>::
-prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 	UG_LOG("hier Aufruf:  'prep_elem()...\n");
 	UG_LOG("juhuuuu!...prep_elem()\n");
@@ -117,7 +117,7 @@ prep_elem(const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCo
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFV1IB<TDomain>::
-add_jac_A_elem_IB(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_jac_A_elem_IB(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 
 }
@@ -127,7 +127,7 @@ add_jac_A_elem_IB(LocalMatrix& J, const LocalVector& u, GeometricObject* elem, c
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFV1IB<TDomain>::
-add_def_A_elem_IB(LocalVector& d, const LocalVector& u, GeometricObject* elem, const MathVector<dim> vCornerCoords[])
+add_def_A_elem_IB(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 
 }

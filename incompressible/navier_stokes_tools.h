@@ -42,7 +42,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// side type
 	typedef typename elem_type::side side_type;
@@ -224,7 +224,7 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
     /// side type
 	typedef typename elem_type::side side_type;
@@ -376,7 +376,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	//  volume attachment
 	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aSideNumber;
@@ -534,7 +534,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
@@ -979,7 +979,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 	typedef typename domain_type::position_accessor_type position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
@@ -1378,7 +1378,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// side type
 	typedef typename elem_type::side side_type;
@@ -1502,7 +1502,7 @@ number kineticEnergy(TGridFunction& u){
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object elem_type;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	/// side type
 	typedef typename elem_type::side side_type;
@@ -1625,7 +1625,7 @@ std::vector<number> DragLift(SmartPtr<TGridFunction> spGridFct,
 {
 	static const int dim = TGridFunction::dim;
 	static const int WorldDim = TGridFunction::dim;
-	typedef typename TGridFunction::template dim_traits<dim>::geometric_base_object geometric_base_object;
+	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object grid_base_object;
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator const_iterator;
 
 
@@ -1677,8 +1677,8 @@ std::vector<number> DragLift(SmartPtr<TGridFunction> spGridFct,
 
 	//	note: this iterator is for the base elements, e.g. Face and not
 	//			for the special type, e.g. Triangle, Quadrilateral
-		const_iterator iterBegin = spGridFct->template begin<geometric_base_object>(si);
-		const_iterator iterEnd = spGridFct->template end<geometric_base_object>(si);
+		const_iterator iterBegin = spGridFct->template begin<grid_base_object>(si);
+		const_iterator iterEnd = spGridFct->template end<grid_base_object>(si);
 		const_iterator iter = iterBegin;
 
 		typename domain_traits<TGridFunction::dim>::position_accessor_type& aaPos
