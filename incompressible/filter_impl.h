@@ -42,7 +42,7 @@ void getElemCoord(MathVector<dim>& co,Vertex* vrt,TPosAcc posAcc){
 }
 
 template<int dim,typename TPosAcc>
-void getElemCoord(MathVector<dim>& co,EdgeBase* edge,TPosAcc posAcc){
+void getElemCoord(MathVector<dim>& co,Edge* edge,TPosAcc posAcc){
 	co = posAcc[edge->vertex(0)];
 	co+=posAcc[edge->vertex(1)];
 	co*=0.5;

@@ -47,7 +47,7 @@ template<typename side_type,typename secure_container,typename TGridFunction>
 	size_t nOfSides = sides.size();
 	ConstrainingEdge* cEdge=NULL;
 	ConstrainingFace* cFace=NULL;
-	EdgeBase* edge;
+	Edge* edge;
 	Face* face;
 	size_t nc;
 	///	domain type
@@ -70,7 +70,7 @@ template<typename side_type,typename secure_container,typename TGridFunction>
 		}
 		for (size_t k=0;k<nc;k++){
 			if (dim==2){
-				edge = dynamic_cast<EdgeBase*>(cEdge->constrained_edge(k));
+				edge = dynamic_cast<Edge*>(cEdge->constrained_edge(k));
 				u.inner_dof_indices(edge,fct,seMultInd);
 			} else {
 				face = 	dynamic_cast<Face*>(cFace->constrained_face(k));
