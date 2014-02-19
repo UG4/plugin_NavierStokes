@@ -56,7 +56,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 	
 	typedef ug::GridFunction<TDomain, TAlgebra> TFct;
 	static const int dim = TDomain::dim;
-	
+
 	// Turbulent viscosity data
 	// Smagorinsky model
 	{
@@ -167,6 +167,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_upwind))
 			.add_method("set_upwind",  static_cast<void (T::*)(const std::string&)>(&T::set_upwind))
 			.add_method("set_pac_upwind", &T::set_pac_upwind, "", "Set pac upwind")
+			.add_method("set_particle", &T::set_particle, "", "Set particle")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesFV1IB", tag);
 	}
