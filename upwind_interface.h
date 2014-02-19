@@ -349,7 +349,7 @@ class NavierStokesUpwindRegister
 	private:
 		void register_func(Int2Type<1>)
 		{
-			register_func<Edge>();
+			register_func<RegularEdge>();
 		}
 
 		void register_func(Int2Type<2>)

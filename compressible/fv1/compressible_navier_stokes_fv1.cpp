@@ -873,7 +873,7 @@ register_all_funcs(bool bHang)
 //	switch assemble functions
 	if(!bHang)
 	{
-		register_func<Edge, FV1Geometry<Edge, dim> >();
+		register_func<RegularEdge, FV1Geometry<RegularEdge, dim> >();
 	}
 	else
 	{

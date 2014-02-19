@@ -406,13 +406,13 @@ update(const FV1Geometry<TElem, dim>* geo,
 template <>
 void NavierStokesFIELDSStabilization<1>::register_func()
 {
-	register_func<Edge>();
+	register_func<RegularEdge>();
 }
 
 template <>
 void NavierStokesFIELDSStabilization<2>::register_func()
 {
-	register_func<Edge>();
+	register_func<RegularEdge>();
 	register_func<Triangle>();
 	register_func<Quadrilateral>();
 }
@@ -420,7 +420,7 @@ void NavierStokesFIELDSStabilization<2>::register_func()
 template <>
 void NavierStokesFIELDSStabilization<3>::register_func()
 {
-	register_func<Edge>();
+	register_func<RegularEdge>();
 	register_func<Triangle>();
 	register_func<Quadrilateral>();
 	register_func<Tetrahedron>();
@@ -774,13 +774,13 @@ update(const FV1Geometry<TElem, dim>* geo,
 template <>
 void NavierStokesFLOWStabilization<1>::register_func()
 {
-	register_func<Edge>();
+	register_func<RegularEdge>();
 }
 
 template <>
 void NavierStokesFLOWStabilization<2>::register_func()
 {
-	register_func<Edge>();
+	register_func<RegularEdge>();
 	register_func<Triangle>();
 	register_func<Quadrilateral>();
 }
@@ -788,7 +788,7 @@ void NavierStokesFLOWStabilization<2>::register_func()
 template <>
 void NavierStokesFLOWStabilization<3>::register_func()
 {
-	register_func<Edge>();
+	register_func<RegularEdge>();
 	register_func<Triangle>();
 	register_func<Quadrilateral>();
 	register_func<Tetrahedron>();

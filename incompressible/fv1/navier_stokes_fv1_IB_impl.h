@@ -144,8 +144,8 @@ register_substitution_funcs(bool bHang)
 //	switch assemble functions
 	if(!bHang)
 	{
-		//register_substitutes<Edge, FV1Geometry<Edge, dim> >();
-		register_substitutes<Edge, FV1IBGeometry<Edge, dim> >();
+		//register_substitutes<RegularEdge, FV1Geometry<RegularEdge, dim> >();
+		register_substitutes<RegularEdge, FV1IBGeometry<RegularEdge, dim> >();
 	}
 	else
 	{
