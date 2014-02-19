@@ -48,7 +48,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	typedef typename elem_type::side side_type;
 
 	//  volume attachment
-	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
+	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
 	aVertexNumber m_acVolume;
 	ANumber m_aVolume;
 
@@ -56,7 +56,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -87,16 +87,16 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 
 	DimFV1Geometry<dim> geo;
 
-	grid.template attach_to<VertexBase>(m_aVolume);
+	grid.template attach_to<Vertex>(m_aVolume);
 	m_acVolume.access(grid,m_aVolume);
 
-	SetAttachmentValues(m_acVolume,grid.template begin<VertexBase>(), grid.template end<VertexBase>(), 0);
+	SetAttachmentValues(m_acVolume,grid.template begin<Vertex>(), grid.template end<Vertex>(), 0);
 
 	PeriodicBoundaryManager* pbm = grid.periodic_boundary_manager();
 
 	// coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// create Multiindex
 	std::vector<DoFIndex> multInd;
@@ -109,10 +109,10 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	// set lagrange function to zero
 	for(int si = 0; si < uLagrange.num_subsets(); ++si){
 		//	get iterators
-		VertexIterator iter = uLagrange.template begin<VertexBase>(si);
-		VertexIterator iterEnd = uLagrange.template end<VertexBase>(si);
+		VertexIterator iter = uLagrange.template begin<Vertex>(si);
+		VertexIterator iterEnd = uLagrange.template end<Vertex>(si);
 		for(  ;iter !=iterEnd; ++iter){
-			VertexBase* vrt = *iter;
+			Vertex* vrt = *iter;
 			if (pbm && pbm->is_slave(vrt)) continue;
 			for (int d=0;d<spaceDim;d++){
 				uLagrange.inner_dof_indices(vrt, d, multInd);
@@ -190,10 +190,10 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	// finish computation by averaging
 	for(int si = 0; si < uLagrange.num_subsets(); ++si){
 		//	get iterators
-		VertexIterator iter = uLagrange.template begin<VertexBase>(si);
-		VertexIterator iterEnd = uLagrange.template end<VertexBase>(si);
+		VertexIterator iter = uLagrange.template begin<Vertex>(si);
+		VertexIterator iterEnd = uLagrange.template end<Vertex>(si);
 		for(  ;iter !=iterEnd; ++iter){
-			VertexBase* vrt = *iter;
+			Vertex* vrt = *iter;
 			if (pbm && pbm->is_slave(vrt)) continue;
 			for (int d=0;d<spaceDim;d++){
 				uLagrange.inner_dof_indices(vrt, d, multInd);
@@ -265,7 +265,7 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
 	std::vector<DoFIndex> multInd;
@@ -379,7 +379,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
 
 	//  volume attachment
-	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aSideNumber;
+	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aSideNumber;
 	aSideNumber m_acVolume;
 	ANumber m_aVolume;
 
@@ -387,7 +387,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// side iterator
-	typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexBaseConstIterator;
+	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexConstIterator;
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -395,10 +395,10 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 
 	DimFV1Geometry<dim> geo;
 
-	grid.template attach_to<VertexBase>(m_aVolume);
+	grid.template attach_to<Vertex>(m_aVolume);
 	m_acVolume.access(grid,m_aVolume);
 
-	SetAttachmentValues(m_acVolume,grid.template begin<VertexBase>(), grid.template end<VertexBase>(), 0);
+	SetAttachmentValues(m_acVolume,grid.template begin<Vertex>(), grid.template end<Vertex>(), 0);
 
 	if (vort.local_finite_element_id(0) != LFEID(LFEID::LAGRANGE, dim, 1)){
 				UG_THROW("Component " << 0 << " in approximation space of parameter 1 must be of Crouzeix-Raviart type.");
@@ -414,7 +414,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
 	std::vector<DoFIndex> multInd;
@@ -480,12 +480,12 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 	for(int si = 0; si < u.num_subsets(); ++si)
 	{
 		// average vorticity
-		VertexBaseConstIterator vertexIter = vort.template begin<VertexBase>(si);
-		VertexBaseConstIterator vertexIterEnd = vort.template end<VertexBase>(si);
+		VertexConstIterator vertexIter = vort.template begin<Vertex>(si);
+		VertexConstIterator vertexIterEnd = vort.template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
 			//	get Elem
-			VertexBase* vrt = *vertexIter;
+			Vertex* vrt = *vertexIter;
 			// if periodic slave continue
 			if (pbm && pbm->is_slave(vrt)) continue;
 			vort.dof_indices(vrt, 0, multInd);
@@ -495,7 +495,7 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 			}
 		}
 	}
-	grid.template detach_from<VertexBase>(m_aVolume);
+	grid.template detach_from<Vertex>(m_aVolume);
 }
 
 template <typename TGridFunction>
@@ -782,7 +782,7 @@ void drivenCavityEvaluationErturk(TGridFunction& u,size_t Re){
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
 	std::vector<DoFIndex> multInd;
@@ -1116,7 +1116,7 @@ void drivenCavityEvaluation(TGridFunction& u,size_t Re){
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	create Multiindex
 	std::vector<DoFIndex> multInd;
@@ -1398,7 +1398,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -1518,7 +1518,7 @@ number kineticEnergy(TGridFunction& u){
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;

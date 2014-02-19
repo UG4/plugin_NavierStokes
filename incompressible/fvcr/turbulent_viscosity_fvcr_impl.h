@@ -98,7 +98,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -250,7 +250,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 	
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 	
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -403,7 +403,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -618,7 +618,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 
 	//	coord and vertex array
 	//	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	//	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	//	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble deformation tensor fluxes
 	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,NULL);

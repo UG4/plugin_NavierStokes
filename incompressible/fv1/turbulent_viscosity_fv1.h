@@ -54,7 +54,7 @@ class StdTurbulentViscosityDataFV1
 		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 		/// vertex iterator
-		typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+		typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 
 		/// attachment accessor types
 		typedef MathMatrix<dim,dim> dimMat;
@@ -63,9 +63,9 @@ class StdTurbulentViscosityDataFV1
 		typedef MathVector<dim> vecDim;
 		typedef Attachment<vecDim> AMathVectorDim;
 
-		typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
-		typedef PeriodicAttachmentAccessor<VertexBase,ATensor > aVertexTensor;
-		typedef PeriodicAttachmentAccessor<VertexBase,AMathVectorDim > aVertexDimVector;
+		typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
+		typedef PeriodicAttachmentAccessor<Vertex,ATensor > aVertexTensor;
+		typedef PeriodicAttachmentAccessor<Vertex,AMathVectorDim > aVertexDimVector;
 	public:
 		////////////////
 		// one value
@@ -125,12 +125,12 @@ class StdTurbulentViscosityDataFV1
 		void addUiUjTerm(aVertexTensor& aaDefTensor,const number factor,SmartPtr<TGridFunction> u);
 
 		template <typename VType>
-		void elementFilter(PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaU);
+		void elementFilter(PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaU);
 
 		void elementFilter(aVertexDimVector& aaUHat,aVertexNumber& aaVol,SmartPtr<TGridFunction> u);
 
 		template <typename VType>
-		void scvFilter(PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaU);
+		void scvFilter(PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaU);
 
 		void scvFilter(aVertexDimVector& aaUHat,aVertexNumber& aaVol,SmartPtr<TGridFunction> u);
 
@@ -189,14 +189,14 @@ class FV1SmagorinskyTurbViscData
 		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// vertex iterator
-		typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+		typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 
 	/// attachment accessor types
 		typedef MathMatrix<dim,dim> dimMat;
 		typedef Attachment<dimMat> ATensor;
 
-		typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
-		typedef PeriodicAttachmentAccessor<VertexBase,ATensor > aVertexTensor;
+		typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
+		typedef PeriodicAttachmentAccessor<Vertex,ATensor > aVertexTensor;
 
 	public:
 		/**
@@ -261,9 +261,9 @@ class FV1SmagorinskyTurbViscData
 			m_grid = &grid;
 			m_pbm = m_grid->periodic_boundary_manager();
 			// attachments
-			grid.template attach_to<VertexBase>(m_aTurbulentViscosity);
-			grid.template attach_to<VertexBase>(m_aVolume);
-			grid.template attach_to<VertexBase>(m_aDeformation);
+			grid.template attach_to<Vertex>(m_aTurbulentViscosity);
+			grid.template attach_to<Vertex>(m_aVolume);
+			grid.template attach_to<Vertex>(m_aDeformation);
 			// accessors
 			m_acTurbulentViscosity.access(grid,m_aTurbulentViscosity);
 			m_acVolume.access(grid,m_aVolume);
@@ -274,9 +274,9 @@ class FV1SmagorinskyTurbViscData
 		virtual ~FV1SmagorinskyTurbViscData() {
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
-			grid.template detach_from<VertexBase>(m_aTurbulentViscosity);
-			grid.template detach_from<VertexBase>(m_aVolume);
-			grid.template detach_from<VertexBase>(m_aDeformation);
+			grid.template detach_from<Vertex>(m_aTurbulentViscosity);
+			grid.template detach_from<Vertex>(m_aVolume);
+			grid.template detach_from<Vertex>(m_aDeformation);
 		};
 
 		void set_model_parameter(number c){
@@ -377,7 +377,7 @@ class FV1DynamicTurbViscData
 		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// vertex iterator
-		typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+		typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 
 	/// attachment accessor types
 		typedef MathMatrix<dim,dim> dimMat;
@@ -386,9 +386,9 @@ class FV1DynamicTurbViscData
 		typedef MathVector<dim> vecDim;
 		typedef Attachment<vecDim> AMathVectorDim;
 
-		typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
-		typedef PeriodicAttachmentAccessor<VertexBase,ATensor > aVertexTensor;
-		typedef PeriodicAttachmentAccessor<VertexBase,AMathVectorDim > aVertexDimVector;
+		typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
+		typedef PeriodicAttachmentAccessor<Vertex,ATensor > aVertexTensor;
+		typedef PeriodicAttachmentAccessor<Vertex,AMathVectorDim > aVertexDimVector;
 
 	public:
 		/**
@@ -478,15 +478,15 @@ class FV1DynamicTurbViscData
 			m_grid = &grid;
 			m_pbm = m_grid->periodic_boundary_manager();
 			// attachments
-			grid.template attach_to<VertexBase>(m_aTurbulentViscosity);
-			grid.template attach_to<VertexBase>(m_aTurbulentC);
-			grid.template attach_to<VertexBase>(m_aVolume);
-			grid.template attach_to<VertexBase>(m_aVolumeHat);
-			grid.template attach_to<VertexBase>(m_aUHat);
-			grid.template attach_to<VertexBase>(m_aDeformation);
-			grid.template attach_to<VertexBase>(m_aDeformationHat);
-			grid.template attach_to<VertexBase>(m_aLij);
-			grid.template attach_to<VertexBase>(m_aMij);
+			grid.template attach_to<Vertex>(m_aTurbulentViscosity);
+			grid.template attach_to<Vertex>(m_aTurbulentC);
+			grid.template attach_to<Vertex>(m_aVolume);
+			grid.template attach_to<Vertex>(m_aVolumeHat);
+			grid.template attach_to<Vertex>(m_aUHat);
+			grid.template attach_to<Vertex>(m_aDeformation);
+			grid.template attach_to<Vertex>(m_aDeformationHat);
+			grid.template attach_to<Vertex>(m_aLij);
+			grid.template attach_to<Vertex>(m_aMij);
 			// accessors
 			m_acTurbulentViscosity.access(grid,m_aTurbulentViscosity);
 			m_acTurbulentC.access(grid,m_aTurbulentC);
@@ -506,15 +506,15 @@ class FV1DynamicTurbViscData
 		virtual ~FV1DynamicTurbViscData() {
 			domain_type& domain = *m_u->domain().get();
 			grid_type& grid = *domain.grid();
-			grid.template detach_from<VertexBase>(m_aTurbulentViscosity);
-			grid.template detach_from<VertexBase>(m_aTurbulentC);
-			grid.template detach_from<VertexBase>(m_aVolume);
-			grid.template detach_from<VertexBase>(m_aVolumeHat);
-			grid.template detach_from<VertexBase>(m_aUHat);
-			grid.template detach_from<VertexBase>(m_aDeformation);
-			grid.template detach_from<VertexBase>(m_aDeformationHat);
-			grid.template detach_from<VertexBase>(m_aLij);
-			grid.template detach_from<VertexBase>(m_aMij);
+			grid.template detach_from<Vertex>(m_aTurbulentViscosity);
+			grid.template detach_from<Vertex>(m_aTurbulentC);
+			grid.template detach_from<Vertex>(m_aVolume);
+			grid.template detach_from<Vertex>(m_aVolumeHat);
+			grid.template detach_from<Vertex>(m_aUHat);
+			grid.template detach_from<Vertex>(m_aDeformation);
+			grid.template detach_from<Vertex>(m_aDeformationHat);
+			grid.template detach_from<Vertex>(m_aLij);
+			grid.template detach_from<Vertex>(m_aMij);
 		};
 		
 		template <int refDim>

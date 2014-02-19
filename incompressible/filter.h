@@ -89,7 +89,7 @@ class FilterBaseClass{
 	typedef typename elem_type::side side_type;
 	
 	// vertex type
-	typedef VertexBase vertex_type;
+	typedef Vertex vertex_type;
 	
 	// filter for crouzeix-raviart type attachment
 	template <typename VType>
@@ -175,7 +175,7 @@ public:
 	typedef typename elem_type::side side_type;
 	
 	// vertex type
-	typedef VertexBase vertex_type;
+	typedef Vertex vertex_type;
 	
 	//	grid type
 	typedef typename domain_type::grid_type grid_type;	
@@ -255,7 +255,7 @@ class VariableBoxFilter{
 	typedef typename elem_type::side side_type;
 
 	// vertex type
-	typedef typename VertexBase vertex_type;
+	typedef typename Vertex vertex_type;
 
 	// filter for crouzeix-raviart type data
 	template <typename VType>
@@ -293,7 +293,7 @@ class ElementBoxFilter{
 	typedef typename elem_type::side side_type;
 
 	// vertex type
-	typedef typename VertexBase vertex_type;
+	typedef typename Vertex vertex_type;
 
 	// filter for crouzeix-raviart type data
 	template <typename VType>
@@ -336,7 +336,7 @@ class ScvBoxFilter{
 	typedef typename elem_type::side side_type;
 
 	// vertex type
-	typedef typename VertexBase vertex_type;
+	typedef typename Vertex vertex_type;
 
 	// filter for crouzeix-raviart type data
 	template <typename VType>
@@ -416,7 +416,7 @@ void elementFilterFVCR(SmartPtr<TGridFunction> u){
 	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
@@ -559,7 +559,7 @@ void scvFilterFVCR(SmartPtr<TGridFunction> u){
 	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble fluxes
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
@@ -675,7 +675,7 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 	/// side iterator
-	typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
 	///	grid type
@@ -689,8 +689,8 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 	// define attachment stuff
 	typedef MathVector<dim> vecDim;
 	typedef Attachment<vecDim> AMathVectorDim;
-	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
-	typedef PeriodicAttachmentAccessor<VertexBase,AMathVectorDim > aVertexDimVector;
+	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
+	typedef PeriodicAttachmentAccessor<Vertex,AMathVectorDim > aVertexDimVector;
 
 	//  filtered u attachment
 	aVertexDimVector acUHat;
@@ -699,22 +699,22 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 	aVertexNumber acVolume;
 	ANumber aVolume;
 
-	grid.template attach_to<VertexBase>(aUHat);
-	grid.template attach_to<VertexBase>(aVolume);
+	grid.template attach_to<Vertex>(aUHat);
+	grid.template attach_to<Vertex>(aVolume);
 
 	// accessors
 	acUHat.access(grid,aUHat);
 	acVolume.access(grid,aVolume);
 
 	// initial values for attachments
-	SetAttachmentValues(acUHat , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
-	SetAttachmentValues(acVolume , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
+	SetAttachmentValues(acUHat , u->template begin<Vertex>(), u->template end<Vertex>(), 0);
+	SetAttachmentValues(acVolume , u->template begin<Vertex>(), u->template end<Vertex>(), 0);
 
 	DimFV1Geometry<dim> geo;
 	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
@@ -789,19 +789,19 @@ void elementFilterFV1(SmartPtr<TGridFunction> u){
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		VertexIterator vertexIter = u->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = u->template end<VertexBase>(si);
+		VertexIterator vertexIter = u->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = u->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vert = *vertexIter;
+			Vertex* vert = *vertexIter;
 			if (pbm && pbm->is_slave(vert)) continue;
 			acUHat[vert]/=(number)acVolume[vert];
 		}
 	}
 	// set grid function to filtered values
-	copyAttachmentToGridFunction<dim,VertexBase,TGridFunction>(u,acUHat);
-	grid.template detach_from<VertexBase>(aUHat);
-	grid.template detach_from<VertexBase>(aVolume);
+	copyAttachmentToGridFunction<dim,Vertex,TGridFunction>(u,acUHat);
+	grid.template detach_from<Vertex>(aUHat);
+	grid.template detach_from<Vertex>(aVolume);
 }
 
 template <int dim,typename TGridFunction>
@@ -811,7 +811,7 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 	/// side iterator
-	typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 	///	domain type
 	typedef typename TGridFunction::domain_type domain_type;
 	///	grid type
@@ -825,8 +825,8 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 	// define attachment stuff
 	typedef MathVector<dim> vecDim;
 	typedef Attachment<vecDim> AMathVectorDim;
-	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
-	typedef PeriodicAttachmentAccessor<VertexBase,AMathVectorDim > aVertexDimVector;
+	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
+	typedef PeriodicAttachmentAccessor<Vertex,AMathVectorDim > aVertexDimVector;
 
 	//  filtered u attachment
 	aVertexDimVector acUHat;
@@ -835,22 +835,22 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 	aVertexNumber acVolume;
 	ANumber aVolume;
 
-	grid.template attach_to<VertexBase>(aUHat);
-	grid.template attach_to<VertexBase>(aVolume);
+	grid.template attach_to<Vertex>(aUHat);
+	grid.template attach_to<Vertex>(aVolume);
 
 	// accessors
 	acUHat.access(grid,aUHat);
 	acVolume.access(grid,aVolume);
 
 	// initial values for attachments
-	SetAttachmentValues(acUHat , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
-	SetAttachmentValues(acVolume , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
+	SetAttachmentValues(acUHat , u->template begin<Vertex>(), u->template end<Vertex>(), 0);
+	SetAttachmentValues(acVolume , u->template begin<Vertex>(), u->template end<Vertex>(), 0);
 
 	DimFV1Geometry<dim> geo;
 	std::vector<DoFIndex> multInd;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
@@ -932,19 +932,19 @@ void scvFilterFV1(SmartPtr<TGridFunction> u){
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		VertexIterator vertexIter = u->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = u->template end<VertexBase>(si);
+		VertexIterator vertexIter = u->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = u->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vert = *vertexIter;
+			Vertex* vert = *vertexIter;
 			if (pbm && pbm->is_slave(vert)) continue;
 			acUHat[vert]/=(number)acVolume[vert];
 		}
 	}
 	// set grid function to filtered values
-	copyAttachmentToGridFunction<dim,VertexBase,TGridFunction>(u,acUHat);
-	grid.template detach_from<VertexBase>(aUHat);
-	grid.template detach_from<VertexBase>(aVolume);
+	copyAttachmentToGridFunction<dim,Vertex,TGridFunction>(u,acUHat);
+	grid.template detach_from<Vertex>(aUHat);
+	grid.template detach_from<Vertex>(aVolume);
 }
 
 template <typename TGridFunction>

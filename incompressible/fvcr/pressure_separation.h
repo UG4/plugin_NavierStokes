@@ -255,14 +255,14 @@ class SeparatedPressureSource
 	//		typedef Attachment<vecDim> AMathVectorDim;
 
 	/// attachment accessor
-	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
+	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
 	typedef Grid::AttachmentAccessor<elem_type,ANumber > aElementNumber;
 
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 
   		private:
 	// old pressure attachment accessor
@@ -357,14 +357,14 @@ class SeparatedPressureSource
 		m_spApproxSpace = approxSpace;
 		set_source(0.0);
 		grid.template attach_to<elem_type>(m_aPOld);
-		grid.template attach_to<VertexBase>(m_aP);
-		grid.template attach_to<VertexBase>(m_aVol);
+		grid.template attach_to<Vertex>(m_aP);
+		grid.template attach_to<Vertex>(m_aVol);
 		m_pOld.access(grid,m_aPOld);
 		m_p.access(grid,m_aP);
 		m_vol.access(grid,m_aVol);
 		// set all values to zero
-		SetAttachmentValues(m_vol, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
-		SetAttachmentValues(m_p, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+		SetAttachmentValues(m_vol, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
+		SetAttachmentValues(m_p, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
 		SetAttachmentValues(m_pOld, m_u->template begin<elem_type>(), m_u->template end<elem_type>(), 0);
 		this->update();
 	}
@@ -400,7 +400,7 @@ class SeparatedPressureSource
 
 		// coord and vertex array
 		MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-		VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+		Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 		DimCRFVGeometry<dim> crfvgeo;
 
 		MathVector<dim> grad[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -462,15 +462,15 @@ class SeparatedPressureSource
 
 		//	coord and vertex array
 		MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-		VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+		Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 		//	get position accessor
 		typedef typename domain_type::position_accessor_type position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
 		// set volume and p values to zero
-		SetAttachmentValues(m_vol, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
-		SetAttachmentValues(m_p, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+		SetAttachmentValues(m_vol, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
+		SetAttachmentValues(m_p, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
 
 		// set p^{old} = p^{old} + p^{sep}
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
@@ -507,11 +507,11 @@ class SeparatedPressureSource
 		PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 		// go over all vertices and average
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-			VertexIterator iter = m_u->template begin<VertexBase>(si);
-			VertexIterator iterEnd = m_u->template end<VertexBase>(si);
+			VertexIterator iter = m_u->template begin<Vertex>(si);
+			VertexIterator iterEnd = m_u->template end<Vertex>(si);
 			for(  ;iter !=iterEnd; ++iter)
 			{
-				VertexBase* vrt = *iter;
+				Vertex* vrt = *iter;
 				if (pbm && pbm->is_slave(vrt)) continue;
 				m_p[vrt]/=m_vol[vrt];
 			}
@@ -582,14 +582,14 @@ class SeparatedPressureSourceInter
 	//		typedef Attachment<vecDim> AMathVectorDim;
 
 	/// attachment accessor
-	typedef PeriodicAttachmentAccessor<VertexBase,ANumber > aVertexNumber;
+	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
 	typedef Grid::AttachmentAccessor<elem_type,ANumber > aElementNumber;
 
 	/// element iterator
 	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
 
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<VertexBase>::const_iterator VertexIterator;
+	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
 
   		private:
 	// old pressure attachment accessor
@@ -684,14 +684,14 @@ class SeparatedPressureSourceInter
 		m_spApproxSpace = approxSpace;
 		set_source(0.0);
 		grid.template attach_to<elem_type>(m_aPOld);
-		grid.template attach_to<VertexBase>(m_aP);
-		grid.template attach_to<VertexBase>(m_aVol);
+		grid.template attach_to<Vertex>(m_aP);
+		grid.template attach_to<Vertex>(m_aVol);
 		m_pOld.access(grid,m_aPOld);
 		m_p.access(grid,m_aP);
 		m_vol.access(grid,m_aVol);
 		// set all values to zero
-		SetAttachmentValues(m_vol, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
-		SetAttachmentValues(m_p, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+		SetAttachmentValues(m_vol, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
+		SetAttachmentValues(m_p, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
 		SetAttachmentValues(m_pOld, m_u->template begin<elem_type>(), m_u->template end<elem_type>(), 0);
 		this->update();
 	}
@@ -727,7 +727,7 @@ class SeparatedPressureSourceInter
 
 		// coord and vertex array
 		MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-		VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+		Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 		DimCRFVGeometry<dim> crfvgeo;
 
 		MathVector<dim> grad[domain_traits<dim>::MaxNumVerticesOfElem];
@@ -789,15 +789,15 @@ class SeparatedPressureSourceInter
 
 		//	coord and vertex array
 		MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-		VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+		Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 		//	get position accessor
 		typedef typename domain_type::position_accessor_type position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
 		// set volume and p values to zero
-		SetAttachmentValues(m_vol, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
-		SetAttachmentValues(m_p, m_u->template begin<VertexBase>(), m_u->template end<VertexBase>(), 0);
+		SetAttachmentValues(m_vol, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
+		SetAttachmentValues(m_p, m_u->template begin<Vertex>(), m_u->template end<Vertex>(), 0);
 
 		// set p^{old} = p^{old} + p^{sep}
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
@@ -834,11 +834,11 @@ class SeparatedPressureSourceInter
 		PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 		// go over all vertices and average
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-			VertexIterator iter = m_u->template begin<VertexBase>(si);
-			VertexIterator iterEnd = m_u->template end<VertexBase>(si);
+			VertexIterator iter = m_u->template begin<Vertex>(si);
+			VertexIterator iterEnd = m_u->template end<Vertex>(si);
 			for(  ;iter !=iterEnd; ++iter)
 			{
-				VertexBase* vrt = *iter;
+				Vertex* vrt = *iter;
 				if (pbm && pbm->is_slave(vrt)) continue;
 				m_p[vrt]/=m_vol[vrt];
 			}

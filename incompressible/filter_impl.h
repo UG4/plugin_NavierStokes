@@ -37,7 +37,7 @@ number ConstantBoxFilter<TGridFunction>::compute_average_element_size(SmartPtr<T
 }
 
 template<int dim,typename TPosAcc>
-void getElemCoord(MathVector<dim>& co,VertexBase* vrt,TPosAcc posAcc){
+void getElemCoord(MathVector<dim>& co,Vertex* vrt,TPosAcc posAcc){
 	co = posAcc[vrt];
 }
 
@@ -123,13 +123,13 @@ void ConstantBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<v
 	//  volume attachment
 	aNumber acVolume;
 	ANumber aVolume;
-	m_grid->template attach_to<VertexBase>(aVolume);
+	m_grid->template attach_to<Vertex>(aVolume);
 	acVolume.access(*m_grid,aVolume);
 
-	SetAttachmentValues(acVolume , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
+	SetAttachmentValues(acVolume , u->template begin<Vertex>(), u->template end<Vertex>(), 0);
 
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
@@ -211,11 +211,11 @@ void ConstantBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<v
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		VertexIterator vertexIter = u->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = u->template end<VertexBase>(si);
+		VertexIterator vertexIter = u->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = u->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vert = *vertexIter;
+			Vertex* vert = *vertexIter;
 			if (pbm && pbm->is_slave(vert)) continue;
 			acUHat[vert]/=(number)acVolume[vert];
 		}

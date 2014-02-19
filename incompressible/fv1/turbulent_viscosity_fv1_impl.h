@@ -21,13 +21,13 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::transferToLowe
 		for (size_t lev=approximationSpace.num_levels()-2; ;lev--){
 			const DoFDistribution& lDD = *approximationSpace.dof_distribution(GridLevel(lev, GridLevel::LEVEL));
 			const MultiGrid& grid = *lDD.multi_grid();
-			typedef typename DoFDistribution::traits<VertexBase>::const_iterator coarseLevelVertexIter;
+			typedef typename DoFDistribution::traits<Vertex>::const_iterator coarseLevelVertexIter;
 			coarseLevelVertexIter clvIter, clvIterEnd;
-			clvIter = lDD.template begin<VertexBase>(si);
-			clvIterEnd = lDD.template end<VertexBase>(si);
+			clvIter = lDD.template begin<Vertex>(si);
+			clvIterEnd = lDD.template end<Vertex>(si);
 			for (;clvIter != clvIterEnd;clvIter++){
-				VertexBase* vertex = *clvIter;
-				aaData[vertex] += aaData[grid.get_child<VertexBase>(vertex, 0)];
+				Vertex* vertex = *clvIter;
+				aaData[vertex] += aaData[grid.get_child<Vertex>(vertex, 0)];
 			}
 			if (lev==0) break;
 		}
@@ -41,11 +41,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::fillAttachment
 	//	create Multiindex
 	std::vector<DoFIndex> multInd;
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		ElemIterator iter = u->template begin<VertexBase>(si);
-		ElemIterator iterEnd = u->template end<VertexBase>(si);
+		ElemIterator iter = u->template begin<Vertex>(si);
+		ElemIterator iterEnd = u->template end<Vertex>(si);
 		for(  ;iter !=iterEnd; ++iter)
 		{
-			VertexBase* vertex = iter;
+			Vertex* vertex = iter;
 			for (int d=0;d<dim;d++){
 				u->dof_indices(vertex, d, multInd);
 				aaU[vertex][d]=DoFRef(*u,multInd[0]);
@@ -57,18 +57,18 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::fillAttachment
 // go over all elements, interpolate data to barycenter, average by multiplying with corresponding element volume and deviding by complete adjacent element volume
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 template <typename VType>
-void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaU){
+void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaU){
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
 	DimFV1Geometry<dim> geo;
 
 	// set attachment values to zero
-	SetAttachmentValues(aaUHat , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
-	SetAttachmentValues(aaVol , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
+	SetAttachmentValues(aaUHat , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -145,11 +145,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			aaUHat[vertex]/=(number)aaVol[vertex];
 		}
@@ -166,12 +166,12 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 	 std::vector<DoFIndex> multInd;
 
 	// set attachment values to zero
-	SetAttachmentValues(aaUHat , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
-	SetAttachmentValues(aaVol , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
+	SetAttachmentValues(aaUHat , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -250,11 +250,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			aaUHat[vertex]/=(number)aaVol[vertex];
 		}
@@ -264,18 +264,18 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 // go over all elements, interpolate data to scv barycenter, average by multiplying with corresponding scv volume and deviding by volume of complete control volume
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 template <typename VType>
-void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<VertexBase,Attachment<VType> >& aaU){
+void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaUHat,aVertexNumber& aaVol,const PeriodicAttachmentAccessor<Vertex,Attachment<VType> >& aaU){
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
 	DimFV1Geometry<dim> geo;
 
 	// set attachment values to zero
-	SetAttachmentValues(aaUHat , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
-	SetAttachmentValues(aaVol , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
+	SetAttachmentValues(aaUHat , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -351,11 +351,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(Peri
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			aaUHat[vertex]/=(number)aaVol[vertex];
 		}
@@ -370,12 +370,12 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 	DimFV1Geometry<dim> geo;
 
 	// set attachment values to zero
-	SetAttachmentValues(aaUHat , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
-	SetAttachmentValues(aaVol , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
+	SetAttachmentValues(aaUHat , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -464,11 +464,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			aaUHat[vertex]/=(number)aaVol[vertex];
 		}
@@ -493,12 +493,12 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 	}
 
 	// set attachment values to zero
-	SetAttachmentValues(aaDefTensor , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
-	SetAttachmentValues(aaVol , u->template begin<VertexBase>(), u->template end<VertexBase>(), 0);
+	SetAttachmentValues(aaDefTensor , u->template begin<Vertex>(), u->template end<Vertex>(), 0);
+	SetAttachmentValues(aaVol , u->template begin<Vertex>(), u->template end<Vertex>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -579,11 +579,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 	}
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		VertexIterator vertexIter = u->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = u->template end<VertexBase>(si);
+		VertexIterator vertexIter = u->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = u->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			aaDefTensor[vertex]/=(number)aaVol[vertex];
 		}
@@ -598,11 +598,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scaleTensorByN
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			aaTensor[vertex]*=(number)FNorm(aaTensor[vertex]);
 		}
@@ -625,12 +625,12 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 		geo.add_boundary_subset(this->m_turbZeroSg[i]);
 	}
 
-	SetAttachmentValues(aaDefTensor , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
-	SetAttachmentValues(aaVol , m_uInfo->template begin<VertexBase>(), m_uInfo->template end<VertexBase>(), 0);
+	SetAttachmentValues(aaDefTensor , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
+	SetAttachmentValues(aaVol , m_uInfo->template begin<Vertex>(), m_uInfo->template end<Vertex>(), 0);
 
 	//	coord and vertex array
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
 	typedef typename domain_type::position_accessor_type position_accessor_type;
@@ -714,11 +714,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 	}
 	// average
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			aaDefTensor[vertex]/=(number)aaVol[vertex];
 		}
@@ -743,11 +743,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aV
 	// get periodic boundary manager
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			dimMat Tij;
 			for (int d1=0;d1 < dim;d1++)
@@ -769,11 +769,11 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aV
 	std::vector<DoFIndex> multInd;
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
-		VertexIterator vertexIter = m_uInfo->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_uInfo->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_uInfo->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_uInfo->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (pbm && pbm->is_slave(vertex)) continue;
 			dimMat Tij;
 			MathVector<dim> uValue;
@@ -794,11 +794,11 @@ template<typename TGridFunction>
 void FV1SmagorinskyTurbViscData<TGridFunction>::update(){
 	//	get domain of grid function
 	domain_type& domain = *m_u->domain().get();
-	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
+	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
 
 	//	coord and vertex array
 //	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
-//	VertexBase* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
+//	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble deformation tensor fluxes
 	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u);
@@ -806,12 +806,12 @@ void FV1SmagorinskyTurbViscData<TGridFunction>::update(){
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
 		if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
-		VertexIterator vertexIter = m_u->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_u->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_u->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_u->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++)
 		{
 			//	get Elem
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (m_pbm && m_pbm->is_slave(vertex)){
 				continue;
 			}
@@ -836,15 +836,15 @@ void FV1DynamicTurbViscData<TGridFunction>::update(){
 	// for debug const position_accessor_type& posAcc = domain.position_accessor();
 
 	// initialize attachment values with 0
-//	SetAttachmentValues(m_acDeformation , m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-//	SetAttachmentValues(m_acVolume,m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-	SetAttachmentValues(m_acTurbulentC,m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-//	SetAttachmentValues(m_acVolumeHat,m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-//	SetAttachmentValues(m_acUHat,m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-//	SetAttachmentValues(m_acDeformationHat,m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-//	SetAttachmentValues(m_acLij,m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
-	SetAttachmentValues(m_acMij,m_grid->template begin<VertexBase>(), m_grid->template end<VertexBase>(), 0);
+//	SetAttachmentValues(m_acDeformation , m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+	SetAttachmentValues(m_acTurbulentViscosity, m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+//	SetAttachmentValues(m_acVolume,m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+	SetAttachmentValues(m_acTurbulentC,m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+//	SetAttachmentValues(m_acVolumeHat,m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+//	SetAttachmentValues(m_acUHat,m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+//	SetAttachmentValues(m_acDeformationHat,m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+//	SetAttachmentValues(m_acLij,m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
+	SetAttachmentValues(m_acMij,m_grid->template begin<Vertex>(), m_grid->template end<Vertex>(), 0);
 
 	// compute Lij term \hat{u_i u_j} - \hat{u_i} \hat{u_j}
 	// \hat{u}
@@ -883,10 +883,10 @@ void FV1DynamicTurbViscData<TGridFunction>::update(){
 	{
 		if (use_filter==false)
 			if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
-		VertexIterator vertexIter = m_u->template begin<VertexBase>(si);
-		VertexIterator vertexIterEnd = m_u->template end<VertexBase>(si);
+		VertexIterator vertexIter = m_u->template begin<Vertex>(si);
+		VertexIterator vertexIterEnd = m_u->template end<Vertex>(si);
 		for(  ;vertexIter !=vertexIterEnd; vertexIter++){
-			VertexBase* vertex = *vertexIter;
+			Vertex* vertex = *vertexIter;
 			if (m_pbm && m_pbm->is_slave(vertex)) continue;
 			// use c to compute turbulent viscosity
 			number delta = m_acVolume[vertex];
@@ -953,10 +953,10 @@ void FV1DynamicTurbViscData<TGridFunction>::update(){
 		{
 			//for debug UG_LOG("si = " << si << "\n");
 			if ((this->m_turbZeroSg.size()!=0) && (this->m_turbZeroSg.contains(si)==true)) continue;
-			VertexIterator vertexIter = m_u->template begin<VertexBase>(si);
-			VertexIterator vertexIterEnd = m_u->template end<VertexBase>(si);
+			VertexIterator vertexIter = m_u->template begin<Vertex>(si);
+			VertexIterator vertexIterEnd = m_u->template end<Vertex>(si);
 			for(  ;vertexIter !=vertexIterEnd; vertexIter++){
-				VertexBase* vertex = *vertexIter;
+				Vertex* vertex = *vertexIter;
 				if (m_pbm && m_pbm->is_slave(vertex)) continue;
 				number delta = m_acVolume[vertex];
 				delta = pow(delta,(number)1.0/(number)dim);
