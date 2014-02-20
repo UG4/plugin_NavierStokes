@@ -546,8 +546,8 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 	// data from Ghia paper, see also cast3m implementation
 	const size_t numGhiaPoints = 17;
 
-	const number vertGhiaPosX[17]={0.0000,0.0547,0.0625,0.0703,0.1016,0.1719,0.2813,0.4531,0.5000,0.6172,0.7344,0.8516,0.9531,0.9609,0.9688,0.9766,1.0000};
-	const number vertGhiaPosY = 0.5;
+	const number vertGhiaPosX = 0.5;
+	const number vertGhiaPosY[17]={0.0000,0.0547,0.0625,0.0703,0.1016,0.1719,0.2813,0.4531,0.5000,0.6172,0.7344,0.8516,0.9531,0.9609,0.9688,0.9766,1.0000};
 	const number vertGhia_100[17]  ={0.,-0.03717,-0.04192,-0.04775,-0.06434,-0.10150,-0.15662,-0.2109,-0.20581,-0.13641,0.00332,0.23151,0.68717,0.73722,0.78871,0.84123,1.};
 	const number vertGhia_400[17]  ={0.,-0.08186,-0.09266,-0.10338,-0.14612,-0.24299,-0.32726,-0.17119,-0.11477,0.02135,0.16256,0.29093,0.55892,0.61756,0.68439,0.75837,1.};
 	const number vertGhia_1000[17] ={0.,-0.18109,-0.20196,-0.22220,-0.29730,-0.38289,-0.27805,-0.10648,-0.06080,0.05702,0.18719,0.33304,0.46604,0.51117,0.57492,0.65928,1.};
@@ -556,8 +556,8 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 	const number vertGhia_7500[17] ={0.00000,-0.43154,-0.43590,-0.43025,-0.38324,-0.32393,-0.23176,-0.07503,-0.03800,0.08342,0.20591,0.34228,0.47167,0.47323,0.47048,0.47244,1.00000};
 	const number vertGhia_10000[17]={0.00000,-0.42735,-0.42537,-0.41657,-0.38000,-0.32709,-0.23186,-0.07540,-0.03111,0.08344,0.20673,0.34635,0.47804,0.48070,0.47783,0.47221,1.00000};
 
-	const number horizGhiaPosX = 0.5;
-	const number horizGhiaPosY[17]=   {0.0000,0.0625,0.0703,0.0781,0.0938,0.1563,0.2266,0.2344,0.5000,0.8047,0.8594,0.9063,0.9453,0.9531,0.9609,0.9688,1.0000};
+	const number horizGhiaPosX[17]=   {0.0000,0.0625,0.0703,0.0781,0.0938,0.1563,0.2266,0.2344,0.5000,0.8047,0.8594,0.9063,0.9453,0.9531,0.9609,0.9688,1.0000};
+	const number horizGhiaPosY = 0.5;
 	const number horizGhia100[17]  ={0.00000,0.09233,0.10091,0.10890,0.12317,0.16077,0.17507,0.17527,0.05454,-0.24533,-0.22445,-0.16914,-0.10313,-0.08864,-0.07391,-0.05906,0.00000};
 	const number horizGhia400[17]  ={0.00000,0.18360,0.19713,0.20920,0.22965,0.28124,0.30203,0.30174,0.05186,-0.38598,-0.44993,-0.3827,-0.22847,-0.19254,-0.15663,-0.12146,0.00000};
 	const number horizGhia1000[17] ={0.00000,0.27485,0.29012,0.30353,0.32627,0.37095,0.33075,0.32235,0.02526,-0.31966,-0.42665,-0.51550,-0.39188,-0.33714,-0.27669,-0.21388,0.00000};
@@ -645,33 +645,33 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 	if(vertGhia != NULL && horizGhia != NULL)
 	{
 		UG_LOG("  ------ Ghia, Re = " << Re << ": u values on a vertical line through x = 0.5  ------\n");
-		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(vertGhiaPosX[i], vertGhiaPosY);
+		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(vertGhiaPosX, vertGhiaPosY[i]);
 		DrivenCavityEvalAtPoints<TGridFunction>(vPos, uGFEval, vertGhia);
 
 		UG_LOG("  ------ Ghia, Re = " << Re << ": v values on a horizontal line through y = 0.5  ------\n");
-		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(horizGhiaPosX, horizGhiaPosY[i]);
+		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(horizGhiaPosX[i], horizGhiaPosY);
 		DrivenCavityEvalAtPoints<TGridFunction>(vPos, vGFEval, horizGhia);
 	}
 
 	if (Re==1000)
 	{
 		UG_LOG("  ------ Botella/Peyret, Re = " << Re << ": u values on a vertical line through x = 0.5  ------\n");
-		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(vertGhiaPosX[i], vertGhiaPosY);
+		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(vertGhiaPosX, vertGhiaPosY[i]);
 		DrivenCavityEvalAtPoints<TGridFunction>(vPos, uGFEval, vertBotella_1000);
 
 		UG_LOG("  ------ Botella/Peyret, Re = " << Re << ": v values on a horizontal line through y = 0.5  ------\n");
-		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(horizGhiaPosX, horizGhiaPosY[i]);
+		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(horizGhiaPosX[i], horizGhiaPosY);
 		DrivenCavityEvalAtPoints<TGridFunction>(vPos, vGFEval, horizBotella_1000);
 	}
 
 	if (Re==3200)
 	{
 		UG_LOG("  ------ ug4, Re = " << Re << ": u values on a vertical line through x = 0.5  ------\n");
-		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(vertGhiaPosX[i], vertGhiaPosY);
+		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(vertGhiaPosX, vertGhiaPosY[i]);
 		DrivenCavityEvalAtPoints<TGridFunction>(vPos, uGFEval, vertUG4_3200);
 
 		UG_LOG("  ------ ug4, Re = " << Re << ": v values on a horizontal line through y = 0.5  ------\n");
-		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(horizGhiaPosX, horizGhiaPosY[i]);
+		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(horizGhiaPosX[i], horizGhiaPosY);
 		DrivenCavityEvalAtPoints<TGridFunction>(vPos, vGFEval, horizUG4_3200);
 	}
 
