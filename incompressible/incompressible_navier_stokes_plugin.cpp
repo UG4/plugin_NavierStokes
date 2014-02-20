@@ -121,7 +121,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 
 	// driven cavity data evaluation
 	{
-		reg.add_function("dcevaluation", static_cast<void (*)(function_type&,size_t)>(&drivenCavityEvaluation), grp);
+		reg.add_function("DrivenCavityLinesEval", static_cast<void (*)(SmartPtr<function_type>, vector<string>,size_t)>(&DrivenCavityLinesEval<function_type>), grp);
 	}
 
 	// filter data
