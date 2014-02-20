@@ -531,7 +531,7 @@ void DrivenCavityEvalAtPoints(const std::vector<MathVector<2> >& vPos,
 		table(i+1, 0) << std::setw(2) << i+1;
 		table(i+1, 1) << std::fixed << std::setprecision(4) << vPos[i];
 		table(i+1, 2) << std::fixed << std::setprecision(8) << val;
-		table(i+1, 3) << std::fixed << std::setprecision(5) << ref;
+		table(i+1, 3) << std::fixed << std::setprecision(7) << ref;
 		table(i+1, 4) << std::scientific << std::setprecision( 3 ) << localdiff;
 	}
 	std::cout << table;
