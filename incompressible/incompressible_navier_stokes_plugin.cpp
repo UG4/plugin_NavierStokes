@@ -76,7 +76,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesInflowBase", tag);
 	}
 
-//	NavierStokesWall
+//	NavierStokesWall bnd condition
 	{
 		typedef NavierStokesWall<TDomain, TAlgebra> T;
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
@@ -88,17 +88,71 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesWall", tag);
 	}
 
-//  ConstantTophatFilter
+//  Wall object
+	{
+		string name = string("WallObject").append(suffix);
+		typedef WallObject<function_type> T;
+		reg.add_class_<T>(name,grp)
+			.template add_constructor<void (*)(SmartPtr<function_type>,size_t,number,char*)>("grid function,direction,coord,subset");
+		reg.add_class_to_group(name, "WallObject", tag);
+	}
+
+//  ConstantBoxFilter
 	{
 		string name = string("ConstantBoxFilter").append(suffix);
 		typedef ConstantBoxFilter<function_type> T;
 		reg.add_class_<T>(name,grp)
-			.template add_constructor<void (*)(number)>("filter width")
-			.template add_constructor<void (*)(SmartPtr<function_type>,number)>("domain,element size scale")
-			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter");
+			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
+			.template add_constructor<void (*)(SmartPtr<function_type>,number)>("grid function,filter width")
+			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
+			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "ConstantBoxFilter", tag);
 	}
 	
+//  VariableBoxFilter
+	{
+		string name = string("VariableBoxFilter").append(suffix);
+		typedef VariableBoxFilter<function_type> T;
+		reg.add_class_<T>(name,grp)
+			.template add_constructor<void (*)(SmartPtr<function_type>,SmartPtr<function_type>,bool)>("grid function,filter width function,initialize filter width")
+			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "VariableBoxFilter", tag);
+	}
+
+//  FV1BoxFilter
+	{
+		string name = string("FV1BoxFilter").append(suffix);
+		typedef FV1BoxFilter<function_type> T;
+		reg.add_class_<T>(name,grp)
+			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
+			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "FV1BoxFilter", tag);
+	}
+
+//  FVCRBoxFilter
+	{
+		string name = string("FVCRBoxFilter").append(suffix);
+		typedef FVCRBoxFilter<function_type> T;
+		reg.add_class_<T>(name,grp)
+			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
+			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "FVCRBoxFilter", tag);
+	}
+
+//  ElementBoxFilter
+	{
+		string name = string("ElementBoxFilter").append(suffix);
+		typedef ElementBoxFilter<function_type> T;
+		reg.add_class_<T>(name,grp)
+			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
+			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "ElementBoxFilter", tag);
+	}
+
 	// CFL number computation
 	{
 		reg.add_function("cflNumber",static_cast<void (*)(function_type&,number)>(&cflNumber),grp);
@@ -126,16 +180,10 @@ static void DomainAlgebra(Registry& reg, string grp)
 	}
 #endif
 
-	// filter data
-	{
-		reg.add_function("filter", static_cast<void (*)(SmartPtr<function_type>,const std::string&)>(&filter), grp);
-	}
-
-	// filter data
+	// drag lift computation
 	{
 		reg.add_function("DragLift", &DragLift<function_type>, grp);
 	}
-
 
 //	AssembledTransformingSmoother
 /*	{
