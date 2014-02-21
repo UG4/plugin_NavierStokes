@@ -120,9 +120,11 @@ static void DomainAlgebra(Registry& reg, string grp)
 	}
 
 	// driven cavity data evaluation
+#ifdef UG_DIM_2
 	{
 		reg.add_function("DrivenCavityLinesEval", static_cast<void (*)(SmartPtr<function_type>, vector<string>,size_t)>(&DrivenCavityLinesEval<function_type>), grp);
 	}
+#endif
 
 	// filter data
 	{
