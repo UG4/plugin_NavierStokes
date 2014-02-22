@@ -317,7 +317,7 @@ class FilterImplBaseClass
 			}
 		}
 	}
-
+	
 	void assignVal(number& v,size_t ind,number value){
 		v=value;	
 	}
@@ -358,6 +358,9 @@ class ConstantBoxFilter
 	: public FilterImplBaseClass<ConstantBoxFilter<TGridFunction>,TGridFunction>
 {
 public:
+	// base type
+	typedef FilterImplBaseClass<ConstantBoxFilter<TGridFunction>,TGridFunction> base_type;
+	
 	// dimension
 	static const size_t dim = TGridFunction::dim;
 	
@@ -479,14 +482,20 @@ private:
 	SmartPtr<TGridFunction> m_uInfo;
 	
 	std::vector<WallObject<TGridFunction> > m_walls;
+	
+	using base_type::assignVal;
+	using base_type::copyWallData;
 };
 	
 // Box filter with constant filter width
 template <typename TGridFunction>
 class VariableBoxFilter
-: public FilterImplBaseClass<ConstantBoxFilter<TGridFunction>,TGridFunction>
+: public FilterImplBaseClass<VariableBoxFilter<TGridFunction>,TGridFunction>
 {
 public:
+	// base type
+	typedef FilterImplBaseClass<VariableBoxFilter<TGridFunction>,TGridFunction> base_type;
+	
 	// dimension
 	static const size_t dim = TGridFunction::dim;
 		
@@ -666,6 +675,9 @@ private:
 	number m_maxwidth;
 	
 	std::vector<WallObject<TGridFunction> > m_walls;
+	
+	using base_type::assignVal;
+	using base_type::copyWallData;
 };
 	
 
@@ -676,6 +688,9 @@ class FV1BoxFilter
 	: public FilterImplBaseClass<FV1BoxFilter<TGridFunction>,TGridFunction>
 {
 public:
+	// base type
+	typedef FilterImplBaseClass<FV1BoxFilter<TGridFunction>,TGridFunction> base_type;
+
 	// dimension
 	static const size_t dim = TGridFunction::dim;
 
@@ -779,6 +794,9 @@ private:
 	SmartPtr<TGridFunction> m_uInfo;
 	
 	std::vector<WallObject<TGridFunction> > m_walls;
+	
+	using base_type::assignVal;
+	using base_type::copyWallData;
 };
 
 
@@ -788,6 +806,9 @@ class FVCRBoxFilter
 	: public FilterImplBaseClass<FVCRBoxFilter<TGridFunction>,TGridFunction>
 {
 public:
+	// base type
+	typedef FilterImplBaseClass<FVCRBoxFilter<TGridFunction>,TGridFunction> base_type;
+	
 	// dimension
 	static const size_t dim = TGridFunction::dim;
 
@@ -891,6 +912,9 @@ public:
 	SmartPtr<TGridFunction> m_uInfo;
 	
 	std::vector<WallObject<TGridFunction> > m_walls;
+	
+	using base_type::assignVal;
+	using base_type::copyWallData;
 };
 	
 // Box filter with local filter volume given by vertex-centered FV (fv1 geometry)
@@ -899,6 +923,9 @@ class ElementBoxFilter
 : public FilterImplBaseClass<ElementBoxFilter<TGridFunction>,TGridFunction>
 {
 public:
+	// base type
+	typedef FilterImplBaseClass<ElementBoxFilter<TGridFunction>,TGridFunction> base_type;
+	
 	// dimension
 	static const size_t dim = TGridFunction::dim;
 		
@@ -1001,71 +1028,11 @@ private:
 	SmartPtr<TGridFunction> m_uInfo;
 	
 	std::vector<WallObject<TGridFunction> > m_walls;
+	
+	using base_type::assignVal;
+	using base_type::copyWallData;
 };
 	
-template <typename TGridFunction>
-void filtertest(SmartPtr<TGridFunction> u,const std::string& name,number width = 0){
-	std::string n = TrimString(name);
-	std::transform(n.begin(), n.end(), n.begin(), ::tolower);
-
-	if (n=="fv1"){
-		FV1BoxFilter<TGridFunction> f(u);
-		f.apply(u);
-//		return;
-	}
-	if (n=="fvcr"){
-		FVCRBoxFilter<TGridFunction> f(u);
-		f.apply(u);
-		return;
-	}
-	if (n=="elem"){
-		ElementBoxFilter<TGridFunction> f(u);
-		f.apply(u);
-//		return;
-	}
-	if (n=="constant"){
-		ConstantBoxFilter<TGridFunction> f(u,width);
-		f.apply(u);
-//		return;
-	}
-//	UG_THROW("Given filter type " << n << " not supported.\n");
-
-	// test
-	FilterBaseClass<TGridFunction>* f;
-	// f->apply(u);
-
-	//	domain type
-	typedef typename TGridFunction::domain_type domain_type;
-	//	grid type
-	typedef typename domain_type::grid_type grid_type;
-
-	static const size_t dim = TGridFunction::dim;
-
-    /// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
-
-	typedef MathVector<dim> vecDim;
-	typedef Attachment<vecDim> AMathVectorDim;
-
-	/// side type
-	typedef typename elem_type::side side_type;
-
-	// vertex type
-	typedef Vertex vertex_type;
-
-	typedef typename TGridFunction::template traits<side_type>::const_iterator ElemIterator;
-	typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aElemDimVector;
-
-	//  filtered u attachment
-	aElemDimVector acUHat;
-	AMathVectorDim aUHat;
-
-	ConstantBoxFilter<TGridFunction> f1(u,0.1);
-	f = &f1;
-
-	f->apply(acUHat,u);
-}
-
 } // end namespace NavierStokes
 } // end namespace ug
 
