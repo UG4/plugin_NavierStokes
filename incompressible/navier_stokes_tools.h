@@ -516,6 +516,7 @@ void DrivenCavityEvalAtPoints(const std::vector<MathVector<2> >& vPos,
                               GlobalGridFunctionNumberData<TGridFunction>& GFEval,
                               const number vReferenceValue[])
 {
+#ifdef UG_DIM_2
 	number maxdiff = 0, diffsum = 0;
 	ug::Table<std::stringstream> table;
 	table(0,0)<<"#"; table(0,1)<<"Position";table(0,2)<<"Measure";table(0,3)<<"Reference";table(0,4)<<"Difference";
@@ -537,7 +538,7 @@ void DrivenCavityEvalAtPoints(const std::vector<MathVector<2> >& vPos,
 	std::cout << table;
 	UG_LOG("\t     Max Diff: " << maxdiff << "\n")
 	UG_LOG("\t Average Diff: " << diffsum/vPos.size() << "\n\n");
-
+#endif
 }
 
 template <typename TGridFunction>
