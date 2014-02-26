@@ -505,10 +505,14 @@ protected:
 	number m_eps_pp;
 	bool m_info;
 	bool m_remove_zeros;
-	static const number m_small_lower=1e-9;
-	static const number m_small_upper=1e-6;
+	static const number m_small_lower;
+	static const number m_small_upper;
 };
 	
+template <typename TAlgebra>
+const number PCRILUTPreconditioner<TAlgebra>::m_small_lower = 1e-9;
+template <typename TAlgebra>
+const number PCRILUTPreconditioner<TAlgebra>::m_small_upper = 1e-6;
 
 } // end namespace ug
 

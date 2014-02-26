@@ -108,9 +108,9 @@ void constrainingSideAveraging(PeriodicAttachmentAccessor<side_type,Attachment<V
 		typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
 		side_secure_container sides;
 		// get associated element
-		domain.grid()->template associated_elements(assoElements, cSide);
+		domain.grid()->associated_elements(assoElements, cSide);
 		elem_type* elem = assoElements[0];
-		domain.grid()->template associated_elements_sorted(sides, elem);
+		domain.grid()->associated_elements_sorted(sides, elem);
 		std::vector<DoFIndex> ind;
 		m_uInfo->dof_indices(elem,0,ind,true,true);
 		get_constrained_sides_cr<side_type,side_secure_container,TGridFunction>(sides,*m_uInfo,ind);
@@ -344,7 +344,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					elem_type* elem = *iter;
 					
 					//  get sides of element
-					m_grid->template associated_elements_sorted(sides, elem );
+					m_grid->associated_elements_sorted(sides, elem );
 					
 					//	reference object type
 					//  ReferenceObjectID roid = elem->reference_object_id();
@@ -476,7 +476,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					elem_type* elem = *iter;
 					
 					//  get sides of element
-					m_grid->template associated_elements_sorted(sides, elem );
+					m_grid->associated_elements_sorted(sides, elem );
 					
 					// leave out boundary elements if boundaries were specified
 					if (m_zeroGradSg.size()>0){
@@ -542,7 +542,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					if (m_bLinPressureJacobian==true){
 					
 						//  get sides of element
-						m_grid->template associated_elements_sorted(sides, elem );
+						m_grid->associated_elements_sorted(sides, elem );
 					
 						//	reference object type
 						ReferenceObjectID roid = elem->reference_object_id();
@@ -567,7 +567,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						for (int sh=0;sh<2*dim+1;sh++) for (int d0=0;d0<dim;d0++) gradShapes[sh][d0]=0;
 
 						for (size_t s=0;s<sides.size();s++){
-							m_grid->template associated_elements(assoElements,sides[s]);
+							m_grid->associated_elements(assoElements,sides[s]);
 							// face value is average of associated elements
 							size_t numOfAsso = assoElements.size();
 							const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(s);
@@ -652,7 +652,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					elem_type* elem = *iter;
 
 					//  get sides of element
-					m_grid->template associated_elements_sorted(sides, elem );
+					m_grid->associated_elements_sorted(sides, elem );
 					
 					size_t sidesNaturalSize = sides.size();
 					
@@ -695,7 +695,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					for (size_t i=0;i<geo.num_scv();i++){
 						const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
 						size_t s = scv.node_id();
-						m_grid->template associated_elements(assoElements,sides[s]);
+						m_grid->associated_elements(assoElements,sides[s]);
 						size_t numOfAsso = assoElements.size();
 						if (numOfAsso==1){
 							if (m_bAdaptive){
@@ -880,7 +880,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						side_type* side = *sideIter;
 						// UG_LOG("---------\n");
 						typename grid_type::template traits<elem_type>::secure_container assoElements;
-						m_grid->template associated_elements(assoElements,side);
+						m_grid->associated_elements(assoElements,side);
 						MathVector<dim> bary[2];
 						MathVector<dim> sideBary;
 						MathVector<dim> sideValue;
@@ -906,7 +906,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						// compute max/min over associated elements
 						for (size_t el=0;el<assoElements.size();el++){
 							//  get sides of element
-							m_grid->template associated_elements(assoElementSides, assoElements[el]);
+							m_grid->associated_elements(assoElementSides, assoElements[el]);
 							// compute barycenter of element
 							const size_t numVertices = assoElements[el]->num_vertices();
 							bary[el] = 0;
@@ -926,7 +926,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 							// also use neighbour sides of given side
 							for (size_t i=0;i<side->num_vertices();i++){
 								secure_container neighbourSides;
-								m_grid->template associated_elements(neighbourSides,side);
+								m_grid->associated_elements(neighbourSides,side);
 								for (size_t j=0;j<neighbourSides.size();j++){
 									if (neighbourSides[j]==side) continue;
 									for (int d0=0;d0<dim;d0++){
@@ -986,7 +986,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					typename grid_type::template traits<side_type>::secure_container sides;
 					
 					//  get sides of element
-					m_grid->template associated_elements_sorted(sides, elem);
+					m_grid->associated_elements_sorted(sides, elem);
 					
 					size_t sidesNaturalSize = sides.size();
 					
@@ -1046,7 +1046,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						for (size_t i=0;i<geo.num_scv();i++){
 							const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
 							size_t s = scv.node_id();
-							m_grid->template associated_elements(assoElements,sides[s]);
+							m_grid->associated_elements(assoElements,sides[s]);
 							size_t numOfAsso = assoElements.size();
 							if (numOfAsso==1){
 								if (m_bAdaptive){

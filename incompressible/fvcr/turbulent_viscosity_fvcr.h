@@ -420,7 +420,7 @@ class CRDynamicTurbViscData
 
 	  private:
 
-	static const number m_small = 1e-8;
+	static const number m_small;
 
 	  private:
 	// grid function
@@ -546,7 +546,7 @@ class CRDynamicTurbViscData
 	// fixed ratio boolean \hat{delta} / delta
 	bool m_fixedRatio;
 	// value \hat{delta} / delta
-	static const number m_kappa = 2;
+	static const number m_kappa;
 
 	bool m_bAdaptive;
 
@@ -572,6 +572,10 @@ class CRDynamicTurbViscData
 	  using base_type::m_turbZeroSg;
   };
 
+template <typename TGridFunction>
+const number CRDynamicTurbViscData<TGridFunction>::m_small = 1e-8;
+template <typename TGridFunction>
+const number CRDynamicTurbViscData<TGridFunction>::m_kappa = 2;
 
 } // namespace NavierStokes
 } // end namespace ug

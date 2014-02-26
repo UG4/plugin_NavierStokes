@@ -14,7 +14,7 @@
 #include "bnd/no_normal_stress_outflow_fvcr.h"
 
 #include "bnd/symmetric_boundary_fvcr.h"
-#include "cr_reorder.h"
+//#include "cr_reorder.h"
 #include "cr_ilut.h"
 #include "pcr_ilut.h"
 
@@ -62,7 +62,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflowFVCR", tag);
 	}
-
+/*
 	//	Order CR-Cuthill-McKee
 	{
 		reg.add_function("OrderCRCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool)>(&OrderCRCuthillMcKee), grp);
@@ -87,7 +87,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		reg.add_function("CROrderMinimumDegree", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderMinimumDegree), grp);
 	}
-
+*/
 	typedef ug::GridFunction<TDomain, TAlgebra> TFct;
 	static const int dim = TDomain::dim;
 

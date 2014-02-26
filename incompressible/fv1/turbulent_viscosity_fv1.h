@@ -417,7 +417,7 @@ class FV1DynamicTurbViscData
 
 		number m_viscosityNumber;
 
-		static const number m_small = 1e-8;
+		static const number m_small;
 
 	private:
 	// grid function
@@ -602,6 +602,9 @@ class FV1DynamicTurbViscData
 		}
 };
 
+
+template <typename TGridFunction>
+const number FV1DynamicTurbViscData<TGridFunction>::m_small = 1e-8;
 
 } // namespace NavierStokes
 } // end namespace ug

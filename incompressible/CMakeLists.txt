@@ -33,7 +33,7 @@ set(SOURCES	../navier_stokes_base.cpp
 			fvcr/bnd/symmetric_boundary_fvcr.cpp
 			fv1/bnd/symmetric_boundary_fv1.cpp
 
-			fvcr/cr_reorder.cpp
+			#fvcr/cr_reorder.cpp
 
 			fv1/stabilization.cpp
 			
