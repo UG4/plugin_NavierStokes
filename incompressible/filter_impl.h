@@ -230,7 +230,7 @@ void ConstantBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<s
 
 					std::vector<number> vShape;
 					rTrialSpace.shapes(vShape, scvLocalBary);
-					MathVector<dim> localValue = 0;
+					//MathVector<dim> localValue = 0;
 
 					size_t nos=elemsides.size();
 					// sum up shapes
@@ -510,7 +510,7 @@ void VariableBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<s
 					
 				std::vector<number> vShape;
 				rTrialSpace.shapes(vShape, scvLocalBary);
-				MathVector<dim> localValue = 0;
+				//MathVector<dim> localValue = 0;
 					
 				size_t nos=elemsides.size();
 				// sum up shapes
