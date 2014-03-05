@@ -379,7 +379,13 @@ compute(const FV1Geometry<TElem, dim>* geo,
  	//	if the velocity is zero, there will be no possibility to find the
  	//	cutted side. In this case we have no velocity and therefore there is
  	//	no convection. We set all upwind shapes to zero.
- 		if(VecTwoNorm(vIPVel[ip]) < 1e-14) continue;
+ 		if(VecTwoNorm(vIPVel[ip]) < 1e-14) {
+ 			//  \todo: (optional) A convection length is not really defined.
+ 			//	       but in the computation of a stabilization the term cancels, so
+ 			//   	   we only have to ensure that the conv_lengh is non-zero
+			vConvLength[ip] = 1.0;
+			continue;
+ 		}
 
 	// 	upwind corner
 		size_t sh = 0;
@@ -497,7 +503,13 @@ compute(const FV1Geometry<TElem, dim>* geo,
  	//	if the velocity is zero, there will be no possibility to find the
  	//	cutted side. In this case we have no velocity and therefore there is
  	//	no convection. We set all upwind shapes to zero.
- 		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
+ 		if(VecTwoNorm(vIPVel[ip]) < 1e-14) {
+ 			//  \todo: (optional) A convection length is not really defined.
+ 			//	       but in the computation of a stabilization the term cancels, so
+ 			//   	   we only have to ensure that the conv_lengh is non-zero
+			vConvLength[ip] = 1.0;
+			continue;
+ 		}
 
  	// 	side and intersection vectors
  		static const int refDim = FV1Geometry<TElem, dim>::dim;
