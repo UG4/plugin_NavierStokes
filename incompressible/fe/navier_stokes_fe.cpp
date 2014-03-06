@@ -56,8 +56,8 @@ void NavierStokesFE<TDomain>::init()
 	//	default value for density
 	base_type::set_density(1.0);
 
-	// use fast assembling
-	this->enable_fast_add_elem(true);
+	// use only non-virtual assembling functions
+	this->clear_add_fct();
 }
 
 template<typename TDomain>
@@ -567,7 +567,7 @@ void NavierStokesFE<TDomain>::register_func()
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
 
-	this->enable_fast_add_elem(true);
+	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, VGeom, PGeom>);
 	this->set_prep_elem_fct(	 	id, &T::template prep_elem<TElem, VGeom, PGeom>);
 	this->set_fsh_elem_loop_fct( 	id, &T::template fsh_elem_loop<TElem, VGeom, PGeom>);
