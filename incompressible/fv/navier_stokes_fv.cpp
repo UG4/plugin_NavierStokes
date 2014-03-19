@@ -573,7 +573,7 @@ add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoor
 	const VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 
 // 	loop Sub Control Volume Faces (SCVF)
-	for(size_t s = 0, ip = 0; s < vgeo.num_scvf(); ++s){
+	for(size_t s = 0, ip = 0; s < vgeo.num_scv(); ++s){
 		const typename VGeom::SCV& scv = vgeo.scv(s);
 		for(size_t i = 0; i < scv.num_ip(); ++i, ++ip){
 			const int co = scv.node_id();
