@@ -512,10 +512,10 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 			number integral = 0;
 
 		//	loop integration points
-			for(size_t i = 0; i < scv.num_ip(); ++i, ++ip)
+			for(size_t i = 0; i < scv.num_ip(); ++i)
 			{
 				integral += scv.shape(i, sh) * scv.weight(i)
-							* m_imDensitySCV[ip];
+							* m_imDensitySCV[ip+i];
 			}
 
 		// 	loop velocity components
@@ -525,6 +525,9 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 				J(d1, co, d1, sh) += integral;
 			}
 		}
+
+	//	increase ip offset
+		ip += scv.num_ip();
 	}
 }
 
