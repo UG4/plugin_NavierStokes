@@ -72,6 +72,9 @@ class NavierStokesFV
 	///	sets the quad order
 		void set_quad_order(size_t order);
 
+	///	returns if local time series is needed
+		virtual bool requests_local_time_series() {return false;}
+
 	protected:
 	///	current shape function set
 		LFEID m_vLFEID;
