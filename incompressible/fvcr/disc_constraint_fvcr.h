@@ -690,7 +690,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					number elemValue = DoFRef(u,ind[0]);
 					
 					MathVector<dim> grad;
-					grad *= 0;
+					VecSet(grad, 0);
 					
 					for (size_t i=0;i<geo.num_scv();i++){
 						const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);
@@ -1027,7 +1027,8 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 					number elemPressureValue=0, pressure=0;
 					MathVector<dim> pGrad;
-					
+					VecSet(pGrad, 0);
+
 					//// PRESSURE GRADIENT IN ELEMENT
 					if (m_bLinPressureDefect==true){
 						//	reference object type
@@ -1040,8 +1041,6 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					
 						dd->inner_dof_indices(elem,dim,multInd);
 						elemPressureValue = DoFRef(u,multInd[0]);
-					
-						for (int i=0;i<dim;i++) pGrad[i]=0;
 					
 						for (size_t i=0;i<geo.num_scv();i++){
 							const typename DimCRFVGeometry<dim>::SCV& scv = geo.scv(i);

@@ -270,7 +270,8 @@ convective_flux_Jac
 {
 	MathVector<dim> StdVel;
 	number old_momentum_flux, t;
-
+	VecSet(StdVel, 0);
+	
 // The convection velocity according to the current approximation:
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
@@ -304,6 +305,7 @@ convective_flux_defect
 {
 	MathVector<dim> StdVel;
 	number old_momentum_flux;
+	VecSet(StdVel, 0);
 
 // The convection velocity according to the current approximation:
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
