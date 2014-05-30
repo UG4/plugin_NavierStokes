@@ -27,7 +27,7 @@
 #include "fvcr/register_fvcr.h"
 #include "fe/register_fe.h"
 
-#include "transforming_smoother.h"
+
 
 
 using namespace std;
@@ -183,17 +183,6 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_function("DragLift", &DragLift<function_type>, grp);
 	}
 
-//	AssembledTransformingSmoother
-/*	{
-		typedef AssembledTransformingSmoother<TDomain, TAlgebra> T;
-		typedef ILinearIterator<typename TAlgebra::vector_type> TBase;
-		typedef DebugWritingObject<TAlgebra> TBase2;
-		string name = string("AssembledTransformingSmoother").append(suffix);
-		reg.add_class_<T, TBase, TBase2>(name, grp)
-			.template add_constructor<void (*)(SmartPtr<IAssemble<TAlgebra> >, SmartPtr<IAssemble<TAlgebra> >, SmartPtr<ILinearIterator<typename TAlgebra::vector_type> >)>("RightTrafoAss, TrafoSystemAss, Smoother")
-			.set_construct_as_smart_pointer(true);
-		reg.add_class_to_group(name, "AssembledTransformingSmoother", tag);
-	}*/
 }
 
 /**
