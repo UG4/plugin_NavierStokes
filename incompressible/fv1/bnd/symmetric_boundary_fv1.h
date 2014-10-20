@@ -86,7 +86,7 @@ class NavierStokesSymBCFV1
 
 	///	prepares the element for evaluation
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
-		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
+		void prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the element loop
 		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>

@@ -156,7 +156,7 @@ fsh_elem_loop()
 template<typename TDomain>
 template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::
-prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
+prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, const MathVector<dim> vCornerCoords[])
 {
 	m_pElem = elem;
 

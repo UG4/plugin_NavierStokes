@@ -116,7 +116,7 @@ class NavierStokesFE
 		void prep_elem_loop(const ReferenceObjectID roid, const int si);
 
 		template<typename TElem, typename VGeom, typename PGeom>
-		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
+		void prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the loop over all elements
 		template<typename TElem, typename VGeom, typename PGeom>

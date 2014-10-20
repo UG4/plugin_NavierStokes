@@ -157,7 +157,7 @@ fsh_elem_loop()
 template<typename TDomain>
 template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
 void NavierStokesSymBCFV1<TDomain>::
-prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
+prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, const MathVector<dim> vCornerCoords[])
 {
 // 	Update Geometry for this element
 	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();

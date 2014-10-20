@@ -80,7 +80,7 @@ class NavierStokesNoNormalStressOutflowFVCR
 
 	///	prepares the element for evaluation
 		template <typename TElem, typename TFVGeom>
-		void prep_elem(const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
+		void prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the element loop
 		template <typename TElem, typename TFVGeom>
