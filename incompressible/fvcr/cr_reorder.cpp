@@ -9,6 +9,8 @@
 #include "lib_disc/function_spaces/approximation_space.h"
 #include "common/profiler/profiler.h"
 #include <boost/config.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include "boost/graph/graph_utility.hpp"
 #include <boost/graph/cuthill_mckee_ordering.hpp>
 #include <boost/graph/sloan_ordering.hpp>
 #include <boost/graph/king_ordering.hpp>
@@ -407,7 +409,6 @@ void CRMinimumDegree(std::vector<size_t>& newIndex,std::vector<std::vector<size_
 	typedef boost::adjacency_list<boost::setS, boost::vecS, boost::directedS>  Graph;
 
 	typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-	typedef boost::property_map<Graph,boost::vertex_degree_t>::type deg_type;
 	typedef boost::property_map<Graph, boost::vertex_index_t>::type map_type;
 
 	std::vector<int> inv_permP(0);
@@ -551,7 +552,6 @@ void ComputeCRCuthillMcKeeOrder(std::vector<size_t>& vNewIndex,
 		for (size_t k=0;k<vvConnections[i].size();k++){
 			if (vNewIndex[vvConnections[i][k]]<numInd) continue;
 			vNewIndex[vvConnections[i][k]]=count;
-			//debug UG_LOG("index(" << vvConnections[i][k] << ")=" << count << "\n");
 			count++;
 		}
 		size_t pind=i-minpind;
