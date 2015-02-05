@@ -195,15 +195,24 @@ static void Dimension(Registry& reg, string grp)
 		typedef INavierStokesFV1Stabilization<dim> T;
 		string name = string("INavierStokesFV1Stabilization").append(suffix);
 		reg.add_class_<T>(name, grp)
-			.add_method("set_upwind", &T::set_upwind)
-			.add_method("set_diffusion_length", &T::set_diffusion_length);
+			.add_method("set_upwind", &T::set_upwind);
 		reg.add_class_to_group(name, "INavierStokesFV1Stabilization", tag);
+	}
+
+//	INavierStokesSRFV1Stabilization
+	{
+		typedef INavierStokesSRFV1Stabilization<dim> T;
+		typedef INavierStokesFV1Stabilization<dim> TBase;
+		string name = string("INavierStokesSRFV1Stabilization").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.add_method("set_diffusion_length", &T::set_diffusion_length);
+		reg.add_class_to_group(name, "INavierStokesSRFV1Stabilization", tag);
 	}
 
 //	NavierStokesFIELDSStabilization
 	{
 		typedef NavierStokesFIELDSStabilization<dim> T;
-		typedef INavierStokesFV1Stabilization<dim> TBase;
+		typedef INavierStokesSRFV1Stabilization<dim> TBase;
 		string name = string("NavierStokesFIELDSStabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -214,7 +223,7 @@ static void Dimension(Registry& reg, string grp)
 //	NavierStokesFLOWStabilization
 	{
 		typedef NavierStokesFLOWStabilization<dim> T;
-		typedef INavierStokesFV1Stabilization<dim> TBase;
+		typedef INavierStokesSRFV1Stabilization<dim> TBase;
 		string name = string("NavierStokesFLOWStabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -222,6 +231,16 @@ static void Dimension(Registry& reg, string grp)
 		reg.add_class_to_group(name, "NavierStokesFLOWStabilization", tag);
 	}
 
+//	NavierStokesFV1WithoutStabilization
+	{
+		typedef NavierStokesFV1WithoutStabilization<dim> T;
+		typedef INavierStokesFV1Stabilization<dim> TBase;
+		string name = string("NavierStokesFV1WithoutStabilization").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.add_constructor()
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesFV1WithoutStabilization", tag);
+	}
 }
 
 }; // end Functionality

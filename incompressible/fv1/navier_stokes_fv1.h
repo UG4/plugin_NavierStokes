@@ -166,10 +166,11 @@ class NavierStokesFV1
 			{m_spStab = CreateNavierStokesStabilization<dim>(name);
 			 if(m_spConvUpwind.valid()) m_spStab->set_upwind(m_spConvUpwind);}
 
-	///	sets stabilization and diff length method based on string identifier
+	///	sets stabilization and diff length method based on string identifier (only for Schneider-Raw stabilizations)
 		void set_stabilization(const std::string& name, const std::string& diffLength)
-			{m_spStab = CreateNavierStokesStabilization<dim>(name);
-			 m_spStab->set_diffusion_length(diffLength);
+			{SmartPtr<INavierStokesSRFV1Stabilization<dim> > spStab = CreateNavierStokesStabilization<dim>(name);
+			 spStab->set_diffusion_length(diffLength);
+			 m_spStab = spStab;
 			 if(m_spConvUpwind.valid()) m_spStab->set_upwind(m_spConvUpwind);}
 			 
     /// returns stabilization	

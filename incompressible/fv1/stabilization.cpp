@@ -19,7 +19,7 @@ namespace ug{
 namespace NavierStokes{
 
 template <int dim>
-SmartPtr<INavierStokesFV1Stabilization<dim> > CreateNavierStokesStabilization(const std::string& name)
+SmartPtr<INavierStokesSRFV1Stabilization<dim> > CreateNavierStokesStabilization(const std::string& name)
 {
 	std::string n = TrimString(name);
 	std::transform(n.begin(), n.end(), n.begin(), ::tolower);
@@ -27,8 +27,8 @@ SmartPtr<INavierStokesFV1Stabilization<dim> > CreateNavierStokesStabilization(co
 	if(n == "fields") return SmartPtr<NavierStokesFIELDSStabilization<dim> >(new NavierStokesFIELDSStabilization<dim>());
 	if(n == "flow") return SmartPtr<NavierStokesFLOWStabilization<dim> >(new NavierStokesFLOWStabilization<dim>());
 
-	UG_THROW("NavierStokes: stabilization type '"<<name<<"' not found. Options are: "
-	         "fields, flow");
+	UG_THROW("NavierStokes: stabilization type '"<<name<<"' not a valid name of a Schneider-Raw stabilization."
+			 " Options are: fields, flow");
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -54,9 +54,13 @@ register_update_func(TAssFunc func)
 	m_vUpdateFunc[id] = (UpdateFunc)func;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Common functions for the Schneider-Raw-type Stabilizations
+/////////////////////////////////////////////////////////////////////////////
+
 template <int dim>
 void
-INavierStokesFV1Stabilization<dim>::
+INavierStokesSRFV1Stabilization<dim>::
 set_diffusion_length(std::string diffLength)
 {
 	std::string n = TrimString(diffLength);
@@ -73,7 +77,7 @@ set_diffusion_length(std::string diffLength)
 template <int dim>
 template <typename TFVGeom>
 void
-INavierStokesFV1Stabilization<dim>::
+INavierStokesSRFV1Stabilization<dim>::
 compute_diff_length(const TFVGeom& geo)
 {
 // 	Compute Diffusion Length in corresponding IPs
@@ -84,36 +88,6 @@ compute_diff_length(const TFVGeom& geo)
 		case COR:       NSDiffLengthCor(m_vDiffLengthSqInv, geo); return;
         default: UG_THROW(" Diffusion Length type not found.");
 	}
-}
-
-template <int dim>
-template <typename TFVGeom>
-void
-INavierStokesFV1Stabilization<dim>::
-compute_upwind(const TFVGeom& geo,
-               const MathVector<dim> vStdVel[])
-{
-//	check, that upwind has been set
-	if(m_spUpwind == SPNULL)
-       	UG_THROW("No upwind method has been specified.");
-
-//	compute upwind
-	m_spUpwind->update_upwind(geo, vStdVel);
-}
-
-template <int dim>
-template <typename TFVGeom>
-void
-INavierStokesFV1Stabilization<dim>::
-compute_downwind(const TFVGeom& geo,
-                 const MathVector<dim> vStdVel[])
-{
-//	check, that upwind has been set
-	if(m_spUpwind == SPNULL)
-       	UG_THROW("No upwind method has been specified.");
-
-//	compute downwind
-	m_spUpwind->update_downwind(geo, vStdVel);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -796,6 +770,83 @@ void NavierStokesFLOWStabilization<3>::register_func()
 	register_func<Prism>();
 	register_func<Hexahedron>();
 }
+
+/////////////////////////////////////////////////////////////////////////////
+// NO STABILIZATION (Note: The discretization is then unstable!)
+/////////////////////////////////////////////////////////////////////////////
+
+template <int TDim>
+template <typename TElem>
+void
+NavierStokesFV1WithoutStabilization<TDim>::
+update(const FV1Geometry<TElem, dim>* geo,
+       const LocalVector& vCornerValue,
+       const MathVector<dim> vStdVel[],
+       const bool bStokes,
+       const DataImport<number, dim>& kinVisco,
+       const DataImport<MathVector<dim>, dim>* pSource,
+       const LocalVector* pvCornerValueOldTime, number dt)
+{
+//	Some constants
+	static const size_t numIP = FV1Geometry<TElem, dim>::numSCVF;
+	static const size_t numSh = FV1Geometry<TElem, dim>::numSCV;
+
+//	Compute upwind (no convective terms for the Stokes eq. => no upwind)
+	if (! bStokes) this->compute_upwind(geo, vStdVel);
+
+//	No dependence on the pressure:
+	for (size_t ip = 0; ip < numIP; ip++)
+		for (size_t i = 0; i < dim; i++)
+			for (size_t sh = 0; sh < numSh; sh++)
+				stab_shape_p (ip, i, sh) = 0;
+	
+//	The velocities are interpolated according to the FE shape functions:
+	for (size_t ip = 0; ip < numIP; ip++)
+	{
+	//	get the shapes
+		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+		for (size_t sh = 0; sh < numSh; sh++)
+		{
+			number val = scvf.shape (sh);
+			for (size_t i = 0; i < dim; i++)
+			{
+				for (size_t j = 0; j < dim; j++)
+					stab_shape_vel (ip, i, j, sh) = 0;
+				stab_shape_vel (ip, i, i, sh) = val;
+			}
+		}
+		
+	//	the interpolation is given as the argument
+		stab_vel (ip) = vStdVel [ip];
+	}
+}
+
+template <>
+void NavierStokesFV1WithoutStabilization<1>::register_func()
+{
+	register_func<RegularEdge>();
+}
+
+template <>
+void NavierStokesFV1WithoutStabilization<2>::register_func()
+{
+	register_func<RegularEdge>();
+	register_func<Triangle>();
+	register_func<Quadrilateral>();
+}
+
+template <>
+void NavierStokesFV1WithoutStabilization<3>::register_func()
+{
+	register_func<RegularEdge>();
+	register_func<Triangle>();
+	register_func<Quadrilateral>();
+	register_func<Tetrahedron>();
+	register_func<Pyramid>();
+	register_func<Prism>();
+	register_func<Hexahedron>();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //	explicit instantiations
 ////////////////////////////////////////////////////////////////////////////////
@@ -809,17 +860,19 @@ template SmartPtr<INavierStokesFV1Stabilization<1> >CreateNavierStokesStabilizat
 #endif*/
 #ifdef UG_DIM_2
 template class INavierStokesFV1Stabilization<2>;
+template class INavierStokesSRFV1Stabilization<2>;
 template class NavierStokesFIELDSStabilization<2>;
 template class NavierStokesFLOWStabilization<2>;
 
-template SmartPtr<INavierStokesFV1Stabilization<2> >CreateNavierStokesStabilization<2>(const std::string& name);
+template SmartPtr<INavierStokesSRFV1Stabilization<2> >CreateNavierStokesStabilization<2>(const std::string& name);
 #endif
 #ifdef UG_DIM_3
 template class INavierStokesFV1Stabilization<3>;
+template class INavierStokesSRFV1Stabilization<3>;
 template class NavierStokesFIELDSStabilization<3>;
 template class NavierStokesFLOWStabilization<3>;
 
-template SmartPtr<INavierStokesFV1Stabilization<3> >CreateNavierStokesStabilization<3>(const std::string& name);
+template SmartPtr<INavierStokesSRFV1Stabilization<3> >CreateNavierStokesStabilization<3>(const std::string& name);
 #endif
 
 } // namespace NavierStokes
