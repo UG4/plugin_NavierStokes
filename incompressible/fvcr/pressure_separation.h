@@ -539,12 +539,21 @@ class SeparatedPressureSource
 	virtual void compute(LocalVector* u, GridObject* elem,
 	                     const MathVector<dim> vCornerCoords[], bool bDeriv = false)
 	{
-		const number t = this->time();
 		const int si = this->subset();
 		for(size_t s = 0; s < this->num_series(); ++s)
-			evaluate<dim>(this->values(s), this->ips(s), t, si,
+			evaluate<dim>(this->values(s), this->ips(s), this->time(s), si,
 			              elem, NULL, this->template local_ips<dim>(s),
 			              this->num_ip(s), u);
+	}
+
+	virtual void compute(LocalVectorTimeSeries* u, GridObject* elem,
+	                     const MathVector<dim> vCornerCoords[], bool bDeriv = false)
+	{
+		const int si = this->subset();
+		for(size_t s = 0; s < this->num_series(); ++s)
+			evaluate<dim>(this->values(s), this->ips(s), this->time(s), si,
+			              elem, NULL, this->template local_ips<dim>(s),
+			              this->num_ip(s), &(u->solution(this->time_point(s))));
 	}
 
 	///	returns if provided data is continuous over geometric object boundaries
