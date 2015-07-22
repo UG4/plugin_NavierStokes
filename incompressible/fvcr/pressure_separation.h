@@ -58,13 +58,23 @@ bool solveLS(std::vector<number>& x,/* solution */
 		const std::vector<number>& matField,/* matrix given as field */
             const std::vector<number>& b /* rhs */){
 	size_t n=b.size();
-	number P[n][n];
+	std::vector<std::vector<number> > P(n);
+	for(size_t i = 0; i < n; ++i) P[i].resize(n);
+
     std::vector<number> Pvec(n*n);
     std::vector<number> b2(n);
-    number A[n][n];
-	number L[n][n];
-	number U[n][n];
-	number z[n];
+
+    std::vector<std::vector<number> > A(n);
+	for(size_t i = 0; i < n; ++i) A[i].resize(n);
+    std::vector<std::vector<number> > L(n);
+	for(size_t i = 0; i < n; ++i) L[i].resize(n);
+    std::vector<std::vector<number> > U(n);
+	for(size_t i = 0; i < n; ++i) U[i].resize(n);
+//    number A[n][n];
+//	number L[n][n];
+//	number U[n][n];
+
+	std::vector<number> z(n);
 	size_t i,k,j,l;
 	bool boolean=false;
 	number d,max;
