@@ -45,7 +45,7 @@ class NavierStokesNoUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		void compute(const FV1Geometry<TElem, dim>* geo,
+		static void compute(const FV1Geometry<TElem, dim>* geo,
 		             const MathVector<dim> vIPVel[maxNumSCVF],
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -53,7 +53,7 @@ class NavierStokesNoUpwind
 
 	///	update of values for CRFVGeometry
 		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
+		static void compute(const CRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -61,7 +61,7 @@ class NavierStokesNoUpwind
 
 		///	update of values for CRFVGeometry
 		template <typename TElem>
-		void compute(const HCRFVGeometry<TElem, dim>* geo,
+		static void compute(const HCRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -90,7 +90,7 @@ class NavierStokesFullUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		void compute(const FV1Geometry<TElem, dim>* geo,
+		static void compute(const FV1Geometry<TElem, dim>* geo,
 		             const MathVector<dim> vIPVel[maxNumSCVF],
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -98,7 +98,7 @@ class NavierStokesFullUpwind
 
 	///	update of values for CRFVGeometry
 		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
+		static void compute(const CRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -106,7 +106,7 @@ class NavierStokesFullUpwind
 
 	///	update of values for CRFVGeometry
 		template <typename TElem>
-		void compute(const HCRFVGeometry<TElem, dim>* geo,
+		static void compute(const HCRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -119,7 +119,7 @@ class NavierStokesFullUpwind
 // upwinding between full and no upwind
 // shapes computed as m_weight*no_upwind_shape + (1-m_weight)*full_upwind_shape
 ////////////////////////////////////////////////////////////////////////////////////
-
+/*
 template <int dim>
 class NavierStokesWeightedUpwind
 : public INavierStokesUpwind<dim>,
@@ -141,7 +141,7 @@ class NavierStokesWeightedUpwind
 
 	///	update of values for CRFVGeometry
 		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
+		static void compute(const CRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -150,7 +150,7 @@ class NavierStokesWeightedUpwind
 	protected:
 		number m_weight;
 };
-
+*/
 /////////////////////////////////////////////////////////////////////////////
 // Skewed Upwind
 /////////////////////////////////////////////////////////////////////////////
@@ -172,7 +172,7 @@ class NavierStokesSkewedUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		void compute(const FV1Geometry<TElem, dim>* geo,
+		static void compute(const FV1Geometry<TElem, dim>* geo,
 		             const MathVector<dim> vIPVel[maxNumSCVF],
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -180,7 +180,7 @@ class NavierStokesSkewedUpwind
 
 	///	update of values for CRFVGeometry
 		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
+		static void compute(const CRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -208,7 +208,7 @@ class NavierStokesLinearProfileSkewedUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		void compute(const FV1Geometry<TElem, dim>* geo,
+		static void compute(const FV1Geometry<TElem, dim>* geo,
 		             const MathVector<dim> vIPVel[maxNumSCVF],
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -216,7 +216,7 @@ class NavierStokesLinearProfileSkewedUpwind
 
 	///	update of values for CRFVGeometry
 		template <typename TElem>
-		void compute(const CRFVGeometry<TElem, dim>* geo,
+		static void compute(const CRFVGeometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -244,7 +244,7 @@ class NavierStokesPositiveUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		void compute(const FV1Geometry<TElem, dim>* geo,
+		static void compute(const FV1Geometry<TElem, dim>* geo,
 		             const MathVector<dim> vIPVel[maxNumSCVF],
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -271,7 +271,7 @@ class NavierStokesRegularUpwind
 
 	///	update of values for FV1Geometry
 		template <typename TElem>
-		void compute(const FV1Geometry<TElem, dim>* geo,
+		static void compute(const FV1Geometry<TElem, dim>* geo,
 					 const MathVector<dim> vIPVel[maxNumSCVF],
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],

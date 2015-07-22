@@ -262,7 +262,7 @@ compute(const HCRFVGeometry<TElem, dim>* geo,
 // upwinding between full and no upwind
 // shapes computed as (1-m_weight)*no_upwind_shape + m_weight*full_upwind_shape
 //////////////////////////////////////////////////////////////////////////////////
-
+/*
 template <int dim>
 template <typename TElem>
 void
@@ -304,7 +304,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 		}
     }
 }
-
+*/
 /////////////////////////////////////////////////////////////////////////////
 // Skewed Upwind
 /////////////////////////////////////////////////////////////////////////////
@@ -675,7 +675,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 //	2. Handle each SCV separately
 	if(bNumNoFlux != geo->num_scvf())
 	{
-		for(size_t sh = 0; sh < this->num_sh(); ++sh)
+		for(size_t sh = 0; sh < geo->num_sh(); ++sh)
 		{
 		//	reset inflow, outflow
 			number m_in = 0, m_out = 0;
@@ -945,7 +945,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 #ifdef UG_DIM_2
 template class NavierStokesNoUpwind<2>;
 template class NavierStokesFullUpwind<2>;
-template class NavierStokesWeightedUpwind<2>;
+//template class NavierStokesWeightedUpwind<2>;
 template class NavierStokesSkewedUpwind<2>;
 template class NavierStokesLinearProfileSkewedUpwind<2>;
 template class NavierStokesPositiveUpwind<2>;
@@ -955,7 +955,7 @@ template class NavierStokesRegularUpwind<2>;
 #ifdef UG_DIM_3
 template class NavierStokesNoUpwind<3>;
 template class NavierStokesFullUpwind<3>;
-template class NavierStokesWeightedUpwind<3>;
+//template class NavierStokesWeightedUpwind<3>;
 template class NavierStokesSkewedUpwind<3>;
 template class NavierStokesLinearProfileSkewedUpwind<3>;
 template class NavierStokesPositiveUpwind<3>;

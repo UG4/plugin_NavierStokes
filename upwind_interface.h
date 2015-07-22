@@ -221,7 +221,7 @@ class INavierStokesUpwind
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF])
 		{
-			(this->*(m_vComputeFunc[m_id]))(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
+			(*(m_vComputeFunc[m_id]))(geo, vIPVel, vUpShapeSh, vUpShapeIp, vConvLength);
 		}
 
 	//////////////////////////
@@ -243,7 +243,8 @@ class INavierStokesUpwind
 	protected:
 
 	///	type of update function
-		typedef void (this_type::*ComputeFunc)(
+//		typedef void (this_type::*ComputeFunc)(
+		typedef void (*ComputeFunc)(
 								const FVGeometryBase* obj,
 								const MathVector<dim> vIPVel[maxNumSCVF],
 								number vUpShapeSh[maxNumSCVF][maxNumSH],
@@ -370,7 +371,8 @@ class NavierStokesUpwindRegister
 		void register_func()
 		{
 			typedef TFVGeom<TElem, dim> TGeom;
-			typedef void (TImpl::*TFunc)(
+//			typedef void (TImpl::*TFunc)(
+			typedef void (*TFunc)(
 					const TGeom* obj,
 					const MathVector<dim> vIPVel[maxNumSCVF],
 					number vUpShapeSh[maxNumSCVF][maxNumSH],

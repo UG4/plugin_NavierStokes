@@ -203,7 +203,7 @@ static void Dimension(Registry& reg, string grp)
 	}
 
 //	NavierStokesWeightedUpwind
-	{
+/*	{
 		typedef NavierStokesWeightedUpwind<dim> T;
 		typedef INavierStokesUpwind<dim> TBase;
 		string name = string("NavierStokesWeightedUpwind").append(suffix);
@@ -212,7 +212,7 @@ static void Dimension(Registry& reg, string grp)
 		.add_method("set_weight", &T::set_weight, "", "")
 		.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWeightedUpwind", tag);
-	}
+	}*/
 }
 
 }; // end Functionality

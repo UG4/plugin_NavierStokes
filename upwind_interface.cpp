@@ -23,7 +23,7 @@ SmartPtr<INavierStokesUpwind<dim> > CreateNavierStokesUpwind(const std::string& 
 
 	if(n == "no") return SmartPtr<INavierStokesUpwind<dim> >(new NavierStokesNoUpwind<dim>());
 	if(n == "full") return SmartPtr<INavierStokesUpwind<dim> >(new NavierStokesFullUpwind<dim>());
-	if(n == "weighted") return SmartPtr<INavierStokesUpwind<dim> >(new NavierStokesWeightedUpwind<dim>());
+//	if(n == "weighted") return SmartPtr<INavierStokesUpwind<dim> >(new NavierStokesWeightedUpwind<dim>());
 	if(n == "skewed") return SmartPtr<INavierStokesUpwind<dim> >(new NavierStokesSkewedUpwind<dim>());
 	if(n == "linearprofileskewed" ||
 	   n == "lps") return SmartPtr<INavierStokesUpwind<dim> >(new NavierStokesLinearProfileSkewedUpwind<dim>());
