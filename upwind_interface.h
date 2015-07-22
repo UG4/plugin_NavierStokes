@@ -272,7 +272,7 @@ register_update_func(TAssFunc func)
 		m_vComputeFunc.resize(id+1, NULL);
 
 //	set pointer
-	m_vComputeFunc[id] = (ComputeFunc)func;
+	m_vComputeFunc[id] = reinterpret_cast<ComputeFunc>(func);
 }
 
 
