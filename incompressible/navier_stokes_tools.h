@@ -595,7 +595,7 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 	const number horizUG4_3200[17]={0,3.961922e-01,4.113146e-01,4.224736e-01,4.327940e-01,3.771819e-01,2.964934e-01,2.881224e-01,1.425516e-02,-3.136940e-01,
 	                                 -3.787908e-01,-4.436374e-01,-5.672544e-01,-5.610925e-01,-5.200556e-01,-4.390652e-01,0};
 
-	// data from Erturk, Corke, Gökcöl paper
+	// data from Erturk, Corke, Gkcl paper
 	const size_t numErturkPoints = 23;
 	const number vertErturkPosX = 0.5;
 	const number vertErturkPosY[23]={1.00000,0.99000,0.98000,0.97000,0.96000,0.95000,0.94000,0.93000,0.92000,0.91000,0.90000,0.50000,0.20000,0.18000,0.16000,0.14000,0.12000,0.10000,0.08000,0.06000,0.04000,0.02000,0.00000};
@@ -941,16 +941,16 @@ number kineticEnergy(TGridFunction& u){
 }
 
 // clear file content
-void clearFile(std::string filename){
+/* void clearFile(std::string filename){
 	std::fstream file(filename.c_str(), std::fstream::out | std::fstream::trunc);
 }
-
+*/
 // write numbers into file
-void writeNumbers(std::string filename,const size_t step,const number t,const number data){
+/* void writeNumbers(std::string filename,const size_t step,const number t,const number data){
 	std::fstream file(filename.c_str(), std::fstream::out | std::fstream::app);
 	file << "t(" << step << ")=" << t << ";d(" << step << ")=" << data << ";" << std::endl;
 }
-
+*/
 
 
 template <typename TGridFunction>

@@ -264,12 +264,14 @@ static void Dimension(Registry& reg, string grp)
 static void Common(Registry& reg, string grp)
 {
 	// write numbers into file
+	/* TODO: obsolete / replace by lua code */
 	{
-		reg.add_function("writeNumbers", static_cast<void (*)(std::string filename,const size_t step,const number t,const number data)>(&writeNumbers), grp);
+		//reg.add_function("writeNumbers", static_cast<void (*)(std::string filename,const size_t step,const number t,const number data)>(&writeNumbers), grp);
 	}
 	// write numbers into file
+	/* TODO: obsolete / replace by lua code */
 	{
-		reg.add_function("clearFile", static_cast<void (*)(std::string filename)>(&clearFile), grp);
+		//reg.add_function("clearFile", static_cast<void (*)(std::string filename)>(&clearFile), grp);
 	}
 }
 
