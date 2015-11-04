@@ -1,3 +1,10 @@
+/*
+ * no_normal_stress_outflow_fvcr.h
+ *
+ *  Created on: 27.03.2012
+ *  C. Wehner
+ */
+
 #ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FVCR__NO_NORMAL_STRESS_OUTFLOW_FVCR__
 #define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FVCR__NO_NORMAL_STRESS_OUTFLOW_FVCR__
 

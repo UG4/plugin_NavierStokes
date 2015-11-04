@@ -1,3 +1,10 @@
+/*
+ * no_normal_stress_outflow_fv.cpp
+ *
+ *  Created on: 27.03.2012
+ *  D. Logashenko, A. Vogel
+ */
+
 #include "no_normal_stress_outflow_fv.h"
 
 #include "lib_disc/spatial_disc/disc_util/fvho_geom.h"

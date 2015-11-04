@@ -1,3 +1,12 @@
+/*
+ * compressible_navier_stokes_fv1.h
+ *
+ *  Created on: 29.10.2013
+ *      Author: raphaelprohl
+ *      (main parts are copied from the discretization of the incompressible Navier-Stokes Equations
+ *     of Andreas Vogel and Christian Wehner)
+ */
+
 #ifndef __H__UG__PLUGINS__NAVIER_STOKES__COMPRESSIBLE__COMPRESSIBLE_NAVIER_STOKES_FV1_H__
 #define __H__UG__PLUGINS__NAVIER_STOKES__COMPRESSIBLE__COMPRESSIBLE_NAVIER_STOKES_FV1_H__
 
