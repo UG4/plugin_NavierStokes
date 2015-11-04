@@ -1,10 +1,3 @@
-/*
- * no_normal_stress_outflow_base.cpp
- *
- *  Created on: 27.03.2012
- *  D. Logashenko, A. Vogel
- */
-
 #include "no_normal_stress_outflow_base.h"
 
 #include "common/util/provider.h"

@@ -1,10 +1,3 @@
-/*
- * no_normal_stress_outflow.h
- *
- *  Created on: 27.03.2012
- *  D. Logashenko, A. Vogel
- */
-
 #ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__BND__NO_NORMAL_STRESS_OUTFLOW_FV1_
 #define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__BND__NO_NORMAL_STRESS_OUTFLOW_FV1_
 

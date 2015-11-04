@@ -1,12 +1,3 @@
-/*
- * compressible_navier_stokes_fv1.cpp
- *
- *  Created on: 29.10.2013
- *      Author: raphaelprohl
- *      (main parts are copied from the discretization of the incompressible Navier-Stokes Equations
- *      of Andreas Vogel and Christian Wehner)
- */
-
 #include "compressible_navier_stokes_fv1.h"
 
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"

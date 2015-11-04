@@ -1,11 +1,3 @@
-/**
- * File for registration of navier stokes routines.
- *
- * created by Sebastian Reiter
- * s.b.reiter@googlemail.com
- * 14.09.2011 (m,d,y)
- */
-
 #include "bridge/util.h"
 #include "bridge/util_domain_algebra_dependent.h"
 

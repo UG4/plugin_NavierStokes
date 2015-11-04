@@ -1,6 +1,4 @@
 /*
- * \file cr_ilut.h
- *
  * \date 04.07.2010
  * \author Martin Rupp
  *
