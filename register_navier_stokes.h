@@ -38,7 +38,8 @@
 
 namespace ug{
 
-void Init___NavierStokes(ug::bridge::Registry* reg, std::string grp);
+void Init___CompressibleNavierStokes(bridge::Registry* reg, std::string grp);
+void Init___IncompressibleNavierStokes(bridge::Registry* reg, std::string grp);
 
 }// namespace ug
 

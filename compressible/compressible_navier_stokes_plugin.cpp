@@ -131,8 +131,7 @@ static void Dimension(Registry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-extern "C" void
-InitUGPlugin_CompressibleNavierStokes(Registry* reg, string grp)
+void Init___CompressibleNavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/CompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityComp Functionality;
@@ -143,7 +142,6 @@ InitUGPlugin_CompressibleNavierStokes(Registry* reg, string grp)
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 
-		Init___NavierStokes(reg, grp);
 		Init___CompressibleNavierStokes___FV1(reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);

@@ -306,8 +306,7 @@ static void Common(Registry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-extern "C" void
-InitUGPlugin_IncompressibleNavierStokes(Registry* reg, string grp)
+void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::FunctionalityIncomp Functionality;
@@ -319,7 +318,6 @@ InitUGPlugin_IncompressibleNavierStokes(Registry* reg, string grp)
 		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 		RegisterCommon<Functionality>(*reg,grp);
 
-		Init___NavierStokes(reg, grp);
 		Init___NavierStokes___FV1(reg, grp);
 		Init___NavierStokes___FVCR(reg, grp);
 		Init___NavierStokes___FV(reg, grp);

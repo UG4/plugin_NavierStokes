@@ -33,6 +33,7 @@
 #include "bridge/util.h"
 #include "bridge/util_domain_algebra_dependent.h"
 
+#include "register_navier_stokes.h"
 #include "navier_stokes_base.h"
 #include "upwind.h"
 
@@ -245,7 +246,8 @@ static void Dimension(Registry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___NavierStokes(Registry* reg, string grp)
+extern "C" void
+InitUGPlugin_NavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::Functionality Functionality;
@@ -253,6 +255,8 @@ void Init___NavierStokes(Registry* reg, string grp)
 	try{
 		RegisterDimension2d3dDependent<Functionality>(*reg,grp);
 		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
+		Init___CompressibleNavierStokes(reg, grp);
+		Init___IncompressibleNavierStokes(reg, grp);
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 	}
