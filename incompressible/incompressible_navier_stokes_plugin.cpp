@@ -1,33 +1,9 @@
-/*
- * Copyright (c) 2011-2015:  G-CSC, Goethe University Frankfurt
- * Author: Sebastian Reiter
- * 
- * This file is part of UG4.
- * 
- * UG4 is free software: you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License version 3 (as published by the
- * Free Software Foundation) with the following additional attribution
- * requirements (according to LGPL/GPL v3 §7):
- * 
- * (1) The following notice must be displayed in the Appropriate Legal Notices
- * of covered and combined works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (2) The following notice must be displayed at a prominent place in the
- * terminal output of covered works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (3) The following bibliography is recommended for citation and must be
- * preserved in all covered files:
- * "Reiter, S., Vogel, A., Heppner, I., Rupp, M., and Wittum, G. A massively
- *   parallel geometric multigrid solver on hierarchically distributed grids.
- *   Computing and visualization in science 16, 4 (2013), 151-164"
- * "Vogel, A., Reiter, S., Rupp, M., Nägel, A., and Wittum, G. UG4 -- a novel
- *   flexible software system for simulating pde based models on high performance
- *   computers. Computing and visualization in science 16, 4 (2013), 165-179"
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
+/**
+ * File for registration of navier stokes routines.
+ *
+ * created by Sebastian Reiter
+ * s.b.reiter@googlemail.com
+ * 14.09.2011 (m,d,y)
  */
 
 #include "bridge/util.h"
@@ -252,6 +228,20 @@ static void Domain(Registry& reg, string grp)
 #ifdef UG_FOR_LUA
 			.add_method("set_density", static_cast<void (T::*)(const char*)>(&T::set_density), "", "Density")
 #endif
+
+			.add_method("set_bingham_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_bingham_viscosity), "", "BinghamViscosity")
+			.add_method("set_bingham_viscosity", static_cast<void (T::*)(number)>(&T::set_bingham_viscosity), "", "BinghamViscosity")
+#ifdef UG_FOR_LUA
+			.add_method("set_bingham_viscosity", static_cast<void (T::*)(const char*)>(&T::set_bingham_viscosity), "", "BinghamViscosity")
+#endif
+			.add_method("set_yield_stress", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_yield_stress), "", "YieldStress")
+			.add_method("set_yield_stress", static_cast<void (T::*)(number)>(&T::set_yield_stress), "", "YieldStress")
+#ifdef UG_FOR_LUA
+			.add_method("set_yield_stress", static_cast<void (T::*)(const char*)>(&T::set_yield_stress), "", "YieldStress")
+#endif
+			//.add_method("set_regularize_delta", static_cast<void (T::*)(number)>(&T::set_regularize_delta), "", "RegularizeDelta")
+			.add_method("set_bingham", &T::set_bingham)
+
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_grad_div", static_cast<void (T::*)(number)>(&T::set_grad_div), "", "GradDivFactor")
 			.add_method("set_laplace", &T::set_laplace)
@@ -288,14 +278,12 @@ static void Dimension(Registry& reg, string grp)
 static void Common(Registry& reg, string grp)
 {
 	// write numbers into file
-	/* TODO: obsolete / replace by lua code */
 	{
-		//reg.add_function("writeNumbers", static_cast<void (*)(std::string filename,const size_t step,const number t,const number data)>(&writeNumbers), grp);
+		reg.add_function("writeNumbers", static_cast<void (*)(std::string filename,const size_t step,const number t,const number data)>(&writeNumbers), grp);
 	}
 	// write numbers into file
-	/* TODO: obsolete / replace by lua code */
 	{
-		//reg.add_function("clearFile", static_cast<void (*)(std::string filename)>(&clearFile), grp);
+		reg.add_function("clearFile", static_cast<void (*)(std::string filename)>(&clearFile), grp);
 	}
 }
 
@@ -306,7 +294,8 @@ static void Common(Registry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___IncompressibleNavierStokes(Registry* reg, string grp)
+extern "C" void
+InitUGPlugin_IncompressibleNavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::FunctionalityIncomp Functionality;
@@ -318,6 +307,7 @@ void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
 		RegisterCommon<Functionality>(*reg,grp);
 
+		Init___NavierStokes(reg, grp);
 		Init___NavierStokes___FV1(reg, grp);
 		Init___NavierStokes___FVCR(reg, grp);
 		Init___NavierStokes___FV(reg, grp);
