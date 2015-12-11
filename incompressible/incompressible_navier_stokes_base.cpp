@@ -1,35 +1,9 @@
 /*
- * Copyright (c) 2012-2013:  G-CSC, Goethe University Frankfurt
- * Author: Christian Wehner
- * 
- * This file is part of UG4.
- * 
- * UG4 is free software: you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License version 3 (as published by the
- * Free Software Foundation) with the following additional attribution
- * requirements (according to LGPL/GPL v3 §7):
- * 
- * (1) The following notice must be displayed in the Appropriate Legal Notices
- * of covered and combined works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (2) The following notice must be displayed at a prominent place in the
- * terminal output of covered works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (3) The following bibliography is recommended for citation and must be
- * preserved in all covered files:
- * "Reiter, S., Vogel, A., Heppner, I., Rupp, M., and Wittum, G. A massively
- *   parallel geometric multigrid solver on hierarchically distributed grids.
- *   Computing and visualization in science 16, 4 (2013), 151-164"
- * "Vogel, A., Reiter, S., Rupp, M., Nägel, A., and Wittum, G. UG4 -- a novel
- *   flexible software system for simulating pde based models on high performance
- *   computers. Computing and visualization in science 16, 4 (2013), 165-179"
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
+ * incompressible_navier_stokes_base.cpp
+ *
+ *  Created on: 04.07.2012
+ *      Author: Christian Wehner
  */
-
 
 // other ug4 modules
 #include "common/common.h"
@@ -57,7 +31,8 @@ IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const ch
 : NavierStokesBase<TDomain>(functions, subsets),
   m_bPecletBlend(false),
   m_bStokes(false),
-  m_bLaplace(false)
+  m_bLaplace(false),
+  m_bBingham(false)
 {
 };
 
@@ -67,7 +42,8 @@ IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const st
 : NavierStokesBase<TDomain>(vFct, vSubset),
   m_bPecletBlend(false),
   m_bStokes(false),
-  m_bLaplace(false)
+  m_bLaplace(false),
+  m_bBingham(false)
 {
 };
 
@@ -90,6 +66,40 @@ set_density(const char* fctName)
 }
 #endif
 
+/////////// bingham
+
+template<typename TDomain>
+void IncompressibleNavierStokesBase<TDomain>::
+set_bingham_viscosity(number val)
+{
+  set_bingham_viscosity(make_sp(new ConstUserNumber<dim>(val)));
+}
+
+#ifdef UG_FOR_LUA
+template<typename TDomain>
+void IncompressibleNavierStokesBase<TDomain>::
+set_bingham_viscosity(const char* fctName)
+{
+  set_bingham_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
+}
+#endif
+
+
+template<typename TDomain>
+void IncompressibleNavierStokesBase<TDomain>::
+set_yield_stress(number val)
+{
+  set_yield_stress(make_sp(new ConstUserNumber<dim>(val)));
+}
+
+#ifdef UG_FOR_LUA
+template<typename TDomain>
+void IncompressibleNavierStokesBase<TDomain>::
+set_yield_stress(const char* fctName)
+{
+  set_yield_stress(LuaUserDataFactory<number, dim>::create(fctName));
+}
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
