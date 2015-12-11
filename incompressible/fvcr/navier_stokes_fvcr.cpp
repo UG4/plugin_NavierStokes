@@ -1,33 +1,8 @@
 /*
- * Copyright (c) 2012-2014:  G-CSC, Goethe University Frankfurt
- * Author: Christian Wehner
- * 
- * This file is part of UG4.
- * 
- * UG4 is free software: you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License version 3 (as published by the
- * Free Software Foundation) with the following additional attribution
- * requirements (according to LGPL/GPL v3 §7):
- * 
- * (1) The following notice must be displayed in the Appropriate Legal Notices
- * of covered and combined works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (2) The following notice must be displayed at a prominent place in the
- * terminal output of covered works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (3) The following bibliography is recommended for citation and must be
- * preserved in all covered files:
- * "Reiter, S., Vogel, A., Heppner, I., Rupp, M., and Wittum, G. A massively
- *   parallel geometric multigrid solver on hierarchically distributed grids.
- *   Computing and visualization in science 16, 4 (2013), 151-164"
- * "Vogel, A., Reiter, S., Rupp, M., Nägel, A., and Wittum, G. UG4 -- a novel
- *   flexible software system for simulating pde based models on high performance
- *   computers. Computing and visualization in science 16, 4 (2013), 165-179"
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
+ * navier_stokes_fvcr.cpp
+ *
+ *  Created on: 04.07.2012
+ *      Author: Christian Wehner
  */
 
 #include "navier_stokes_fvcr.h"
@@ -72,6 +47,7 @@ void NavierStokesFVCR<TDomain>::init()
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
+	this->register_import(m_imBinghamViscosity);
 
 	m_imSource.set_rhs_part();
 	m_imDensitySCV.set_mass_part();
@@ -137,6 +113,20 @@ set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > data)
 	m_imSource.set_data(data);
 }
 
+template<typename TDomain>
+void NavierStokesFVCR<TDomain>::
+set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
+{
+	m_imBinghamViscosity.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokesFVCR<TDomain>::
+set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
+{
+	m_imYieldStress.set_data(data);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //	assembling functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -174,6 +164,11 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes::prep_elem_loop:"
 						" Density has not been set, but is required.");
+
+//	check, that bingham behavious is not chosen
+	if(m_bBingham)
+		UG_THROW("NavierStokes::prep_elem_loop:"
+							" Bingham only available for FV1 and FE.");
 
 //	set local positions for imports
 	typedef typename reference_element_traits<TElem>::reference_element_type
