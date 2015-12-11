@@ -1,35 +1,9 @@
 /*
- * Copyright (c) 2012-2014:  G-CSC, Goethe University Frankfurt
- * Authors: Dmitry Logashenko, Andreas Vogel
- * 
- * This file is part of UG4.
- * 
- * UG4 is free software: you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License version 3 (as published by the
- * Free Software Foundation) with the following additional attribution
- * requirements (according to LGPL/GPL v3 §7):
- * 
- * (1) The following notice must be displayed in the Appropriate Legal Notices
- * of covered and combined works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (2) The following notice must be displayed at a prominent place in the
- * terminal output of covered works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (3) The following bibliography is recommended for citation and must be
- * preserved in all covered files:
- * "Reiter, S., Vogel, A., Heppner, I., Rupp, M., and Wittum, G. A massively
- *   parallel geometric multigrid solver on hierarchically distributed grids.
- *   Computing and visualization in science 16, 4 (2013), 151-164"
- * "Vogel, A., Reiter, S., Rupp, M., Nägel, A., and Wittum, G. UG4 -- a novel
- *   flexible software system for simulating pde based models on high performance
- *   computers. Computing and visualization in science 16, 4 (2013), 165-179"
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
+ * no_normal_stress_outflow.h
+ *
+ *  Created on: 27.03.2012
+ *  D. Logashenko, A. Vogel
  */
-
 
 #ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__BND__NO_NORMAL_STRESS_OUTFLOW_FV1_
 #define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__BND__NO_NORMAL_STRESS_OUTFLOW_FV1_
@@ -94,6 +68,14 @@ class NavierStokesNoNormalStressOutflowFV1
 	///	sets the density
 		virtual void set_density(SmartPtr<CplUserData<number, dim> > data)
 			{m_imDensity.set_data(data);}
+
+	///	sets the bingham viscosity
+		virtual void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
+			{m_imBinghamViscosity.set_data(data);}
+
+	///	sets the density
+		virtual void set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
+			{m_imYieldStress.set_data(data);}
 
 	public:
 	///	type of trial space for each function used
@@ -182,6 +164,12 @@ class NavierStokesNoNormalStressOutflowFV1
 
 	/// Data import for density
 		DataImport<number, dim> m_imDensity;
+
+	/// Data import for bingham viscosity
+		DataImport<number, dim> m_imBinghamViscosity;
+
+	/// Data import for yield stress
+		DataImport<number, dim> m_imYieldStress;
 
 	/// Boundary integration points of the viscosity and the density
 		std::vector<MathVector<dim> > m_vLocIP;
