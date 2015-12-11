@@ -73,6 +73,8 @@ void NavierStokesFV1<TDomain>::init()
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
+	this->register_import(m_imBinghamViscosity);
+	this->register_import(m_imYieldStress);
 
 	m_imSourceSCV.set_rhs_part();
 	m_imSourceSCVF.set_rhs_part();
@@ -129,6 +131,27 @@ set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > data)
 }
 
 
+template<typename TDomain>
+void NavierStokesFV1<TDomain>::
+set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
+{
+	m_imBinghamViscosity.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokesFV1<TDomain>::
+set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
+{
+	m_imYieldStress.set_data(data);
+}
+
+//template<typename TDomain>
+//void NavierStokesFV1<TDomain>::
+//set_regularize_delta(number data)
+//{
+//	m_imRegularizeDelta.set_data(make_sp(new ConstUserNumber<dim>(data)));
+//}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //	assembling functions
@@ -167,9 +190,10 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	}
 
 //	check, that kinematic Viscosity has been set
-	if(!m_imKinViscosity.data_given())
-		UG_THROW("NavierStokes::prep_elem_loop:"
-						" Kinematic Viscosity has not been set, but is required.");
+	if(!m_bBingham)
+		if(!m_imKinViscosity.data_given())
+			UG_THROW("NavierStokes::prep_elem_loop:"
+							" Kinematic Viscosity has not been set, but is required.");
 
 //	check, that Density has been set
 	if(!m_imDensitySCVF.data_given())
@@ -180,6 +204,29 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes::prep_elem_loop:"
 						" Density has not been set, but is required.");
+
+	if(m_bBingham){
+		if(!m_imBinghamViscosity.data_given())
+			UG_THROW("NavierStokes::prep_elem_loop:"
+							" Bingham Viscosity has not been set, but is required.");
+
+		if(!m_imYieldStress.data_given())
+			UG_THROW("NavierStokes::prep_elem_loop:"
+							" Yield Stress has not been set, but is required.");
+
+		//if(!m_imRegularizeDelta.data_given())
+		//	UG_THROW("NavierStokes::prep_elem_loop:"
+		//					" regularizing delta has not been set, but is required.");
+
+		if(!m_bStokes)
+			UG_THROW("NavierStokes::prep_elem_loop:"
+							" Bingham behaviour is only available for Stokes.");
+
+		if(!this->is_time_dependent()){
+			UG_THROW("NavierStokes::prep_elem_loop:"
+							" Bingham behaviour is only available for time-dependent problems.");
+		}
+	}
 
 //	set local positions for imports
 
@@ -197,6 +244,9 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imBinghamViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imYieldStress.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		//m_imRegularizeDelta.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 	}
 }
 
@@ -234,6 +284,10 @@ prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const 
 		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imBinghamViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		m_imYieldStress.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+		//m_imRegularizeDelta.template set_local_ips<refDim>(vSCVFip,numSCVFip);
+
 	}
 
 //	set global positions for imports
@@ -246,6 +300,63 @@ prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const 
 	m_imDensitySCV.set_global_ips(vSCVip, numSCVip);
 	m_imSourceSCV.set_global_ips(vSCVip, numSCVip);
 	m_imSourceSCVF.set_global_ips(vSCVFip, numSCVFip);
+	m_imBinghamViscosity.set_global_ips(vSCVFip, numSCVFip);
+	m_imYieldStress.set_global_ips(vSCVFip, numSCVFip);
+	//m_imRegularizeDelta.set_global_ips(vSCVFip, numSCVFip);
+
+//	bingham behaviour
+	if(m_bBingham)
+	{
+		const LocalVector *pOldSol = NULL;
+		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+		pOldSol = &vLocSol->solution(1);
+		// get const point of viscosity at integration points
+
+		const number* pVisco = m_imKinViscosity.values();
+
+		// remember original one
+		//static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+		//UG_LOG("geo.num_scvf(): " << geo.num_scvf() << "\n")
+
+		number innerSum = 0.0;
+		number secondInvariant = 0.0;
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			// 	get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+			// 	get current SCV
+			//UG_LOG("scvf_num_sh(): " << scvf.num_sh() << "\n")
+			const typename TFVGeom::SCV& scv = geo.scv(ip);
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				for(int d2 = 0; d2 < dim; ++d2)
+				{
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
+							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+					}
+				}
+			}
+			secondInvariant += scv.volume()/(pow(2, dim))*innerSum;
+		}
+		//UG_LOG("Schleife startet (add_jac_A_elem)\n");
+		//	overwrite m_imKinViscosity
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			//UG_LOG("Write Visco at ip: " << ip << "\n");
+			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensitySCVF[ip];
+
+		}
+
+		//UG_LOG("Schleife endet\n");
+		// .. at this point the updated values are stored in the DataImport
+	}
+
 }
 
 template<typename TDomain>
@@ -293,15 +404,61 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 				StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 	}
 
+	//scv.volume() 
+
+//	bingham behaviour
+	/*if(m_bBingham)
+	{
+		// get const point of viscosity at integration points
+		const number* pVisco = m_imKinViscosity.values();
+
+		// remember original one
+		//static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+		number innerSum = 0.0;
+		number secondInvariant = 0.0;
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			// 	get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+			// 	get current SCV
+			const typename TFVGeom::SCV& scv = geo.scv(ip);
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				for(int d2 = 0; d2 < dim; ++d2)
+				{
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
+							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+					}
+				}
+			}
+			secondInvariant += scv.volume()/(pow(2, dim))*innerSum;
+		}
+		//UG_LOG("Schleife startet (add_jac_A_elem)\n");
+		//	overwrite m_imKinViscosity
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			//UG_LOG("Write Visco at ip: " << ip << "\n");
+			vVisco[ip] = 130.0;//(m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensitySCVF[ip];
+		}
+		//UG_LOG("Schleife endet\n");
+		// .. at this point the updated values are stored in the DataImport
+	}*/
+
 //	compute stabilized velocities and shapes for continuity equation
-	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
+	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, m_imDensitySCVF, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
 		if(m_spConvStab.valid())
 			if(m_spConvStab != m_spStab)
-				m_spConvStab->update(&geo, *pSol, StdVel, false, m_imKinViscosity, pSource, pOldSol, dt);
+				m_spConvStab->update(&geo, *pSol, StdVel, false, m_imKinViscosity, m_imDensitySCVF, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
 		if(m_spConvUpwind.valid())
@@ -640,16 +797,60 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 				StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 	}
 
+//	bingham behaviour
+	/*if(m_bBingham)
+	{
+		// get const point of viscosity at integration points
+		const number* pVisco = m_imKinViscosity.values();
+
+		// remember original one
+		//static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+		number innerSum = 0.0;
+		number secondInvariant = 0.0;
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			// 	get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+			// 	get current SCV
+			const typename TFVGeom::SCV& scv = geo.scv(ip);
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				for(int d2 = 0; d2 < dim; ++d2)
+				{
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
+							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+					}
+				}
+			}
+			secondInvariant += scv.volume()/(pow(2, dim))*innerSum;
+		}
+		//UG_LOG("Schleife startet (add_def_A_elem)\n");
+		//	overwrite m_imKinViscosity
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			//UG_LOG("Write Visco at ip: " << ip << "\n");
+			vVisco[ip] = 130.0;//(m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensitySCVF[ip];
+		}
+		//UG_LOG("Schleife endet\n");
+		// .. at this point the updated values are stored in the DataImport
+	}*/
+
 //	compute stabilized velocities and shapes for continuity equation
 	// \todo: (optional) Here we can skip the computation of shapes, implement?
-	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, pSource, pOldSol, dt);
+	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, m_imDensitySCVF, pSource, pOldSol, dt);
 
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	compute stabilized velocities and shapes for convection upwind
 		if(m_spConvStab.valid())
 			if(m_spConvStab != m_spStab)
-				m_spConvStab->update(&geo, *pSol, StdVel, false, m_imKinViscosity, pSource, pOldSol, dt);
+				m_spConvStab->update(&geo, *pSol, StdVel, false, m_imKinViscosity, m_imDensitySCVF, pSource, pOldSol, dt);
 	
 	//	compute upwind shapes
 		if(m_spConvUpwind.valid())
@@ -861,8 +1062,9 @@ add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoor
 		const int sh = scv.node_id();
 
 	// 	Add to local rhs
-		for(int d1 = 0; d1 < dim; ++d1)
-			d(d1, sh) += m_imSourceSCV[ip][d1] * scv.volume();
+		for(int d1 = 0; d1 < dim; ++d1){
+			d(d1, sh) += m_imSourceSCV[ip][d1] * scv.volume() * m_imDensitySCV[ip];
+		}
 	}
 }
 
