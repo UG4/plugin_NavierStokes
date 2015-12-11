@@ -140,6 +140,20 @@ set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > data)
 	m_imSource.set_data(data);
 }
 
+template<typename TDomain>
+void NavierStokesFE<TDomain>::
+set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
+{
+	m_imBinghamViscosity.set_data(data);
+}
+
+template<typename TDomain>
+void NavierStokesFE<TDomain>::
+set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
+{
+	m_imYieldStress.set_data(data);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //	assembling functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -156,6 +170,11 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 //	check, that Density has been set
 	if(!m_imDensity.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
+
+	if(m_bBingham){
+		UG_THROW("NavierStokes::prep_elem_loop:"
+						"Bingham behaviour is only available for fv1.");
+	}
 
 	DimFEGeometry<dim>& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 	DimFEGeometry<dim>& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);
@@ -543,7 +562,7 @@ add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoor
 	for(size_t ip = 0; ip < vgeo.num_ip(); ++ip){
 		for(size_t vsh = 0; vsh < vgeo.num_sh(); ++vsh){
 			for (int vdim = 0; vdim < dim; ++vdim){
-				d(vdim, vsh) += m_imSource[ip][vdim] * vgeo.shape(ip, vsh) * vgeo.weight(ip);
+				d(vdim, vsh) += m_imSource[ip][vdim] * vgeo.shape(ip, vsh) * vgeo.weight(ip) * m_imDensity[ip];
 			}
 		}
 	}
