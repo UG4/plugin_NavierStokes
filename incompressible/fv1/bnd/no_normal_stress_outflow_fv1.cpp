@@ -51,10 +51,14 @@ NavierStokesNoNormalStressOutflowFV1(SmartPtr< IncompressibleNavierStokesBase<TD
 //	register imports
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensity);
+	this->register_import(m_imBinghamViscosity);
+	this->register_import(m_imYieldStress);
 
 //	initialize the imports from the master discretization
 	set_kinematic_viscosity(spMaster->kinematic_viscosity ());
 	set_density(spMaster->density ());
+	set_bingham_viscosity(spMaster->bingham_viscosity ());
+	set_yield_stress(spMaster->yield_stress ());
 
 	//	update assemble functions
 	register_all_funcs(false);
@@ -184,6 +188,55 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	
 	m_imDensity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imDensity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+
+	m_imBinghamViscosity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	m_imBinghamViscosity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+	
+	m_imYieldStress.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	m_imYieldStress.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+
+	if(m_spMaster->bingham())
+	{
+		const LocalVector *pOldSol = NULL;
+		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+		pOldSol = &vLocSol->solution(1);
+
+		// get const point of viscosity at integration points
+		const number* pVisco = m_imKinViscosity.values();
+
+		// remember original one
+		static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+		number innerSum = 0.0;
+		number secondInvariant = 0.0;
+		for (size_t ip = 0; ip < geo.num_bf(); ++ip)
+		{
+			// 	get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+			// 	get current SCV
+			const typename TFVGeom::SCV& scv = geo.scv(ip);
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				for(int d2 = 0; d2 < dim; ++d2)
+				{
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
+							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+					}
+				}
+			}
+			secondInvariant += scv.volume()/(pow(2, dim))*innerSum/2.0; //half volume??
+		}
+		for (size_t ip = 0; ip < geo.num_bf(); ++ip)
+		{
+			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensity[ip];
+		}
+		// .. at this point the updated values are stored in the DataImport
+	}
 }
 
 /// Assembling of the diffusive flux (due to the viscosity) in the Jacobian of the momentum eq.
@@ -200,9 +253,12 @@ diffusive_flux_Jac
 {
 	MathMatrix<dim,dim> diffFlux, tang_diffFlux;
 	MathVector<dim> normalStress;
-	
+
+	//UG_LOG("ip: " << ip << "\n");
+
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh) // loop shape functions
 	{
+		//UG_LOG("sh: " << sh << "\n");
 	//	1. Compute the total flux
 	//	- add \nabla u
 		MatSet (diffFlux, 0);
@@ -222,7 +278,7 @@ diffusive_flux_Jac
 				tang_diffFlux(d1,d2) -= bf.normal()[d1] * normalStress[d2];
 	
 	//	3. Scale by viscosity
-		tang_diffFlux *= - m_imKinViscosity[ip];
+		tang_diffFlux *= - m_imKinViscosity[ip] * m_imDensity [ip];
 	
 	//	4. Add flux to local Jacobian
 		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -245,7 +301,7 @@ diffusive_flux_defect
 {
 	MathMatrix<dim, dim> gradVel;
 	MathVector<dim> diffFlux;
-	
+
 // 	1. Get the gradient of the velocity at ip
 	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 		for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
@@ -269,7 +325,7 @@ diffusive_flux_defect
 	VecScaleAppend (diffFlux, - VecDot (diffFlux, bf.normal()), bf.normal());
 
 //	A4. Scale by viscosity
-	diffFlux *= - m_imKinViscosity[ip];
+	diffFlux *= - m_imKinViscosity[ip] * m_imDensity [ip];
 
 //	5. Add flux to local defect
 	for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
@@ -289,6 +345,7 @@ convective_flux_Jac
 )
 {
 // The convection velocity according to the current approximation:
+
 	MathVector<dim> StdVel(0.0);
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh)
 		for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
