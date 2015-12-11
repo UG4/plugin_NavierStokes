@@ -1,35 +1,9 @@
 /*
- * Copyright (c) 2010-2013:  G-CSC, Goethe University Frankfurt
- * Author: Andreas Vogel
- * 
- * This file is part of UG4.
- * 
- * UG4 is free software: you can redistribute it and/or modify it under the
- * terms of the GNU Lesser General Public License version 3 (as published by the
- * Free Software Foundation) with the following additional attribution
- * requirements (according to LGPL/GPL v3 §7):
- * 
- * (1) The following notice must be displayed in the Appropriate Legal Notices
- * of covered and combined works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (2) The following notice must be displayed at a prominent place in the
- * terminal output of covered works: "Based on UG4 (www.ug4.org/license)".
- * 
- * (3) The following bibliography is recommended for citation and must be
- * preserved in all covered files:
- * "Reiter, S., Vogel, A., Heppner, I., Rupp, M., and Wittum, G. A massively
- *   parallel geometric multigrid solver on hierarchically distributed grids.
- *   Computing and visualization in science 16, 4 (2013), 151-164"
- * "Vogel, A., Reiter, S., Rupp, M., Nägel, A., and Wittum, G. UG4 -- a novel
- *   flexible software system for simulating pde based models on high performance
- *   computers. Computing and visualization in science 16, 4 (2013), 165-179"
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
+ * incompressible_navier_stokes_base.h
+ *
+ *  Created on: 20.09.2010
+ *      Author: andreasvogel
  */
-
 
 #ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__INCOMPRESSIBLE_NAVIER_STOKES_BASE__
 #define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__INCOMPRESSIBLE_NAVIER_STOKES_BASE__
@@ -192,6 +166,40 @@ class IncompressibleNavierStokesBase
 	///	returns density
 		virtual SmartPtr<CplUserData<number, dim> > density() = 0;
 
+	///	sets the bingham viscosity
+	/**
+	 * This method sets the bingham viscosity value.
+	 *
+	 * \param[in]	data		bingham viscosity
+	 */
+	///	\{
+		virtual void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > user) = 0;
+		void set_bingham_viscosity(number val);
+#ifdef UG_FOR_LUA
+		void set_bingham_viscosity(const char* fctName);
+#endif
+	///	\}
+		
+	///	returns bingham viscosity
+		virtual SmartPtr<CplUserData<number, dim> > bingham_viscosity() = 0;
+
+	///	sets the yield stress
+	/**
+	 * This method sets the yield stress value.
+	 *
+	 * \param[in]	data		yield stress
+	 */
+	///	\{
+		virtual void set_yield_stress(SmartPtr<CplUserData<number, dim> > user) = 0;
+		void set_yield_stress(number val);
+#ifdef UG_FOR_LUA
+		void set_yield_stress(const char* fctName);
+#endif
+	///	\}
+
+	///	returns yield stress
+		virtual SmartPtr<CplUserData<number, dim> > yield_stress() = 0;
+
 	///	sets the source function
 	/**
 	 * This method sets the source value. A zero value is assumed as default.
@@ -249,6 +257,18 @@ class IncompressibleNavierStokesBase
 
 	///	flag if using only laplace term
 		bool m_bLaplace;
+
+	/// flag if using bingham behaviour
+		bool m_bBingham;
+
+	public:
+
+	/// switches the bingham behaviour on
+	/**
+	 * \param[in]	Bingham		true to solve Bingham
+	 */
+		void set_bingham(bool Bingham) {m_bBingham = Bingham;}
+		bool bingham() {return m_bBingham;}
 };
 
 /// @}
