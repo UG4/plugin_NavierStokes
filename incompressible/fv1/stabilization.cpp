@@ -128,6 +128,7 @@ update(const FV1Geometry<TElem, dim>* geo,
        const MathVector<dim> vStdVel[],
        const bool bStokes,
        const DataImport<number, dim>& kinVisco,
+       const DataImport<number, dim>& density,
        const DataImport<MathVector<dim>, dim>* pSource,
        const LocalVector* pvCornerValueOldTime, number dt)
 {
@@ -225,7 +226,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 					stab_shape_vel(ip, d, d, k) = sumVel / diag;
 
 				//	Pressure part
-					const number sumP = -1.0 * (scvf.global_grad(k))[d];
+					const number sumP = -1.0 * (scvf.global_grad(k))[d] / density[ip];
 
 				//	Add to rhs
 					rhs += sumP * vCornerValue(_P_, k);
@@ -317,7 +318,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 					contVel[k][ip] += vNormStdVelPerConvLen[ip] * upwind_shape_sh(ip, k);
 
 				//	Pressure part
-					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d];
+					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d] / density[ip];
 				}
 			}
 
@@ -441,6 +442,7 @@ update(const FV1Geometry<TElem, dim>* geo,
        const MathVector<dim> vStdVel[],
        const bool bStokes,
        const DataImport<number, dim>& kinVisco,
+       const DataImport<number, dim>& density,
        const DataImport<MathVector<dim>, dim>* pSource,
        const LocalVector* pvCornerValueOldTime, number dt)
 {
@@ -570,7 +572,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 					}
 
 				//	Pressure part
-					const number sumP = -1.0 * (scvf.global_grad(k))[d];
+					const number sumP = -1.0 * (scvf.global_grad(k))[d]  / density[ip];
 
 				//	Add to rhs
 					rhs += sumP * vCornerValue(_P_, k);
@@ -661,7 +663,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 				for(size_t k = 0; k < numSh; ++k)
 				{
 				//	Pressure part
-					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d];
+					contP[k][ip] = -1.0 * (scvf.global_grad(k))[d] / density[ip];
 
 				//	Diffusion part
 					contVel[d][k][ip] = vViscoPerDiffLenSq[ip] * scvf.shape(k);
@@ -809,6 +811,7 @@ update(const FV1Geometry<TElem, dim>* geo,
        const MathVector<dim> vStdVel[],
        const bool bStokes,
        const DataImport<number, dim>& kinVisco,
+       const DataImport<number, dim>& density,
        const DataImport<MathVector<dim>, dim>* pSource,
        const LocalVector* pvCornerValueOldTime, number dt)
 {

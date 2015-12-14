@@ -196,10 +196,11 @@ class INavierStokesFV1Stabilization
 		            const MathVector<dim> vStdVel[],
 		            const bool bStokes,
 		            const DataImport<number, dim>& kinVisco,
+		            const DataImport<number, dim>& density,
 		            const DataImport<MathVector<dim>, dim>* pSource,
 		            const LocalVector* pvCornerValueOldTime, number dt)
 			{(this->*(m_vUpdateFunc[m_id]))(geo, vCornerValue, vStdVel,
-											bStokes, kinVisco, pSource,
+											bStokes, kinVisco, density, pSource,
 											pvCornerValueOldTime, dt);}
 
 	/////////////////////////////////////////
@@ -281,6 +282,7 @@ class INavierStokesFV1Stabilization
 												const MathVector<dim> vStdVel[],
 												const bool bStokes,
 												const DataImport<number, dim>& kinVisco,
+												const DataImport<number, dim>& density,
 												const DataImport<MathVector<dim>, dim>* pSource,
 												const LocalVector* pvCornerValueOldTime, number dt);
 
@@ -473,6 +475,7 @@ class NavierStokesFIELDSStabilization
 		            const MathVector<dim> vStdVel[],
 		            const bool bStokes,
 		            const DataImport<number, dim>& kinVisco,
+					const DataImport<number, dim>& density,
 		            const DataImport<MathVector<dim>, dim>* pSource,
 		            const LocalVector* pvCornerValueOldTime, number dt);
 
@@ -488,6 +491,7 @@ class NavierStokesFIELDSStabilization
 											 const MathVector<dim> vStdVel[],
 											 const bool bStokes,
 											 const DataImport<number, dim>& kinVisco,
+ 											 const DataImport<number, dim>& density,
 											 const DataImport<MathVector<dim>, dim>* pSource,
 											 const LocalVector* pvCornerValueOldTime, number dt);
 
@@ -553,6 +557,7 @@ class NavierStokesFLOWStabilization
 					const MathVector<dim> vStdVel[],
 					const bool bStokes,
 					const DataImport<number, dim>& kinVisco,
+					const DataImport<number, dim>& density,
 					const DataImport<MathVector<dim>, dim>* pSource,
 					const LocalVector* pvCornerValueOldTime, number dt);
 
@@ -568,6 +573,7 @@ class NavierStokesFLOWStabilization
 											 const MathVector<dim> vStdVel[],
 											 const bool bStokes,
 											 const DataImport<number, dim>& kinVisco,
+											 const DataImport<number, dim>& density,
 											 const DataImport<MathVector<dim>, dim>* pSource,
 											 const LocalVector* pvCornerValueOldTime, number dt);
 
@@ -619,6 +625,7 @@ class NavierStokesFV1WithoutStabilization
 					const MathVector<dim> vStdVel[],
 					const bool bStokes,
 					const DataImport<number, dim>& kinVisco,
+					const DataImport<number, dim>& density,
 					const DataImport<MathVector<dim>, dim>* pSource,
 					const LocalVector* pvCornerValueOldTime, number dt);
 
@@ -634,6 +641,7 @@ class NavierStokesFV1WithoutStabilization
 											 const MathVector<dim> vStdVel[],
 											 const bool bStokes,
 											 const DataImport<number, dim>& kinVisco,
+											 const DataImport<number, dim>& density,
 											 const DataImport<MathVector<dim>, dim>* pSource,
 											 const LocalVector* pvCornerValueOldTime, number dt);
 

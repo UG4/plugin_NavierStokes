@@ -121,6 +121,7 @@ class NavierStokesFV
 		using base_type::m_bFullNewtonFactor;
 		using base_type::m_bStokes;
 		using base_type::m_bLaplace;
+		using base_type::m_bBingham;
 
 	public:
 		template<typename TElem, typename VGeom, typename PGeom>

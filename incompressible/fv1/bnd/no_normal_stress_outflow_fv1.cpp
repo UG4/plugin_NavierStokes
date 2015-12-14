@@ -205,7 +205,7 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 		const number* pVisco = m_imKinViscosity.values();
 
 		// remember original one
-		static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
+		// static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
 
 		// cast constness away
 		number* vVisco = const_cast<number*>(pVisco);
