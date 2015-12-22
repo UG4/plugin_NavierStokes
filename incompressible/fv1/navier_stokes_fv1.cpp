@@ -307,56 +307,47 @@ prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const 
 //	bingham behaviour
 	if(m_bBingham)
 	{
+		//get old solution
 		const LocalVector *pOldSol = NULL;
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		pOldSol = &vLocSol->solution(1);
+		
 		// get const point of viscosity at integration points
-
 		const number* pVisco = m_imKinViscosity.values();
-
-		// remember original one
-		//static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
 
 		// cast constness away
 		number* vVisco = const_cast<number*>(pVisco);
 
-		//UG_LOG("geo.num_scvf(): " << geo.num_scvf() << "\n")
-
 		number innerSum = 0.0;
 		number secondInvariant = 0.0;
+
 		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
 		{
 			// 	get current SCVF
 			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-			// 	get current SCV
-			//UG_LOG("scvf_num_sh(): " << scvf.num_sh() << "\n")
-			const typename TFVGeom::SCV& scv = geo.scv(ip);
 			for(int d1 = 0; d1 < dim; ++d1)
 			{
 				for(int d2 = 0; d2 < dim; ++d2)
 				{
 					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 					{
-						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
-							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+						if(m_bLaplace)
+						{
+							innerSum += (scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh)* scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh));
+						}
+						else
+						{
+							innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
+								*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+						}
 					}
 				}
 			}
-			secondInvariant += scv.volume()/(pow(2, dim))*innerSum;
-		}
-		//UG_LOG("Schleife startet (add_jac_A_elem)\n");
-		//	overwrite m_imKinViscosity
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			//UG_LOG("Write Visco at ip: " << ip << "\n");
+			// overwrite viscosity
+			secondInvariant = 1.0/(pow(2, dim))*innerSum;
 			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensitySCVF[ip];
-
 		}
-
-		//UG_LOG("Schleife endet\n");
-		// .. at this point the updated values are stored in the DataImport
 	}
-
 }
 
 template<typename TDomain>
@@ -403,52 +394,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 			for(int d1 = 0; d1 < dim; ++d1)
 				StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 	}
-
-	//scv.volume() 
-
-//	bingham behaviour
-	/*if(m_bBingham)
-	{
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// remember original one
-		//static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-		number innerSum = 0.0;
-		number secondInvariant = 0.0;
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			// 	get current SCVF
-			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-			// 	get current SCV
-			const typename TFVGeom::SCV& scv = geo.scv(ip);
-			for(int d1 = 0; d1 < dim; ++d1)
-			{
-				for(int d2 = 0; d2 < dim; ++d2)
-				{
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					{
-						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
-							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
-					}
-				}
-			}
-			secondInvariant += scv.volume()/(pow(2, dim))*innerSum;
-		}
-		//UG_LOG("Schleife startet (add_jac_A_elem)\n");
-		//	overwrite m_imKinViscosity
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			//UG_LOG("Write Visco at ip: " << ip << "\n");
-			vVisco[ip] = 130.0;//(m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensitySCVF[ip];
-		}
-		//UG_LOG("Schleife endet\n");
-		// .. at this point the updated values are stored in the DataImport
-	}*/
 
 //	compute stabilized velocities and shapes for continuity equation
 	m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, m_imDensitySCVF, pSource, pOldSol, dt);
@@ -796,50 +741,6 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 			for(int d1 = 0; d1 < dim; ++d1)
 				StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 	}
-
-//	bingham behaviour
-	/*if(m_bBingham)
-	{
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// remember original one
-		//static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-		number innerSum = 0.0;
-		number secondInvariant = 0.0;
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			// 	get current SCVF
-			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-			// 	get current SCV
-			const typename TFVGeom::SCV& scv = geo.scv(ip);
-			for(int d1 = 0; d1 < dim; ++d1)
-			{
-				for(int d2 = 0; d2 < dim; ++d2)
-				{
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					{
-						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
-							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
-					}
-				}
-			}
-			secondInvariant += scv.volume()/(pow(2, dim))*innerSum;
-		}
-		//UG_LOG("Schleife startet (add_def_A_elem)\n");
-		//	overwrite m_imKinViscosity
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			//UG_LOG("Write Visco at ip: " << ip << "\n");
-			vVisco[ip] = 130.0;//(m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensitySCVF[ip];
-		}
-		//UG_LOG("Schleife endet\n");
-		// .. at this point the updated values are stored in the DataImport
-	}*/
 
 //	compute stabilized velocities and shapes for continuity equation
 	// \todo: (optional) Here we can skip the computation of shapes, implement?
