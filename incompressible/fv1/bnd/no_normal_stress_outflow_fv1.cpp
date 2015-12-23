@@ -197,6 +197,7 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 
 	if(m_spMaster->bingham())
 	{
+		// get old solution
 		const LocalVector *pOldSol = NULL;
 		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
 		pOldSol = &vLocSol->solution(1);
@@ -204,38 +205,52 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 		// get const point of viscosity at integration points
 		const number* pVisco = m_imKinViscosity.values();
 
-		// remember original one
-		// static number origVisco = pVisco[0]; // remember original one (todo: better handling of this issue)
-
 		// cast constness away
 		number* vVisco = const_cast<number*>(pVisco);
 
-		number innerSum = 0.0;
-		number secondInvariant = 0.0;
-		for (size_t ip = 0; ip < geo.num_bf(); ++ip)
+	// 	get finite volume geometry
+		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+		typedef typename TFVGeom::BF BF;
+
+	// 	loop registered boundary segments
+		typename std::vector<int>::const_iterator subsetIter;
+		size_t ip = 0;
+		for(subsetIter = m_vBndSubSetIndex.begin();
+			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
 		{
-			// 	get current SCVF
-			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-			// 	get current SCV
-			const typename TFVGeom::SCV& scv = geo.scv(ip);
-			for(int d1 = 0; d1 < dim; ++d1)
+		//	get subset index corresponding to boundary
+			const int bndSubset = *subsetIter;
+			
+		//	get the list of the ip's:
+			if(geo.num_bf(bndSubset) == 0) continue;
+			const std::vector<BF>& vBF = geo.bf(bndSubset);
+
+		// 	loop the boundary faces
+			typename std::vector<BF>::const_iterator bf;
+			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
 			{
-				for(int d2 = 0; d2 < dim; ++d2)
+				number innerSum = 0.0;
+				for(int d1 = 0; d1 < dim; ++d1)
 				{
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					for(int d2 = 0; d2 < dim; ++d2)
 					{
-						innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
-							*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						{
+							if(m_spMaster->laplace())
+								innerSum += (bf->global_grad(sh)[d1] * (*pOldSol)(d2, sh) * bf->global_grad(sh)[d2] * (*pOldSol)(d1, sh));
+							else
+							{
+								innerSum += ((bf->global_grad(sh)[d1] * (*pOldSol)(d2, sh) + bf->global_grad(sh)[d2] * (*pOldSol)(d1, sh))
+									*(bf->global_grad(sh)[d1] * (*pOldSol)(d2, sh) + bf->global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
+							}
+						}
 					}
 				}
+				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
+		
+				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensity[ip];
 			}
-			secondInvariant += scv.volume()/(pow(2, dim))*innerSum/2.0; //half volume??
 		}
-		for (size_t ip = 0; ip < geo.num_bf(); ++ip)
-		{
-			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensity[ip];
-		}
-		// .. at this point the updated values are stored in the DataImport
 	}
 }
 
