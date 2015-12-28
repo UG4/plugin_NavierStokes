@@ -38,6 +38,7 @@
 #include "bnd/inflow_fv1.h"
 #include "bnd/no_normal_stress_outflow_fv1.h"
 #include "bnd/symmetric_boundary_fv1.h"
+#include "bnd/wall_sliding_fv1.h"
 #include "stabilization.h"
 
 #include "turbulent_viscosity_fv1.h"
@@ -204,6 +205,18 @@ static void Domain(Registry& reg, string grp)
 			.add_method("add", &T::add, "", "Subset(s)")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesSymBCFV1", tag);
+	}
+
+	//	NavierStokesWSBCFV1
+	{
+		typedef NavierStokesWSBCFV1<TDomain> T;
+		typedef IElemDisc<TDomain> TBase;
+		string name = string("NavierStokesWSBCFV1").append(suffix);
+		reg.add_class_<T, TBase>(name, grp)
+			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
+			.add_method("add", &T::add, "", "Subset(s)")
+			.set_construct_as_smart_pointer(true);
+		reg.add_class_to_group(name, "NavierStokesWSBCFV1", tag);
 	}
 }
 
