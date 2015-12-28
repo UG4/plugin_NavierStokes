@@ -61,6 +61,7 @@ set(SOURCES	navier_stokes_base.cpp
 			incompressible/fv/bnd/no_normal_stress_outflow_fv.cpp
 			incompressible/fvcr/bnd/no_normal_stress_outflow_fvcr.cpp
 
+	incompressible/fv1/bnd/wall_sliding_fv1.cpp
 			incompressible/fvcr/bnd/symmetric_boundary_fvcr.cpp
 			incompressible/fv1/bnd/symmetric_boundary_fv1.cpp
 
