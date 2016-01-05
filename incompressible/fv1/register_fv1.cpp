@@ -215,6 +215,8 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
 			.add_method("add", &T::add, "", "Subset(s)")
+			.add_method("set_sliding_factor", &T::set_sliding_factor, "", "SlidingFactor")
+			.add_method("set_sliding_limit", &T::set_sliding_limit, "", "SlidingFactor")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWSBCFV1", tag);
 	}

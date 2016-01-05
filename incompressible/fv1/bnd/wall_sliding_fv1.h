@@ -37,6 +37,10 @@ class NavierStokesWSBCFV1
 	///	Position type
 		typedef typename base_type::position_type position_type;
 
+	/// sliding parameters
+		number m_imSlidingFactor;
+		number m_imSlidingLimit;
+
 	public:
 	///	Constructor (setting default values)
 		NavierStokesWSBCFV1(SmartPtr< IncompressibleNavierStokesBase<TDomain> > spMaster);
@@ -86,8 +90,8 @@ class NavierStokesWSBCFV1
 	 *
 	 * \param[in]	data		wall sliding factor
 	 */
-	//void set_sliding_factor(number data)
-		//{m_imSlidingFactor.set_data(data);}
+	void set_sliding_factor(number data)
+		{m_imSlidingFactor = data;}
 
 	///	sets the sliding limit
 	/**
@@ -95,8 +99,8 @@ class NavierStokesWSBCFV1
 	 *
 	 * \param[in]	data		sliding limit
 	 */
-	//void set_sliding_limit(number data)
-		//{m_imSlidingLimit.set_data(data);}
+	void set_sliding_limit(number data)
+		{m_imSlidingLimit = data;}
 
 	public:
 	///	type of trial space for each function used
@@ -107,30 +111,30 @@ class NavierStokesWSBCFV1
 		virtual bool requests_local_time_series() {return true;}
 
 	///	prepares the element loop
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void prep_elem_loop(const ReferenceObjectID roid, const int si);
 
 	///	prepares the element for evaluation
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, const MathVector<dim> vCornerCoords[]);
 
 	///	finishes the element loop
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void fsh_elem_loop();
 
 	///	adds the stiffness part to the local jacobian
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
 	///	adds the stiffness part to the local defect
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]);
 
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]) {}
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void add_def_M_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[]) {}
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template <typename TElem, typename TFVGeom>
 		void add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoords[]) {}
 
 	private:
@@ -152,9 +156,9 @@ class NavierStokesWSBCFV1
 	/// Data import for yield stress
 		DataImport<number, dim> m_imYieldStress;
 	///	Data import for sliding factor
-		DataImport<number, dim> m_imSlidingFactor;
+		//DataImport<number, dim> m_imSlidingFactor;
 	/// Data import for sliding limit
-		DataImport<number, dim> m_imSlidingLimit;
+		//DataImport<number, dim> m_imSlidingLimit;
 	/// Boundary integration points of the viscosity and the density
 		std::vector<MathVector<dim> > m_vLocIP;
 		std::vector<MathVector<dim> > m_vGloIP;
@@ -165,18 +169,9 @@ class NavierStokesWSBCFV1
 	/// abbreviation for pressure
 		static const size_t _P_ = dim;	//needed?!
 
-	private:
+	protected:
 		void register_all_funcs(bool bHang);
-
-		template <template <class Elem, int WorldDim> class TFVGeom>
-		struct RegisterFV1 {
-				RegisterFV1(this_type* pThis) : m_pThis(pThis){}
-				this_type* m_pThis;
-				template< typename TElem > void operator()(TElem&)
-				{m_pThis->register_func<TElem, TFVGeom>();}
-		};
-
-		template <typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+		template<typename TElem, typename TFVGeom>
 		void register_func();
 };
 

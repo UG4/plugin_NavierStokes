@@ -45,15 +45,15 @@ prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
  * Note that there are separate loops for every type of the grid elements.
  */
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 prep_elem_loop(const ReferenceObjectID roid, const int si)
 {
 //	register subsetIndex at Geometry
-	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	Only first order implementation
-	if(!(TFVGeom<TElem, dim>::order == 1))
+	if(!(TFVGeom::order == 1))
 		UG_THROW("Only first order implementation, but other Finite Volume"
 						" Geometry set.");
 
@@ -82,11 +82,11 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
  * Finalizes the element loop for a given element type.
  */
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 fsh_elem_loop()
 {
-	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	remove the bnd subsets
 	typename std::vector<int>::const_iterator subsetIter;
@@ -100,12 +100,12 @@ fsh_elem_loop()
  * General initializations of a given grid element for the assembling.
  */
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, const MathVector<dim> vCornerCoords[])
 {
 // 	Update Geometry for this element
-	static TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
+	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	try{
 		geo.update(elem, vCornerCoords, &(this->subset_handler()));
 	}
@@ -113,7 +113,7 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 						" Cannot update Finite Volume Geometry.");
 
 //	find and set the local and the global positions of the IPs for imports
-	typedef typename TFVGeom<TElem, dim>::BF BF;
+	typedef typename TFVGeom::BF BF;
 	typename std::vector<int>::const_iterator subsetIter;
 
 	m_vLocIP.clear(); m_vGloIP.clear();
@@ -146,27 +146,293 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	m_imYieldStress.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imYieldStress.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 
-	m_imSlidingFactor.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
-	m_imSlidingFactor.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+	//m_imSlidingFactor.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	//m_imSlidingFactor.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 
-	m_imSlidingLimit.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
-	m_imSlidingLimit.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+	//m_imSlidingLimit.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	//m_imSlidingLimit.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+
+	//UG_LOG("Berechne Bingham\n");
+
+	if(m_spMaster->bingham())
+	{
+		// get old solution
+		const LocalVector *uOldSol = NULL;
+		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+		uOldSol = &vLocSol->solution(1);
+
+		// get const point of viscosity at integration points
+		const number* pVisco = m_imKinViscosity.values();
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+	// 	get finite volume geometry
+		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+		typedef typename TFVGeom::BF BF;
+
+	// 	loop registered boundary segments
+		typename std::vector<int>::const_iterator subsetIter;
+		size_t ip = 0;
+		for(subsetIter = m_vBndSubSetIndex.begin();
+			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
+		{
+		//	get subset index corresponding to boundary
+			const int bndSubset = *subsetIter;
+			
+		//	get the list of the ip's:
+			if(geo.num_bf(bndSubset) == 0) continue;
+			const std::vector<BF>& vBF = geo.bf(bndSubset);
+
+		// 	loop the boundary faces
+			typename std::vector<BF>::const_iterator bf;
+			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
+			{
+				number innerSum = 0.0;
+				for(int d1 = 0; d1 < dim; ++d1)
+				{
+					for(int d2 = 0; d2 < dim; ++d2)
+					{
+						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						{
+							if(m_spMaster->laplace())
+								innerSum += (bf->global_grad(sh)[d1] * (*uOldSol)(d2, sh) * bf->global_grad(sh)[d2] * (*uOldSol)(d1, sh));
+							else
+							{
+								innerSum += ((bf->global_grad(sh)[d1] * (*uOldSol)(d2, sh) + bf->global_grad(sh)[d2] * (*uOldSol)(d1, sh))
+									*(bf->global_grad(sh)[d1] * (*uOldSol)(d2, sh) + bf->global_grad(sh)[d2] * (*uOldSol)(d1, sh)));
+							}
+						}
+					}
+				}
+				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
+		
+				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensity[ip];
+			}
+		}
+	}//end if bingham
+	//UG_LOG("Bingham berechnet\n");
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
+	//UG_LOG("1");
+	// 	Only first order implementation
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
+// 	get finite volume geometry
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+	typedef typename TFVGeom::BF BF;
+
+// 	loop registered boundary segments
+	typename std::vector<int>::const_iterator subsetIter;
+	size_t ip = 0;
+	for(subsetIter = m_vBndSubSetIndex.begin();
+		subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
+	{
+	//	get subset index corresponding to boundary
+		const int bndSubset = *subsetIter;
+		
+	//	get the list of the ip's:
+		if(geo.num_bf(bndSubset) == 0) continue;
+		const std::vector<BF>& vBF = geo.bf(bndSubset);
+
+	// 	loop the boundary faces
+		typename std::vector<BF>::const_iterator bf;
+		for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
+		{
+
+			////////////////////////////////////////////////////
+			// Add tangential diffusive flux
+			////////////////////////////////////////////////////
+			MathMatrix<dim,dim> diffFlux;
+			MathVector<dim> normN;
+
+			VecNormalize(normN, bf->normal());
+			/*
+			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
+			{
+			//	1. Compute the total flux
+			//	- add \nabla u
+				MatSet (diffFlux, 0);
+				MatDiagSet (diffFlux, VecDot (bf->global_grad(sh), bf->normal()));
+			
+			//	- add (\nabla u)^T
+				if(!m_spMaster->laplace())
+					for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+						for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
+							diffFlux(d1,d2) += bf->global_grad(sh)[d1] * bf->normal()[d2];
+			
+			//	3. Scale by viscosity and normals
+				diffFlux *= - m_imKinViscosity[ip] * m_imDensity [ip];
+				diffFlux *= VecDot(normN, normN);
+			
+			//	4. Add flux to local Jacobian
+				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+						J(d1, bf->node_id(), d2, sh) += diffFlux (d1, d2);
+			}
+			*/
+			////////////////////////////////////////////////////
+			// Add pressure term
+			////////////////////////////////////////////////////
+			
+			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+					J(d1, bf->node_id(), _P_, sh) += bf->shape(sh) * bf->normal()[d1] * VecDot(normN, normN);
+
+			////////////////////////////////////////////////////
+			// Add sliding koefficient term
+			////////////////////////////////////////////////////
+			
+			MathVector<dim> parallelVel;
+			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			{
+				parallelVel[d1] = 0.0;
+				for(size_t sh = 0; sh < (size_t)dim; ++sh)
+				{
+					parallelVel[d1] += bf->shape(sh);
+				}
+			}
+			
+			VecScaleAppend(parallelVel, - VecDot(parallelVel, normN), normN);
+
+			if(VecLength(parallelVel) != 0)
+				for(int d1 = 0; d1 < dim; ++d1)
+					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						J(d1, bf->node_id(), d1, sh) += (-1.0) * parallelVel[d1] * m_imSlidingFactor;
+
+			////////////////////////////////////////////////////
+			// Add sliding limit term
+			////////////////////////////////////////////////////
+			
+			if(VecLength(parallelVel) != 0)
+			{
+				VecNormalize(parallelVel, parallelVel);
+				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+					for(int d1 = 0; d1 < dim; ++d1)
+						J(d1, bf->node_id(), d1, sh) += (-1.0) * parallelVel[d1] * m_imSlidingLimit;
+			}
+			
+		}
+	}
 }
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
+	//UG_LOG("7");
+	// 	Only first order implementation
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
+	// 	get finite volume geometry
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+	typedef typename TFVGeom::BF BF;
+
+	// 	loop registered boundary segments
+	typename std::vector<int>::const_iterator subsetIter;
+	size_t ip = 0;
+	for(subsetIter = m_vBndSubSetIndex.begin();
+		subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
+	{
+	//	get subset index corresponding to boundary
+		const int bndSubset = *subsetIter;
+		
+	//	get the list of the ip's:
+		if(geo.num_bf(bndSubset) == 0) continue;
+		const std::vector<BF>& vBF = geo.bf(bndSubset);
+
+	// 	loop the boundary faces
+		typename std::vector<BF>::const_iterator bf;
+		for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
+		{
+			////////////////////////////////////////////////////
+			// Add tangential diffusive flux
+			////////////////////////////////////////////////////
+
+			MathMatrix<dim, dim> gradVel;
+			MathVector<dim> diffFlux, normN;
+			/*
+			VecNormalize(normN, bf->normal());
+
+		// 	1. Get the gradient of the velocity at ip
+			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
+				{
+				//	sum up contributions of each shape
+					gradVel(d1, d2) = 0.0;
+					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						gradVel(d1, d2) += bf->global_grad(sh)[d2] * u(d1, sh);
+				}
+
+		//	2. Compute the total flux
+
+		//	- add (\nabla u) \cdot \vec{n}
+			MatVecMult(diffFlux, gradVel, bf->normal());
+
+		//	- add (\nabla u)^T \cdot \vec{n}
+			if(!m_spMaster->laplace())
+				TransposedMatVecMultAdd(diffFlux, gradVel, bf->normal());
+
+		//	A4. Scale by viscosity and normals
+			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip] * m_imDensity[ip]);
+			VecScale(diffFlux, diffFlux, VecDot(normN, normN));
+
+		//	5. Add flux to local defect
+			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				d(d1, bf->node_id()) += diffFlux[d1];
+			*/
+			////////////////////////////////////////////////////
+			// Add tangential pressure term
+			////////////////////////////////////////////////////
+			
+			number pressure = 0.0;
+			number ptangential = 0.0;
+			for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+				pressure += bf->shape(sh) * u(_P_, sh);
+			
+			pressure *= VecDot(normN, normN);
+
+			for(int d1 = 0; d1 < dim; ++d1)
+				d(d1, bf->node_id()) += pressure * bf->normal()[d1];
+			
+			////////////////////////////////////////////////////
+			// Add sliding koefficient term
+			////////////////////////////////////////////////////
+			
+			MathVector<dim> parallelVel;
+			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			{
+				parallelVel[d1] = 0.0;
+				for(size_t sh = 0; sh < (size_t)dim; ++sh)
+				{
+					parallelVel[d1] += u(d1, sh) * bf->shape(sh);
+				}
+			}
+			
+			VecScaleAppend(parallelVel, - VecDot(parallelVel, normN), normN);
+
+			if(VecLength(parallelVel) != 0)
+				for(int d1 = 0; d1 < dim; ++d1)
+					d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingFactor;
+
+			////////////////////////////////////////////////////
+			// Add sliding limit term
+			////////////////////////////////////////////////////
+			
+			if(VecLength(parallelVel) != 0)
+			{
+				VecNormalize(parallelVel, parallelVel);
+				for(int d1 = 0; d1 < dim; ++d1)
+					d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingLimit;
+			}
+		}
+	}
 }
 
 /**
@@ -240,8 +506,8 @@ NavierStokesWSBCFV1(SmartPtr< IncompressibleNavierStokesBase<TDomain> > spMaster
 	this->register_import(m_imDensity);
 	this->register_import(m_imBinghamViscosity);
 	this->register_import(m_imYieldStress);
-	this->register_import(m_imSlidingFactor);
-	this->register_import(m_imSlidingLimit);
+	//this->register_import(m_imSlidingFactor);
+	//this->register_import(m_imSlidingLimit);
 
 //	initialize the imports from the master discretization
 	m_imKinViscosity.set_data(spMaster->kinematic_viscosity ());
@@ -253,44 +519,67 @@ NavierStokesWSBCFV1(SmartPtr< IncompressibleNavierStokesBase<TDomain> > spMaster
 	this->register_all_funcs(false);
 }
 
-/*
-template<typename TDomain>
-void NavierStokesWSBCFV1<TDomain>::
-set_sliding_factor(number factor)
-{
-	m_imSlidingFactor.set_data(factor);
-}
-
-template<typename TDomain>
-void NavierStokesWSBCFV1<TDomain>::
-set_sliding_limit(number limit)
-{
-	m_imSlidingLimit.set_data(limit);
-}
-*/
-
 ////////////////////////////////////////////////////////////////////////////////
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
 
-// register for 1D
-template<typename TDomain>
-void
-NavierStokesWSBCFV1<TDomain>::
+#ifdef UG_DIM_1
+template<>
+void NavierStokesWSBCFV1<Domain1d>::
 register_all_funcs(bool bHang)
 {
-//	get all grid element types in this dimension and below
-	typedef typename domain_traits<dim>::DimElemList ElemList;
-	// REMARK: Note that we register this boundary condition only
-	// for the full-dimensional elements (DimElemList instead of AllElemList).
-
 //	switch assemble functions
-	if(!bHang) boost::mpl::for_each<ElemList>( RegisterFV1<FV1Geometry>(this) );
-	else UG_THROW("Not implemented.");
+	if(!bHang)
+	{
+		register_func<RegularEdge, FV1Geometry<RegularEdge, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
+	}
 }
+#endif
+
+#ifdef UG_DIM_2
+template<>
+void NavierStokesWSBCFV1<Domain2d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Triangle, FV1Geometry<Triangle, dim> >();
+		register_func<Quadrilateral, FV1Geometry<Quadrilateral, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
+	}
+}
+#endif
+
+#ifdef UG_DIM_3
+template<>
+void NavierStokesWSBCFV1<Domain3d>::
+register_all_funcs(bool bHang)
+{
+//	switch assemble functions
+	if(!bHang)
+	{
+		register_func<Tetrahedron, FV1Geometry<Tetrahedron, dim> >();
+		register_func<Prism, FV1Geometry<Prism, dim> >();
+		register_func<Pyramid, FV1Geometry<Pyramid, dim> >();
+		register_func<Hexahedron, FV1Geometry<Hexahedron, dim> >();
+	}
+	else
+	{
+		UG_THROW("NavierStokesNoNormalStressOutflowFV1: Hanging Nodes not implemented.")
+	}
+}
+#endif
 
 template<typename TDomain>
-template<typename TElem, template <class Elem, int WorldDim> class TFVGeom>
+template<typename TElem, typename TFVGeom>
 void
 NavierStokesWSBCFV1<TDomain>::
 register_func()
