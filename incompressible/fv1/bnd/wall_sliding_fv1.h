@@ -38,8 +38,8 @@ class NavierStokesWSBCFV1
 		typedef typename base_type::position_type position_type;
 
 	/// sliding parameters
-		number m_imSlidingFactor;
-		number m_imSlidingLimit;
+		number m_imSlidingFactor = 0.0;
+		number m_imSlidingLimit = 0.0;
 
 	public:
 	///	Constructor (setting default values)
@@ -167,7 +167,7 @@ class NavierStokesWSBCFV1
 		DataImport<MathVector<dim>, dim> m_imSourceSCVF;
 
 	/// abbreviation for pressure
-		static const size_t _P_ = dim;	//needed?!
+		static const size_t _P_ = dim;
 
 	protected:
 		void register_all_funcs(bool bHang);
