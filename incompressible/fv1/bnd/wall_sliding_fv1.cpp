@@ -23,6 +23,39 @@ add
 	m_vScheduledBndSubSets.push_back(subsets);
 }
 
+
+template<typename TDomain>
+void NavierStokesWSBCFV1<TDomain>::
+set_sliding_factor(number val)
+{
+	m_imSlidingFactor.set_data(make_sp(new ConstUserNumber<dim>(val)));
+}
+
+#ifdef UG_FOR_LUA
+template<typename TDomain>
+void NavierStokesWSBCFV1<TDomain>::
+set_sliding_factor(const char* fctName)
+{
+	m_imSlidingFactor.set_data(LuaUserDataFactory<number, dim>::create(fctName));
+}
+#endif
+
+template<typename TDomain>
+void NavierStokesWSBCFV1<TDomain>::
+set_sliding_limit(number val)
+{
+	m_imSlidingLimit.set_data(make_sp(new ConstUserNumber<dim>(val)));
+}
+
+#ifdef UG_FOR_LUA
+template<typename TDomain>
+void NavierStokesWSBCFV1<TDomain>::
+set_sliding_limit(const char* fctName)
+{
+	m_imSlidingLimit.set_data(LuaUserDataFactory<number, dim>::create(fctName));
+}
+#endif
+
 template<typename TDomain>
 void NavierStokesWSBCFV1<TDomain>::
 prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
@@ -164,22 +197,40 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	m_imYieldStress.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imYieldStress.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 
+	m_imSlidingLimit.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	m_imSlidingLimit.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+
+	m_imSlidingFactor.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
+	m_imSlidingFactor.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
+
+
+}
+
+template<typename TDomain>
+template<typename TElem, typename TFVGeom>
+void NavierStokesWSBCFV1<TDomain>::
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
+{
+	//UG_LOG("1");
+	// 	Only first order implementation
+	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
+
+// 	get finite volume geometry
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+	typedef typename TFVGeom::BF BF;
+
 	if(m_spMaster->bingham())
 	{
 		// get old solution
-		const LocalVector *uOldSol = NULL;
-		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		uOldSol = &vLocSol->solution(1);
+		//const LocalVector *pOldSol = NULL;
+		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+		//pOldSol = &vLocSol->solution(1);
 
 		// get const point of viscosity at integration points
 		const number* pVisco = m_imKinViscosity.values();
 
 		// cast constness away
 		number* vVisco = const_cast<number*>(pVisco);
-
-	// 	get finite volume geometry
-		static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
-		typedef typename TFVGeom::BF BF;
 
 	// 	loop registered boundary segments
 		typename std::vector<int>::const_iterator subsetIter;
@@ -199,42 +250,39 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
 			{
 				number innerSum = 0.0;
+				
+				MathMatrix<dim, dim> gradVel;
+				MathVector<dim> Vel;
+				for(int d1 = 0; d1 < dim; ++d1)
+				{
+					Vel[d1] = 0.0;
+					for(int d2 = 0; d2 <dim; ++d2)
+					{
+					//	sum up contributions of each shape
+						gradVel(d1, d2) = 0.0;
+						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						{
+							if (!m_spMaster->laplace() || d1==d2)
+								gradVel(d1, d2) += bf->global_grad(sh)[d2]
+							                    	* u(d1, sh);
+						}					
+					}
+				}
 				for(int d1 = 0; d1 < dim; ++d1)
 				{
 					for(int d2 = 0; d2 < dim; ++d2)
 					{
 						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 						{
-							if(m_spMaster->laplace())
-								innerSum += (bf->global_grad(sh)[d1] * (*uOldSol)(d2, sh) * bf->global_grad(sh)[d2] * (*uOldSol)(d1, sh));
-							else
-							{
-								innerSum += ((bf->global_grad(sh)[d1] * (*uOldSol)(d2, sh) + bf->global_grad(sh)[d2] * (*uOldSol)(d1, sh))
-									*(bf->global_grad(sh)[d1] * (*uOldSol)(d2, sh) + bf->global_grad(sh)[d2] * (*uOldSol)(d1, sh)));
-							}
+							innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
 						}
 					}
 				}
 				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
-		
-				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensity[ip];
+				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensity[ip];
 			}
 		}
 	}//end if bingham
-}
-
-template<typename TDomain>
-template<typename TElem, typename TFVGeom>
-void NavierStokesWSBCFV1<TDomain>::
-add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
-{
-	//UG_LOG("1");
-	// 	Only first order implementation
-	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
-
-// 	get finite volume geometry
-	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
-	typedef typename TFVGeom::BF BF;
 
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
@@ -294,10 +342,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 				{
 					J(d1, bf->node_id(), _P_, sh) += bf->shape(sh) * normal[d1] * VecDot(bf->normal(), normal);
-					//UG_LOG("J("<<0<<", "<<bf->node_id()<<", "<<0<<", "<<sh<<"): "<<J(0, bf->node_id(), 0, sh)<<"\n");
-					//UG_LOG("J("<<0<<", "<<bf->node_id()<<", "<<1<<", "<<sh<<"): "<<J(0, bf->node_id(), 1, sh)<<"\n");
-					//UG_LOG("J("<<1<<", "<<bf->node_id()<<", "<<0<<", "<<sh<<"): "<<J(1, bf->node_id(), 0, sh)<<"\n");
-					//UG_LOG("J("<<1<<", "<<bf->node_id()<<", "<<1<<", "<<sh<<"): "<<J(1, bf->node_id(), 1, sh)<<"\n");
 				}
 
 
@@ -316,11 +360,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 					normalParallelVel[d1] += bf->shape(sh);
 				}
 
-			//UG_LOG("normalParallelVel: ")
-			//for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-			//	UG_LOG(normalParallelVel[d1]<<", ");
-			//UG_LOG("\n");
-
 			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					for(size_t sh = 0; sh < (size_t)dim; ++sh)
@@ -330,7 +369,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 					{
-						J(d1, bf->node_id(), d2, sh) += (-1.0) * parallelVel(d1,d2) * m_imSlidingFactor;
+						J(d1, bf->node_id(), d2, sh) += (-1.0) * parallelVel(d1,d2) * m_imSlidingFactor[ip];
 					}
 
 			////////////////////////////////////////////////////
@@ -342,7 +381,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 				VecNormalize(normalParallelVel, normalParallelVel);
 				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 					for(int d1 = 0; d1 < dim; ++d1)
-						J(d1, bf->node_id(), d1, sh) += (-1.0) * normalParallelVel[d1] * m_imSlidingLimit;
+						J(d1, bf->node_id(), d1, sh) += (-1.0) * normalParallelVel[d1] * m_imSlidingLimit[ip];
 			}
 			
 		}
@@ -362,6 +401,71 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	typedef typename TFVGeom::BF BF;
 
+	if(m_spMaster->bingham())
+	{
+		// get old solution
+		//const LocalVector *pOldSol = NULL;
+		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+		//pOldSol = &vLocSol->solution(1);
+
+		// get const point of viscosity at integration points
+		const number* pVisco = m_imKinViscosity.values();
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+	// 	loop registered boundary segments
+		typename std::vector<int>::const_iterator subsetIter;
+		size_t ip = 0;
+		for(subsetIter = m_vBndSubSetIndex.begin();
+			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
+		{
+		//	get subset index corresponding to boundary
+			const int bndSubset = *subsetIter;
+			
+		//	get the list of the ip's:
+			if(geo.num_bf(bndSubset) == 0) continue;
+			const std::vector<BF>& vBF = geo.bf(bndSubset);
+
+		// 	loop the boundary faces
+			typename std::vector<BF>::const_iterator bf;
+			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
+			{
+				number innerSum = 0.0;
+				
+				MathMatrix<dim, dim> gradVel;
+				MathVector<dim> Vel;
+				for(int d1 = 0; d1 < dim; ++d1)
+				{
+					Vel[d1] = 0.0;
+					for(int d2 = 0; d2 <dim; ++d2)
+					{
+					//	sum up contributions of each shape
+						gradVel(d1, d2) = 0.0;
+						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						{
+							if (!m_spMaster->laplace() || d1==d2)
+								gradVel(d1, d2) += bf->global_grad(sh)[d2]
+							                    	* u(d1, sh);
+						}					
+					}
+				}
+				for(int d1 = 0; d1 < dim; ++d1)
+				{
+					for(int d2 = 0; d2 < dim; ++d2)
+					{
+						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						{
+							innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
+						}
+					}
+				}
+				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
+				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensity[ip];
+			}
+		}
+	}//end if bingham
+	
 	// 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
 	size_t ip = 0;
@@ -446,7 +550,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 			VecScaleAppend(parallelVel, - VecDot(parallelVel, normal), normal);
 
 			for(int d1 = 0; d1 < dim; ++d1)
-				d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingFactor;
+				d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingFactor[ip];
 
 			////////////////////////////////////////////////////
 			// Add sliding limit part
@@ -456,7 +560,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 			{
 				VecNormalize(parallelVel, parallelVel);
 				for(int d1 = 0; d1 < dim; ++d1)
-					d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingLimit;
+					d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingLimit[ip];
 			}
 			
 		}
@@ -534,8 +638,8 @@ NavierStokesWSBCFV1(SmartPtr< IncompressibleNavierStokesBase<TDomain> > spMaster
 	this->register_import(m_imDensity);
 	this->register_import(m_imBinghamViscosity);
 	this->register_import(m_imYieldStress);
-	//this->register_import(m_imSlidingFactor);
-	//this->register_import(m_imSlidingLimit);
+	this->register_import(m_imSlidingFactor);
+	this->register_import(m_imSlidingLimit);
 
 //	initialize the imports from the master discretization
 	m_imKinViscosity.set_data(spMaster->kinematic_viscosity ());

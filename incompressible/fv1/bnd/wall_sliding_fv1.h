@@ -38,8 +38,8 @@ class NavierStokesWSBCFV1
 		typedef typename base_type::position_type position_type;
 
 	/// sliding parameters
-		number m_imSlidingFactor = 0.0;
-		number m_imSlidingLimit = 0.0;
+		//number m_imSlidingFactor = 0.0;
+		//number m_imSlidingLimit = 0.0;
 
 	public:
 	///	Constructor (setting default values)
@@ -90,18 +90,27 @@ class NavierStokesWSBCFV1
 	 *
 	 * \param[in]	data		wall sliding factor
 	 */
-	void set_sliding_factor(number data)
-		{m_imSlidingFactor = data;}
-
+	//void set_sliding_factor(SmartPtr<CplUserData<number, dim> > data)
+	//	{m_imSlidingFactor.set_data(data);}
+		//virtual void set_sliding_factor(SmartPtr<CplUserData<number, dim> > user) = 0;
+		void set_sliding_factor(number val);
+#ifdef UG_FOR_LUA
+		void set_sliding_factor(const char* fctName);
+#endif
 	///	sets the sliding limit
 	/**
 	 * This method sets the sliding limit parameter.
 	 *
 	 * \param[in]	data		sliding limit
 	 */
-	void set_sliding_limit(number data)
-		{m_imSlidingLimit = data;}
-
+	//void set_sliding_limit(number data)
+	//	{m_imSlidingLimit.set_data(data);}
+	///	sets the kinematic viscosity
+		//virtual void set_sliding_limit(SmartPtr<CplUserData<number, dim> > user) = 0;
+		void set_sliding_limit(number val);
+#ifdef UG_FOR_LUA
+		void set_sliding_limit(const char* fctName);
+#endif
 	public:
 	///	type of trial space for each function used
 		virtual void prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid);
@@ -156,9 +165,9 @@ class NavierStokesWSBCFV1
 	/// Data import for yield stress
 		DataImport<number, dim> m_imYieldStress;
 	///	Data import for sliding factor
-		//DataImport<number, dim> m_imSlidingFactor;
+		DataImport<number, dim> m_imSlidingFactor;
 	/// Data import for sliding limit
-		//DataImport<number, dim> m_imSlidingLimit;
+		DataImport<number, dim> m_imSlidingLimit;
 	/// Boundary integration points of the viscosity and the density
 		std::vector<MathVector<dim> > m_vLocIP;
 		std::vector<MathVector<dim> > m_vGloIP;

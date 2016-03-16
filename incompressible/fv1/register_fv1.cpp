@@ -215,8 +215,18 @@ static void Domain(Registry& reg, string grp)
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
 			.add_method("add", &T::add, "", "Subset(s)")
-			.add_method("set_sliding_factor", &T::set_sliding_factor, "", "SlidingFactor")
-			.add_method("set_sliding_limit", &T::set_sliding_limit, "", "SlidingFactor")
+			//.add_method("set_sliding_factor", &T::set_sliding_factor, "", "SlidingFactor") 
+			//.add_method("set_sliding_limit", &T::set_sliding_limit, "", "SlidingLimit")
+			//.add_method("set_sliding_limit", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_sliding_limit), "", "SlidingLimit")
+			.add_method("set_sliding_limit", static_cast<void (T::*)(number)>(&T::set_sliding_limit), "", "SlidingLimit")
+#ifdef UG_FOR_LUA
+			.add_method("set_sliding_limit", static_cast<void (T::*)(const char*)>(&T::set_sliding_limit), "", "SlidingLimit")
+#endif
+			//.add_method("set_sliding_factor", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_sliding_factor), "", "SlidingFactor")
+			.add_method("set_sliding_factor", static_cast<void (T::*)(number)>(&T::set_sliding_factor), "", "SlidingFactor")
+#ifdef UG_FOR_LUA
+			.add_method("set_sliding_factor", static_cast<void (T::*)(const char*)>(&T::set_sliding_factor), "", "SlidingFactor")
+#endif
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesWSBCFV1", tag);
 	}

@@ -304,50 +304,6 @@ prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const 
 	m_imYieldStress.set_global_ips(vSCVFip, numSCVFip);
 	//m_imRegularizeDelta.set_global_ips(vSCVFip, numSCVFip);
 
-//	bingham behaviour
-	if(m_bBingham)
-	{
-		//get old solution
-		const LocalVector *pOldSol = NULL;
-		const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		pOldSol = &vLocSol->solution(1);
-		
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-		number innerSum = 0.0;
-		number secondInvariant = 0.0;
-
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			// 	get current SCVF
-			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-			for(int d1 = 0; d1 < dim; ++d1)
-			{
-				for(int d2 = 0; d2 < dim; ++d2)
-				{
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					{
-						if(m_bLaplace)
-						{
-							innerSum += (scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh)* scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh));
-						}
-						else
-						{
-							innerSum += ((scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh))
-								*(scvf.global_grad(sh)[d1] * (*pOldSol)(d2, sh) + scvf.global_grad(sh)[d2] * (*pOldSol)(d1, sh)));
-						}
-					}
-				}
-			}
-			// overwrite viscosity
-			secondInvariant = 1.0/(pow(2, dim))*innerSum;
-			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.1+secondInvariant))/m_imDensitySCVF[ip];
-		}
-	}
 }
 
 template<typename TDomain>
@@ -360,6 +316,66 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
 // 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+
+//	bingham behaviour
+	if(m_bBingham)
+	{
+		//get old solution
+		//const LocalVector *pOldSol = NULL;
+		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+		//pOldSol = &vLocSol->solution(1);
+		
+		// get const point of viscosity at integration points
+		const number* pVisco = m_imKinViscosity.values();
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+		number secondInvariant = 0.0;
+
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			//UG_LOG("innerSum: ");
+			number innerSum = 0.0;
+			// 	get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+
+			MathMatrix<dim, dim> gradVel;
+			MathVector<dim> Vel;
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				Vel[d1] = 0.0;
+				for(int d2 = 0; d2 <dim; ++d2)
+				{
+				//	sum up contributions of each shape
+					gradVel(d1, d2) = 0.0;
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						if (!m_bLaplace || d1==d2)
+							gradVel(d1, d2) += scvf.global_grad(sh)[d2]
+						                    	* u(d1, sh);
+					}					
+				}
+			}
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				for(int d2 = 0; d2 < dim; ++d2)
+				{
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
+					}
+				}
+			}
+			//UG_LOG("\n");
+			//UG_LOG("Vel at ip "<<ip<<" is: "<<Vel[0]<<", "<<Vel[1]<<"\n")
+			//UG_LOG("GradVel is: "<<gradVel(0,0)<<", "<<gradVel(0,1)<<", "<<gradVel(1,0)<<", "<<gradVel(1,1)<<"\n");
+			// overwrite viscosity
+			secondInvariant = 1.0/(pow(2, dim))*innerSum;
+			//UG_LOG("innerSum is: "<<innerSum<<", I_2 is: "<<(0.1+secondInvariant)<<"\n")
+			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensitySCVF[ip];
+		}
+	}
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -707,6 +723,61 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
 // 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+
+//	bingham behaviour
+	if(m_bBingham)
+	{
+		//get old solution
+		//const LocalVector *pOldSol = NULL;
+		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+		//pOldSol = &vLocSol->solution(1);
+		
+		// get const point of viscosity at integration points
+		const number* pVisco = m_imKinViscosity.values();
+
+		// cast constness away
+		number* vVisco = const_cast<number*>(pVisco);
+
+		number secondInvariant = 0.0;
+
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+			number innerSum = 0.0;
+			// 	get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+
+			MathMatrix<dim, dim> gradVel;
+			MathVector<dim> Vel;
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				Vel[d1] = 0.0;
+				for(int d2 = 0; d2 <dim; ++d2)
+				{
+				//	sum up contributions of each shape
+					gradVel(d1, d2) = 0.0;
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						if (!m_bLaplace || d1==d2)
+							gradVel(d1, d2) += scvf.global_grad(sh)[d2]
+						                    	* u(d1, sh);
+					}					
+				}
+			}
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				for(int d2 = 0; d2 < dim; ++d2)
+				{
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
+					}
+				}
+			}
+			// overwrite viscosity
+			secondInvariant = 1.0/(pow(2, dim))*innerSum;
+			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensitySCVF[ip];
+		}
+	}
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
