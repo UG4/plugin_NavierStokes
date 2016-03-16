@@ -564,7 +564,7 @@ void DrivenCavityEvalAtPoints(const std::vector<MathVector<2> >& vPos,
 	UG_LOG("\t     Max Diff: " << maxdiff << "\n")
 	UG_LOG("\t Average Diff: " << diffsum/vPos.size() << "\n\n");
 #else
-	UG_THROW("compile without dimension 3 to use this command");
+	UG_LOG("DrivenCavityEvalAtPoints: Failed. Compile without dimension 3 to use this command.\n");
 #endif
 }
 
