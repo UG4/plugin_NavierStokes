@@ -463,7 +463,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 	
 		// add linear pressure part and linear velocity upwind part to jacobian
 		virtual void adjust_jacobian(matrix_type& J, const vector_type& u,
-				                             ConstSmartPtr<DoFDistribution> dd, number time = 0.0,
+				                             ConstSmartPtr<DoFDistribution> dd, int type, number time = 0.0,
 				                             ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = NULL,const number s_a0 = 1.0){
 			if ((m_bLinUpConvJacobian==false)&&(m_bLinPressureJacobian==false)) return;
 			// compute new velocity gradient shapes in adaptive case
@@ -1147,7 +1147,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			///	adapts defect to enforce constraints
 			/// \{
 		virtual void adjust_defect(vector_type& d, const vector_type& u,
-				                           ConstSmartPtr<DoFDistribution> dd, number time = 0.0,
+				                           ConstSmartPtr<DoFDistribution> dd, int type, number time = 0.0,
 				                           ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = SPNULL,
 										   const std::vector<number>* vScaleMass = NULL,
 										   const std::vector<number>* vScaleStiff = NULL)
@@ -1173,19 +1173,19 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			///	adapts matrix and rhs (linear case) to enforce constraints
 			/// \{
 		virtual void adjust_linear(matrix_type& mat, vector_type& rhs,
-				                           ConstSmartPtr<DoFDistribution> dd, number time = 0.0){};
+				                           ConstSmartPtr<DoFDistribution> dd, int type, number time = 0.0){};
 			/// \}
 
 			///	adapts a rhs to enforce constraints
 			/// \{
 		virtual void adjust_rhs(vector_type& rhs, const vector_type& u,
-				                        ConstSmartPtr<DoFDistribution> dd, number time = 0.0){};
+				                        ConstSmartPtr<DoFDistribution> dd, int type, number time = 0.0){};
 			/// \}
 
 			///	sets the constraints in a solution vector
 			/// \{
 		virtual void adjust_solution(vector_type& u, ConstSmartPtr<DoFDistribution> dd,
-				                             number time = 0.0){};
+				                             int type, number time = 0.0){};
 
 	///	returns the type of the constraints 
 		virtual int type() const {return CT_CONSTRAINTS;}
