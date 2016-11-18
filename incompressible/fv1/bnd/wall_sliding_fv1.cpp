@@ -1,3 +1,36 @@
+/*
+ * Copyright (c) 2013-2014:  G-CSC, Goethe University Frankfurt
+ * Author: Jonas Simon
+ * 
+ * This file is part of UG4.
+ * 
+ * UG4 is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License version 3 (as published by the
+ * Free Software Foundation) with the following additional attribution
+ * requirements (according to LGPL/GPL v3 §7):
+ * 
+ * (1) The following notice must be displayed in the Appropriate Legal Notices
+ * of covered and combined works: "Based on UG4 (www.ug4.org/license)".
+ * 
+ * (2) The following notice must be displayed at a prominent place in the
+ * terminal output of covered works: "Based on UG4 (www.ug4.org/license)".
+ * 
+ * (3) The following bibliography is recommended for citation and must be
+ * preserved in all covered files:
+ * "Reiter, S., Vogel, A., Heppner, I., Rupp, M., and Wittum, G. A massively
+ *   parallel geometric multigrid solver on hierarchically distributed grids.
+ *   Computing and visualization in science 16, 4 (2013), 151-164"
+ * "Vogel, A., Reiter, S., Rupp, M., Nägel, A., and Wittum, G. UG4 -- a novel
+ *   flexible software system for simulating pde based models on high performance
+ *   computers. Computing and visualization in science 16, 4 (2013), 165-179"
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Lesser General Public License for more details.
+ */
+
+
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
 #include "lib_disc/spatial_disc/disc_util/geom_provider.h"
 
@@ -108,15 +141,14 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		if(!m_imYieldStress.data_given())
 			UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
 							" Yield Stress has not been set, but is required.\n");
-		/*
-		if(!m_imSlidingFactor == ?)
-			UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
-							" Sliding Factor has not been set, but is required.\n");
-		if(!m_imSlidingLimit == ?)
-			UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
-							" Sliding Limit has not been set, but is required.\n");
-		*/
 	}
+	if(!m_imSlidingFactor.data_given())
+		UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
+						" Sliding Factor has not been set, but is required.\n");
+
+	if(!m_imSlidingLimit.data_given())
+		UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
+						" Sliding Limit has not been set. It can be set to 0 if it's not used.\n");
 
 //	extract indices of boundary
 	extract_scheduled_data();
@@ -211,7 +243,6 @@ template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
-	//UG_LOG("1");
 	// 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
@@ -221,11 +252,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
 	if(m_spMaster->bingham())
 	{
-		// get old solution
-		//const LocalVector *pOldSol = NULL;
-		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		//pOldSol = &vLocSol->solution(1);
-
 		// get const point of viscosity at integration points
 		const number* pVisco = m_imKinViscosity.values();
 
@@ -303,53 +329,37 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 		{
 
 			////////////////////////////////////////////////////
-			// Add tangential diffusive flux
+			// Add convective flux
 			////////////////////////////////////////////////////
-			MathMatrix<dim,dim> diffFlux;
-			MathVector<dim> normal, normalFlux, normalParallelVel;
+			MathVector<dim> normal;
 
-			VecNormalize(normal, bf->normal());
-			for(size_t sh = 0; sh < bf->num_sh(); ++sh) // loop shape functions
+                        VecNormalize(normal, bf->normal());
+
+			if (!m_spMaster->stokes ())
 			{
-			//	1. Compute the total flux
-			//	- add \nabla u
-				MatSet (diffFlux, 0);
-				for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						for (size_t d3 = 0; d3 < (size_t)dim; ++d3)
-							diffFlux(d1,d2) += bf->global_grad(sh)[d3] * bf->normal()[d1] * normal[d2] * normal[d3];			
-			
-			//	- add (\nabla u)^T
-				if(!m_spMaster->laplace())
-					for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
-						for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
-							diffFlux(d1,d2) *= 2;
-			
-			//	3. Scale by viscosity
-				diffFlux *= (-1.0)* m_imKinViscosity[ip] * m_imDensity [ip];
+				MathVector<dim> StdVel(0.0);
+				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+					for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
+						StdVel[d1] += u(d1, sh) * bf->shape(sh);
 
-			//	4. Add flux to local Jacobian
-				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-					for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-						J(d1, bf->node_id(), d2, sh) += diffFlux (d1, d2);
-			}
+				VecScaleAppend(StdVel, -VecDot(StdVel, normal), normal);
+				number old_momentum_flux = VecDot (StdVel, bf->normal ()) * m_imDensity [ip];
 			
-			////////////////////////////////////////////////////
-			// Add pressure term 
-			////////////////////////////////////////////////////
-			
-			for (size_t d1 = 0; d1 < (size_t)dim; ++d1)
+			//	Add flux to local Jacobian
 				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 				{
-					J(d1, bf->node_id(), _P_, sh) += bf->shape(sh) * normal[d1] * VecDot(bf->normal(), normal);
+					number t = old_momentum_flux * bf->shape(sh);
+					for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
+						J(d1, bf->node_id(), d1, sh) += t;
 				}
-
-
+			}
+			
 			////////////////////////////////////////////////////
 			// Add sliding coefficient part
 			////////////////////////////////////////////////////
 			
 			MathMatrix<dim,dim> parallelVel;
+			MathVector<dim> normalParallelVel;
 			MatSet(parallelVel, 0.0);
 			VecSet(normalParallelVel, 0.0);
 			
@@ -393,7 +403,6 @@ template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
-	//UG_LOG("7");
 	// 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
@@ -403,11 +412,6 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
 	if(m_spMaster->bingham())
 	{
-		// get old solution
-		//const LocalVector *pOldSol = NULL;
-		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		//pOldSol = &vLocSol->solution(1);
-
 		// get const point of viscosity at integration points
 		const number* pVisco = m_imKinViscosity.values();
 
@@ -483,56 +487,33 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 		typename std::vector<BF>::const_iterator bf;
 		for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
 		{
+
 			////////////////////////////////////////////////////
-			// Add tangential diffusive flux
+			// Add convective flux
 			////////////////////////////////////////////////////
 
-			MathMatrix<dim, dim> gradVel;
-			MathVector<dim> diffFlux, normal;
-			
-			VecNormalize(normal, bf->normal());
+                        MathVector<dim> normal;
+                        
+                        VecNormalize(normal, bf->normal());
 
-		// 	1. Get the gradient of the velocity at ip
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
-				{
-				//	sum up contributions of each shape
-					gradVel(d1, d2) = 0.0;
-					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						gradVel(d1, d2) += bf->global_grad(sh)[d2] * u(d1, sh);
-				}
-
-		//	2. Compute the total flux
-
-		//	- add (\nabla u) \cdot \vec{n}
-			MatVecMult(diffFlux, gradVel, bf->normal());
-
-		//	- add (\nabla u)^T \cdot \vec{n}
-			if(!m_spMaster->laplace())
-				TransposedMatVecMultAdd(diffFlux, gradVel, bf->normal());
-
-		//	A4. Scale by viscosity and normals
-			VecScale(diffFlux, normal, VecDot(diffFlux, normal));
-			VecScale(diffFlux, diffFlux, (-1.0) * m_imKinViscosity[ip] * m_imDensity[ip]);
-
-		//	5. Add flux to local defect
-			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
-				d(d1, bf->node_id()) += diffFlux[d1];
-			
-			////////////////////////////////////////////////////
-			// Add tangential pressure term
-			////////////////////////////////////////////////////
-			
-			number pressure = 0.0;
-
-			for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-				pressure += bf->shape(sh) * u(_P_, sh);
-
-			for(int d1 = 0; d1 < dim; ++d1)
+			if (!m_spMaster->stokes ())
 			{
-				d(d1, bf->node_id()) += pressure * normal[d1] * VecDot(bf->normal(), normal);
-				//UG_LOG("d("<<d1<<", "<<bf->node_id()<<"): "<<d(d1, bf->node_id())<<"\n");
+			// A. Compute Velocity at ip
+				MathVector<dim> StdVel(0.0);
+				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+						StdVel[d1] += u(d1, sh) * bf->shape(sh);
+
+				VecScaleAppend(StdVel, -VecDot(StdVel, normal), normal);
+
+			// The convection velocity according to the current approximation:
+				number old_momentum_flux = VecDot (StdVel, bf->normal ()) * m_imDensity [ip];
+			
+			// Add the flux to the defect:
+				for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
+					d(d1, bf->node_id()) += old_momentum_flux * StdVel[d1];
 			}
+
 			////////////////////////////////////////////////////
 			// Add sliding koefficient part
 			////////////////////////////////////////////////////
@@ -546,11 +527,12 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 					parallelVel[d1] += u(d1, sh) * bf->shape(sh);
 				}
 			}
-			
-			VecScaleAppend(parallelVel, - VecDot(parallelVel, normal), normal);
+
+			VecScaleAppend(parallelVel, -VecDot(parallelVel, normal), normal);
 
 			for(int d1 = 0; d1 < dim; ++d1)
 				d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingFactor[ip];
+
 
 			////////////////////////////////////////////////////
 			// Add sliding limit part
@@ -562,7 +544,6 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 				for(int d1 = 0; d1 < dim; ++d1)
 					d(d1, bf->node_id()) += (-1.0) * parallelVel[d1] * m_imSlidingLimit[ip];
 			}
-			
 		}
 	}
 }

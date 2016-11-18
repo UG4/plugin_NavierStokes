@@ -218,9 +218,9 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		//	UG_THROW("NavierStokes::prep_elem_loop:"
 		//					" regularizing delta has not been set, but is required.");
 
-		if(!m_bStokes)
-			UG_THROW("NavierStokes::prep_elem_loop:"
-							" Bingham behaviour is only available for Stokes.");
+		//if(!m_bStokes)
+		//	UG_THROW("NavierStokes::prep_elem_loop:"
+		//					" Bingham behaviour is only available for Stokes.");
 
 		if(!this->is_time_dependent()){
 			UG_THROW("NavierStokes::prep_elem_loop:"

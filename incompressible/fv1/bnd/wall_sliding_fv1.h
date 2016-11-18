@@ -11,7 +11,7 @@
 #include "lib_disc/spatial_disc/user_data/data_import.h"
 
 #include "../../incompressible_navier_stokes_base.h"
-#include "../stabilization.h"	//maybe not used
+//#include "../stabilization.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -36,10 +36,6 @@ class NavierStokesWSBCFV1
 
 	///	Position type
 		typedef typename base_type::position_type position_type;
-
-	/// sliding parameters
-		//number m_imSlidingFactor = 0.0;
-		//number m_imSlidingLimit = 0.0;
 
 	public:
 	///	Constructor (setting default values)
@@ -90,27 +86,22 @@ class NavierStokesWSBCFV1
 	 *
 	 * \param[in]	data		wall sliding factor
 	 */
-	//void set_sliding_factor(SmartPtr<CplUserData<number, dim> > data)
-	//	{m_imSlidingFactor.set_data(data);}
-		//virtual void set_sliding_factor(SmartPtr<CplUserData<number, dim> > user) = 0;
 		void set_sliding_factor(number val);
 #ifdef UG_FOR_LUA
 		void set_sliding_factor(const char* fctName);
 #endif
+
 	///	sets the sliding limit
 	/**
 	 * This method sets the sliding limit parameter.
 	 *
 	 * \param[in]	data		sliding limit
 	 */
-	//void set_sliding_limit(number data)
-	//	{m_imSlidingLimit.set_data(data);}
-	///	sets the kinematic viscosity
-		//virtual void set_sliding_limit(SmartPtr<CplUserData<number, dim> > user) = 0;
 		void set_sliding_limit(number val);
 #ifdef UG_FOR_LUA
 		void set_sliding_limit(const char* fctName);
 #endif
+
 	public:
 	///	type of trial space for each function used
 		virtual void prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid);
@@ -156,15 +147,15 @@ class NavierStokesWSBCFV1
 
 		void extract_scheduled_data(); // convert m_vScheduledBndSubSets -> m_vBndSubSetIndex
 
-	///	Data import for kinematic viscosity
+	/// Data import for kinematic viscosity
 		DataImport<number, dim> m_imKinViscosity;
 	/// Data import for density
 		DataImport<number, dim> m_imDensity;
-	///	Data import for bingham viscosity
+	/// Data import for bingham viscosity
 		DataImport<number, dim> m_imBinghamViscosity;
 	/// Data import for yield stress
 		DataImport<number, dim> m_imYieldStress;
-	///	Data import for sliding factor
+	/// Data import for sliding factor
 		DataImport<number, dim> m_imSlidingFactor;
 	/// Data import for sliding limit
 		DataImport<number, dim> m_imSlidingLimit;
