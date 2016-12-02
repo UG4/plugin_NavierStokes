@@ -218,10 +218,6 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		//	UG_THROW("NavierStokes::prep_elem_loop:"
 		//					" regularizing delta has not been set, but is required.");
 
-		if(!m_bStokes)
-			UG_THROW("NavierStokes::prep_elem_loop:"
-							" Bingham behaviour is only available for Stokes.");
-
 		if(!this->is_time_dependent()){
 			UG_THROW("NavierStokes::prep_elem_loop:"
 							" Bingham behaviour is only available for time-dependent problems.");
@@ -885,7 +881,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 			d(d1, scvf.from()) += diffFlux[d1];
 			d(d1, scvf.to()  ) -= diffFlux[d1];
 		}
-
+			
 		////////////////////////////////////////////////////
 		// Convective Term (Momentum Equation)
 		////////////////////////////////////////////////////
