@@ -51,14 +51,10 @@ NavierStokesNoNormalStressOutflowFV1(SmartPtr< IncompressibleNavierStokesBase<TD
 //	register imports
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensity);
-	this->register_import(m_imBinghamViscosity);
-	this->register_import(m_imYieldStress);
 
 //	initialize the imports from the master discretization
 	set_kinematic_viscosity(spMaster->kinematic_viscosity ());
 	set_density(spMaster->density ());
-	set_bingham_viscosity(spMaster->bingham_viscosity ());
-	set_yield_stress(spMaster->yield_stress ());
 
 	//	update assemble functions
 	register_all_funcs(false);
@@ -188,13 +184,6 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	
 	m_imDensity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imDensity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
-
-	m_imBinghamViscosity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
-	m_imBinghamViscosity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
-	
-	m_imYieldStress.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
-	m_imYieldStress.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
-
 }
 
 /// Assembling of the diffusive flux (due to the viscosity) in the Jacobian of the momentum eq.
@@ -360,73 +349,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	typedef typename TFVGeom::BF BF;
 
-	if(m_spMaster->bingham())
-	{
-		// get old solution
-		//const LocalVector *pOldSol = NULL;
-		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		//pOldSol = &vLocSol->solution(1);
-
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-	// 	loop registered boundary segments
-		typename std::vector<int>::const_iterator subsetIter;
-		size_t ip = 0;
-		for(subsetIter = m_vBndSubSetIndex.begin();
-			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
-		{
-		//	get subset index corresponding to boundary
-			const int bndSubset = *subsetIter;
-			
-		//	get the list of the ip's:
-			if(geo.num_bf(bndSubset) == 0) continue;
-			const std::vector<BF>& vBF = geo.bf(bndSubset);
-
-		// 	loop the boundary faces
-			typename std::vector<BF>::const_iterator bf;
-			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
-			{
-				number innerSum = 0.0;
-				number oldSol1 = 0.0;
-				number oldSol2 = 0.0;
-
-				MathMatrix<dim, dim> gradVel;
-				MathVector<dim> Vel;
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					Vel[d1] = 0.0;
-					for(int d2 = 0; d2 <dim; ++d2)
-					{
-					//	sum up contributions of each shape
-						gradVel(d1, d2) = 0.0;
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							if (!m_spMaster->laplace() || d1==d2)
-								gradVel(d1, d2) += bf->global_grad(sh)[d2]
-							                    	* u(d1, sh);
-						}					
-					}
-				}
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					for(int d2 = 0; d2 < dim; ++d2)
-					{
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
-						}
-					}
-				}
-				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
-				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensity[ip];
-			}
-		}
-	}
-
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
 	size_t ip = 0;
@@ -470,70 +392,6 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	typedef typename TFVGeom::BF BF;
 
-	if(m_spMaster->bingham())
-	{
-		// get old solution
-		//const LocalVector *pOldSol = NULL;
-		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		//pOldSol = &vLocSol->solution(1);
-
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-	// 	loop registered boundary segments
-		typename std::vector<int>::const_iterator subsetIter;
-		size_t ip = 0;
-		for(subsetIter = m_vBndSubSetIndex.begin();
-			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
-		{
-		//	get subset index corresponding to boundary
-			const int bndSubset = *subsetIter;
-			
-		//	get the list of the ip's:
-			if(geo.num_bf(bndSubset) == 0) continue;
-			const std::vector<BF>& vBF = geo.bf(bndSubset);
-
-		// 	loop the boundary faces
-			typename std::vector<BF>::const_iterator bf;
-			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
-			{
-				number innerSum = 0.0;
-				
-				MathMatrix<dim, dim> gradVel;
-				MathVector<dim> Vel;
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					Vel[d1] = 0.0;
-					for(int d2 = 0; d2 <dim; ++d2)
-					{
-					//	sum up contributions of each shape
-						gradVel(d1, d2) = 0.0;
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							if (!m_spMaster->laplace() || d1==d2)
-								gradVel(d1, d2) += bf->global_grad(sh)[d2]
-							                    	* u(d1, sh);
-						}					
-					}
-				}
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					for(int d2 = 0; d2 < dim; ++d2)
-					{
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
-						}
-					}
-				}
-				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
-				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensity[ip];
-			}
-		}
-	}
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
 	size_t ip = 0;

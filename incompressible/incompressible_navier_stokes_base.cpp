@@ -31,9 +31,9 @@ IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const ch
 : NavierStokesBase<TDomain>(functions, subsets),
   m_bPecletBlend(false),
   m_bStokes(false),
-  m_bLaplace(false),
-  m_bBingham(false)
+  m_bLaplace(false)
 {
+  m_exVelocityGrad = make_sp(new DataExport<MathMatrix<dim, dim>, dim>(functions));
 };
 
 template<typename TDomain>
@@ -42,9 +42,14 @@ IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const st
 : NavierStokesBase<TDomain>(vFct, vSubset),
   m_bPecletBlend(false),
   m_bStokes(false),
-  m_bLaplace(false),
-  m_bBingham(false)
+  m_bLaplace(false)
 {
+  std::string functions;
+  for(size_t i = 0; i < vFct.size(); ++i){
+    if(i > 0) functions.append(",");
+    functions.append(vFct[i]);
+  }
+  m_exVelocityGrad = make_sp(new DataExport<MathMatrix<dim, dim>, dim>(functions.c_str()));
 };
 
 
@@ -63,41 +68,6 @@ void IncompressibleNavierStokesBase<TDomain>::
 set_density(const char* fctName)
 {
 	set_density(LuaUserDataFactory<number, dim>::create(fctName));
-}
-#endif
-
-/////////// bingham
-
-template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_bingham_viscosity(number val)
-{
-  set_bingham_viscosity(make_sp(new ConstUserNumber<dim>(val)));
-}
-
-#ifdef UG_FOR_LUA
-template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_bingham_viscosity(const char* fctName)
-{
-  set_bingham_viscosity(LuaUserDataFactory<number, dim>::create(fctName));
-}
-#endif
-
-
-template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_yield_stress(number val)
-{
-  set_yield_stress(make_sp(new ConstUserNumber<dim>(val)));
-}
-
-#ifdef UG_FOR_LUA
-template<typename TDomain>
-void IncompressibleNavierStokesBase<TDomain>::
-set_yield_stress(const char* fctName)
-{
-  set_yield_stress(LuaUserDataFactory<number, dim>::create(fctName));
 }
 #endif
 

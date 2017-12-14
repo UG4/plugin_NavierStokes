@@ -151,18 +151,6 @@ class NavierStokesFV1
 	///	returns density
 		SmartPtr<CplUserData<number, dim> > density() {return m_imDensitySCVF.user_data ();}
 
-	///	sets the bingham viscosity
-		void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > user);
-
-	///	returns bingham viscosity
-		SmartPtr<CplUserData<number, dim> > bingham_viscosity() {return m_imBinghamViscosity.user_data ();}
-
-	///	sets the yield stress
-		void set_yield_stress(SmartPtr<CplUserData<number, dim> > user);
-
-	///	returns yield stress
-		SmartPtr<CplUserData<number, dim> > yield_stress() {return m_imYieldStress.user_data ();}
-
 	///	sets the source function
 		void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user);
 		
@@ -211,6 +199,22 @@ class NavierStokesFV1
 			}
 		}
 			
+	protected:
+	///	computes the value of the gradient of the pressure
+		template <typename TElem, typename TFVGeom>
+		void ex_velocity_grad(MathMatrix<dim,dim> vValue[],
+							  const MathVector<dim> vGlobIP[],
+							  number time, int si,
+							  const LocalVector& u,
+							  GridObject* elem,
+							  const MathVector<dim> vCornerCoords[],
+							  const MathVector<TFVGeom::dim> vLocIP[],
+							  const size_t nip,
+							  bool bDeriv,
+							  std::vector<std::vector<MathMatrix<dim,dim> > > vvvDeriv[]);
+
+	using base_type::m_exVelocityGrad;
+
 	public:
 	///	type of trial space for each function used
 		virtual void prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid);
@@ -513,12 +517,6 @@ class NavierStokesFV1
 		DataImport<number, dim> m_imDensitySCVF;
 		DataImport<number, dim> m_imDensitySCV;
 
-	/// Data import for bingham
-		DataImport<number, dim> m_imBinghamViscosity;
-		DataImport<number, dim> m_imYieldStress;
-		//DataImport<number, dim> m_imRegularizeDelta;
-
-
 	///	Stabilization for velocity in continuity equation
 		SmartPtr<INavierStokesFV1Stabilization<dim> > m_spStab;
 
@@ -536,7 +534,6 @@ class NavierStokesFV1
 		using base_type::m_bFullNewtonFactor;
 		using base_type::m_bStokes;
 		using base_type::m_bLaplace;
-		using base_type::m_bBingham;
 
 		virtual void init();
 

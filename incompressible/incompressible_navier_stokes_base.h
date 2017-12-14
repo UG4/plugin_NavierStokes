@@ -166,40 +166,6 @@ class IncompressibleNavierStokesBase
 	///	returns density
 		virtual SmartPtr<CplUserData<number, dim> > density() = 0;
 
-	///	sets the bingham viscosity
-	/**
-	 * This method sets the bingham viscosity value.
-	 *
-	 * \param[in]	data		bingham viscosity
-	 */
-	///	\{
-		virtual void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > user) = 0;
-		void set_bingham_viscosity(number val);
-#ifdef UG_FOR_LUA
-		void set_bingham_viscosity(const char* fctName);
-#endif
-	///	\}
-		
-	///	returns bingham viscosity
-		virtual SmartPtr<CplUserData<number, dim> > bingham_viscosity() = 0;
-
-	///	sets the yield stress
-	/**
-	 * This method sets the yield stress value.
-	 *
-	 * \param[in]	data		yield stress
-	 */
-	///	\{
-		virtual void set_yield_stress(SmartPtr<CplUserData<number, dim> > user) = 0;
-		void set_yield_stress(number val);
-#ifdef UG_FOR_LUA
-		void set_yield_stress(const char* fctName);
-#endif
-	///	\}
-
-	///	returns yield stress
-		virtual SmartPtr<CplUserData<number, dim> > yield_stress() = 0;
-
 	///	sets the source function
 	/**
 	 * This method sets the source value. A zero value is assumed as default.
@@ -242,6 +208,9 @@ class IncompressibleNavierStokesBase
 	///	returns string identifying disc type
 		virtual std::string disc_type() const = 0;
 
+	///	returns the export of the velocity gradient
+		SmartPtr<CplUserData<MathMatrix<dim, dim>, dim> > velocity_grad() {return m_exVelocityGrad;}
+
 	protected:
 	///	flag if using Peclet Blending
 		bool m_bPecletBlend;
@@ -261,14 +230,8 @@ class IncompressibleNavierStokesBase
 	/// flag if using bingham behaviour
 		bool m_bBingham;
 
-	public:
-
-	/// switches the bingham behaviour on
-	/**
-	 * \param[in]	Bingham		true to solve Bingham
-	 */
-		void set_bingham(bool Bingham) {m_bBingham = Bingham;}
-		bool bingham() {return m_bBingham;}
+	///	Export for the gradient of the velocity gradient
+		SmartPtr<DataExport<MathMatrix<dim, dim>,dim> > m_exVelocityGrad;
 };
 
 /// @}

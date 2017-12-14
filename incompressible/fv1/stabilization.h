@@ -106,11 +106,9 @@ class INavierStokesFV1Stabilization
 		{
 		//	get unique geometry id
 			size_t id = GetUniqueFVGeomID<TFVGeom>();
-
 		//	check that function exists
 			if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == NULL)
 				UG_THROW("No update function registered for Geometry "<<id);
-
 		//	set current geometry
 			m_id = id;
 
@@ -118,7 +116,6 @@ class INavierStokesFV1Stabilization
 			TFVGeom& geo = GeomProvider<TFVGeom>::get();
 			m_numScvf = geo.num_scvf();
 			m_numSh = geo.num_sh();
-
 		//	set sizes in upwind
 			if(m_spUpwind.valid()) m_spUpwind->template set_geometry_type<TFVGeom>();
 		}

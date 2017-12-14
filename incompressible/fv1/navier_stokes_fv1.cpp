@@ -73,8 +73,6 @@ void NavierStokesFV1<TDomain>::init()
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensitySCVF);
 	this->register_import(m_imDensitySCV);
-	this->register_import(m_imBinghamViscosity);
-	this->register_import(m_imYieldStress);
 
 	m_imSourceSCV.set_rhs_part();
 	m_imSourceSCVF.set_rhs_part();
@@ -85,6 +83,7 @@ void NavierStokesFV1<TDomain>::init()
 
 	//	update assemble functions
 	register_all_funcs(false);
+
 }
 
 template<typename TDomain>
@@ -130,29 +129,6 @@ set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > data)
 	m_imSourceSCVF.set_data(data);
 }
 
-
-template<typename TDomain>
-void NavierStokesFV1<TDomain>::
-set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
-{
-	m_imBinghamViscosity.set_data(data);
-}
-
-template<typename TDomain>
-void NavierStokesFV1<TDomain>::
-set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
-{
-	m_imYieldStress.set_data(data);
-}
-
-//template<typename TDomain>
-//void NavierStokesFV1<TDomain>::
-//set_regularize_delta(number data)
-//{
-//	m_imRegularizeDelta.set_data(make_sp(new ConstUserNumber<dim>(data)));
-//}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //	assembling functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -179,21 +155,20 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	//	check, that convective upwinding has been set
 		if(m_spConvStab.invalid()  && m_spConvUpwind.invalid())
 			UG_THROW("Upwinding for convective Term in Momentum eq. not set.");
-	
+
 	//	init convection stabilization for element type
 		if(m_spConvStab.valid())
 			m_spConvStab->template set_geometry_type<TFVGeom >();
-	
+
 	//	init convection stabilization for element type
 		if(m_spConvUpwind.valid())
 			m_spConvUpwind->template set_geometry_type<TFVGeom >();
 	}
 
 //	check, that kinematic Viscosity has been set
-	if(!m_bBingham)
-		if(!m_imKinViscosity.data_given())
-			UG_THROW("NavierStokes::prep_elem_loop:"
-							" Kinematic Viscosity has not been set, but is required.");
+	if(!m_imKinViscosity.data_given())
+		UG_THROW("NavierStokes::prep_elem_loop:"
+						" Kinematic Viscosity has not been set, but is required.");
 
 //	check, that Density has been set
 	if(!m_imDensitySCVF.data_given())
@@ -205,27 +180,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		UG_THROW("NavierStokes::prep_elem_loop:"
 						" Density has not been set, but is required.");
 
-	if(m_bBingham){
-		if(!m_imBinghamViscosity.data_given())
-			UG_THROW("NavierStokes::prep_elem_loop:"
-							" Bingham Viscosity has not been set, but is required.");
-
-		if(!m_imYieldStress.data_given())
-			UG_THROW("NavierStokes::prep_elem_loop:"
-							" Yield Stress has not been set, but is required.");
-
-		//if(!m_imRegularizeDelta.data_given())
-		//	UG_THROW("NavierStokes::prep_elem_loop:"
-		//					" regularizing delta has not been set, but is required.");
-
-		if(!this->is_time_dependent()){
-			UG_THROW("NavierStokes::prep_elem_loop:"
-							" Bingham behaviour is only available for time-dependent problems.");
-		}
-	}
-
 //	set local positions for imports
-
 	if(!TFVGeom::usesHangingNodes)
 	{
 		static const int refDim = TElem::dim;
@@ -234,16 +189,13 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		const size_t numSCVFip = geo.num_scvf_ips();
 		const MathVector<refDim>* vSCVip = geo.scv_local_ips();
 		const size_t numSCVip = geo.num_scv_ips();
-
 		m_imKinViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 		m_imDensitySCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
-		m_imBinghamViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
-		m_imYieldStress.template set_local_ips<refDim>(vSCVFip,numSCVFip);
-		//m_imRegularizeDelta.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 	}
+
 }
 
 template<typename TDomain>
@@ -280,9 +232,6 @@ prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const 
 		m_imDensitySCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
-		m_imBinghamViscosity.template set_local_ips<refDim>(vSCVFip,numSCVFip);
-		m_imYieldStress.template set_local_ips<refDim>(vSCVFip,numSCVFip);
-		//m_imRegularizeDelta.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 
 	}
 
@@ -296,10 +245,6 @@ prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const 
 	m_imDensitySCV.set_global_ips(vSCVip, numSCVip);
 	m_imSourceSCV.set_global_ips(vSCVip, numSCVip);
 	m_imSourceSCVF.set_global_ips(vSCVFip, numSCVFip);
-	m_imBinghamViscosity.set_global_ips(vSCVFip, numSCVFip);
-	m_imYieldStress.set_global_ips(vSCVFip, numSCVFip);
-	//m_imRegularizeDelta.set_global_ips(vSCVFip, numSCVFip);
-
 }
 
 template<typename TDomain>
@@ -312,66 +257,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
 // 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
-
-//	bingham behaviour
-	if(m_bBingham)
-	{
-		//get old solution
-		//const LocalVector *pOldSol = NULL;
-		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		//pOldSol = &vLocSol->solution(1);
-		
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-		number secondInvariant = 0.0;
-
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			//UG_LOG("innerSum: ");
-			number innerSum = 0.0;
-			// 	get current SCVF
-			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-
-			MathMatrix<dim, dim> gradVel;
-			MathVector<dim> Vel;
-			for(int d1 = 0; d1 < dim; ++d1)
-			{
-				Vel[d1] = 0.0;
-				for(int d2 = 0; d2 <dim; ++d2)
-				{
-				//	sum up contributions of each shape
-					gradVel(d1, d2) = 0.0;
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					{
-						if (!m_bLaplace || d1==d2)
-							gradVel(d1, d2) += scvf.global_grad(sh)[d2]
-						                    	* u(d1, sh);
-					}					
-				}
-			}
-			for(int d1 = 0; d1 < dim; ++d1)
-			{
-				for(int d2 = 0; d2 < dim; ++d2)
-				{
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					{
-						innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
-					}
-				}
-			}
-			//UG_LOG("\n");
-			//UG_LOG("Vel at ip "<<ip<<" is: "<<Vel[0]<<", "<<Vel[1]<<"\n")
-			//UG_LOG("GradVel is: "<<gradVel(0,0)<<", "<<gradVel(0,1)<<", "<<gradVel(1,0)<<", "<<gradVel(1,1)<<"\n");
-			// overwrite viscosity
-			secondInvariant = 1.0/(pow(2, dim))*innerSum;
-			//UG_LOG("innerSum is: "<<innerSum<<", I_2 is: "<<(0.1+secondInvariant)<<"\n")
-			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensitySCVF[ip];
-		}
-	}
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -714,66 +599,13 @@ template<typename TElem, typename TFVGeom>
 void NavierStokesFV1<TDomain>::
 add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
+	//UG_LOG("Anfang add_def_A_elem");
+	
 // 	Only first order implemented
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
-
-//	bingham behaviour
-	if(m_bBingham)
-	{
-		//get old solution
-		//const LocalVector *pOldSol = NULL;
-		//const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
-		//pOldSol = &vLocSol->solution(1);
-		
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-		number secondInvariant = 0.0;
-
-		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
-		{
-			number innerSum = 0.0;
-			// 	get current SCVF
-			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
-
-			MathMatrix<dim, dim> gradVel;
-			MathVector<dim> Vel;
-			for(int d1 = 0; d1 < dim; ++d1)
-			{
-				Vel[d1] = 0.0;
-				for(int d2 = 0; d2 <dim; ++d2)
-				{
-				//	sum up contributions of each shape
-					gradVel(d1, d2) = 0.0;
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					{
-						if (!m_bLaplace || d1==d2)
-							gradVel(d1, d2) += scvf.global_grad(sh)[d2]
-						                    	* u(d1, sh);
-					}					
-				}
-			}
-			for(int d1 = 0; d1 < dim; ++d1)
-			{
-				for(int d2 = 0; d2 < dim; ++d2)
-				{
-					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
-					{
-						innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
-					}
-				}
-			}
-			// overwrite viscosity
-			secondInvariant = 1.0/(pow(2, dim))*innerSum;
-			vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensitySCVF[ip];
-		}
-	}
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -1059,6 +891,113 @@ peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 	return w;
 }
 
+//	computes the linearized defect w.r.t to the velocity
+template<typename TDomain>
+template <typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+ex_velocity_grad(MathMatrix<dim, dim> vValue[],
+        const MathVector<dim> vGlobIP[],
+        number time, int si,
+        const LocalVector& u,
+        GridObject* elem,
+        const MathVector<dim> vCornerCoords[],
+        const MathVector<TFVGeom::dim> vLocIP[],
+        const size_t nip,
+        bool bDeriv,
+        std::vector<std::vector<MathMatrix<dim, dim> > > vvvDeriv[])
+{
+// 	Get finite volume geometry
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+
+//	reference element
+	typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
+
+//  reference dimension
+	static const int refDim = ref_elem_type::dim;
+
+//  number of shape functions
+	static const size_t numSH = ref_elem_type::numCorners;	
+
+//	FV1 SCVF ip
+	if(vLocIP == geo.scvf_local_ips())
+	{
+	//	Loop Sub Control Volume Faces (SCVF)
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+		// 	Get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+
+		//  Loop dimensions for direction
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				//  Loop dimensions for derivative
+				for(int d2 = 0; d2 <dim; ++d2)
+				{
+					vValue[ip](d1, d2) = 0.0;
+					//	sum up contributions of each shape
+					for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+					{
+						vValue[ip](d1, d2) += u(d1, sh)*scvf.global_grad(sh)[d2];		
+						if(bDeriv)
+							vvvDeriv[ip][d1][sh](d1,d2) = scvf.global_grad(sh)[d2];
+					}
+				}
+			}
+			if(bDeriv)
+			{
+				for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+				{
+					MatSet(vvvDeriv[ip][_P_][sh],0.0);
+				}
+			}
+		}
+	}
+// 	general case
+	else
+	{
+	//	get trial space
+		LagrangeP1<ref_elem_type>& rTrialSpace = Provider<LagrangeP1<ref_elem_type> >::get();
+
+	//	storage for shape function at ip
+		MathVector<refDim> vLocGrad[numSH];
+
+	//	Reference Mapping
+		MathMatrix<dim, refDim> JTInv;
+		ReferenceMapping<ref_elem_type, dim> mapping(vCornerCoords);
+
+	//	loop ips
+		for(size_t ip = 0; ip < nip; ++ip)
+		{
+		//	evaluate at shapes at ip
+			rTrialSpace.grads(vLocGrad, vLocIP[ip]);
+
+		//  Loop dimensions for direction
+			for(int d1 = 0; d1 < dim; ++d1)
+			{
+				//  Loop dimensions for derivative
+				for(int d2 = 0; d2 <dim; ++d2)
+				{
+
+				//	compute grad at ip
+					vValue[ip](d1, d2) = 0.0;
+					for(size_t sh = 0; sh < numSH; ++sh) {
+						vValue[ip](d1, d2) += u(d1, sh)*vLocGrad[sh][d2];		
+						if(bDeriv)
+							vvvDeriv[ip][d1][sh](d1,d2) = vLocGrad[sh][d2];
+
+					}
+				}
+			}
+			if(bDeriv)
+			{
+				for(size_t sh = 0; sh < numSH; ++sh)
+				{
+					MatSet(vvvDeriv[ip][_P_][sh],0.0);
+				}
+			}
+		}
+	}
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 //	register assemble functions
@@ -1127,6 +1066,7 @@ register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
 	typedef this_type T;
+	static const int refDim = reference_element_traits<TElem>::dim;
 
 	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);
@@ -1137,6 +1077,9 @@ register_func()
 	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem<TElem, TFVGeom>);
 	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem<TElem, TFVGeom>);
 	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
+
+	m_exVelocityGrad->template set_fct<T,refDim>(id, this, &T::template ex_velocity_grad<TElem, TFVGeom>);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -252,24 +252,11 @@ static void Domain(Registry& reg, string grp)
 #ifdef UG_FOR_LUA
 			.add_method("set_density", static_cast<void (T::*)(const char*)>(&T::set_density), "", "Density")
 #endif
-
-			.add_method("set_bingham_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_bingham_viscosity), "", "BinghamViscosity")
-			.add_method("set_bingham_viscosity", static_cast<void (T::*)(number)>(&T::set_bingham_viscosity), "", "BinghamViscosity")
-#ifdef UG_FOR_LUA
-			.add_method("set_bingham_viscosity", static_cast<void (T::*)(const char*)>(&T::set_bingham_viscosity), "", "BinghamViscosity")
-#endif
-			.add_method("set_yield_stress", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_yield_stress), "", "YieldStress")
-			.add_method("set_yield_stress", static_cast<void (T::*)(number)>(&T::set_yield_stress), "", "YieldStress")
-#ifdef UG_FOR_LUA
-			.add_method("set_yield_stress", static_cast<void (T::*)(const char*)>(&T::set_yield_stress), "", "YieldStress")
-#endif
-			//.add_method("set_regularize_delta", static_cast<void (T::*)(number)>(&T::set_regularize_delta), "", "RegularizeDelta")
-			.add_method("set_bingham", &T::set_bingham)
-
 			.add_method("set_peclet_blend", &T::set_peclet_blend)
 			.add_method("set_grad_div", static_cast<void (T::*)(number)>(&T::set_grad_div), "", "GradDivFactor")
 			.add_method("set_laplace", &T::set_laplace)
-			.add_method("set_stokes", &T::set_stokes);
+			.add_method("set_stokes", &T::set_stokes)
+			.add_method("velocity_grad", &T::velocity_grad);
 		reg.add_class_to_group(name, "IncompressibleNavierStokesBase", tag);
 	}
 

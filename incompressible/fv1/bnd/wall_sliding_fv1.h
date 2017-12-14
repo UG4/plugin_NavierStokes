@@ -62,24 +62,6 @@ class NavierStokesWSBCFV1
 		void set_density(SmartPtr<CplUserData<number, dim> > data)
 			{m_imDensity.set_data(data);}
 
-	///	sets the bingham viscosity
-	/**
-	 * This method sets the bingham viscosity parameter.
-	 *
-	 * \param[in]	data		Bingham Viscosity
-	 */
-		void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
-			{m_imBinghamViscosity.set_data(data);}
-
-	///	sets the yield stress
-	/**
-	 * This method sets the yield stress parameter.
-	 *
-	 * \param[in]	data		Yield Stress
-	 */
-		void set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
-			{m_imYieldStress.set_data(data);}
-
 	///	sets the wall sliding factor
 	/**
 	 * This method sets the wall sliding factor parameter.
@@ -151,10 +133,6 @@ class NavierStokesWSBCFV1
 		DataImport<number, dim> m_imKinViscosity;
 	/// Data import for density
 		DataImport<number, dim> m_imDensity;
-	/// Data import for bingham viscosity
-		DataImport<number, dim> m_imBinghamViscosity;
-	/// Data import for yield stress
-		DataImport<number, dim> m_imYieldStress;
 	/// Data import for sliding factor
 		DataImport<number, dim> m_imSlidingFactor;
 	/// Data import for sliding limit

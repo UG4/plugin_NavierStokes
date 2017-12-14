@@ -70,12 +70,6 @@ class NavierStokesNoNormalStressOutflowBase
 	///	sets the density
 		virtual void set_density(SmartPtr<CplUserData<number, dim> > data) = 0;
 
-	///	sets the bingham viscosity
-		virtual void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data) = 0;
-
-	///	sets the yield stress
-		virtual void set_yield_stress(SmartPtr<CplUserData<number, dim> > data) = 0;
-
 	public:
 	///	returns if local time series is needed
 		virtual bool requests_local_time_series() {return true;}

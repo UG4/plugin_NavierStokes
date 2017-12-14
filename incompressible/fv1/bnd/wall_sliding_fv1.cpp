@@ -50,12 +50,11 @@ void
 NavierStokesWSBCFV1<TDomain>::
 add
 (
-	const char* subsets // string with the ','-separated names of the subsets
+	const char* subsets
 )
 {
 	m_vScheduledBndSubSets.push_back(subsets);
 }
-
 
 template<typename TDomain>
 void NavierStokesWSBCFV1<TDomain>::
@@ -132,23 +131,16 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	if(!m_imDensity.data_given())
 		UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
 						" Density has not been set, but is required.\n");
- 
-	if(m_spMaster->bingham())
-	{
-		if(!m_imBinghamViscosity.data_given())
-			UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
-							" Bingham Viscosity has not been set, but is required.\n");
-		if(!m_imYieldStress.data_given())
-			UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
-							" Yield Stress has not been set, but is required.\n");
-	}
+
+//  check if sliding factor has been set
 	if(!m_imSlidingFactor.data_given())
 		UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
 						" Sliding Factor has not been set, but is required.\n");
 
+//  check if sliding limit has been set
 	if(!m_imSlidingLimit.data_given())
 		UG_THROW("NavierStokesWSBCFV1::prep_elem_loop:"
-						" Sliding Limit has not been set. It can be set to 0 if it's not used.\n");
+						" Sliding Limit has not been set. It can be set to 0 for deactivation.\n");
 
 //	extract indices of boundary
 	extract_scheduled_data();
@@ -217,25 +209,18 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	// m_vBndSubSetIndex, and "inside" of this ordering, the ip's are ordered
 	// according to the order of the boundary faces in the FV geometry structure.
 
+//	Set ips for imports
 	m_imKinViscosity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imKinViscosity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 
 	m_imDensity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imDensity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 
-	m_imBinghamViscosity.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
-	m_imBinghamViscosity.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
-
-	m_imYieldStress.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
-	m_imYieldStress.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
-
 	m_imSlidingLimit.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imSlidingLimit.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
 
 	m_imSlidingFactor.set_local_ips(&m_vLocIP[0], m_vLocIP.size());
 	m_imSlidingFactor.set_global_ips(&m_vGloIP[0], m_vGloIP.size());
-
-
 }
 
 template<typename TDomain>
@@ -243,73 +228,12 @@ template<typename TElem, typename TFVGeom>
 void NavierStokesWSBCFV1<TDomain>::
 add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
-	// 	Only first order implementation
+// 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	typedef typename TFVGeom::BF BF;
-
-	if(m_spMaster->bingham())
-	{
-	// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-	// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-	// 	loop registered boundary segments
-		typename std::vector<int>::const_iterator subsetIter;
-		size_t ip = 0;
-		for(subsetIter = m_vBndSubSetIndex.begin();
-			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
-		{
-		//	get subset index corresponding to boundary
-			const int bndSubset = *subsetIter;
-			
-		//	get the list of the ip's:
-			if(geo.num_bf(bndSubset) == 0) continue;
-			const std::vector<BF>& vBF = geo.bf(bndSubset);
-
-		// 	loop the boundary faces
-			typename std::vector<BF>::const_iterator bf;
-			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
-			{
-				number innerSum = 0.0;
-				
-				MathMatrix<dim, dim> gradVel;
-				MathVector<dim> Vel;
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					Vel[d1] = 0.0;
-					for(int d2 = 0; d2 <dim; ++d2)
-					{
-					//	sum up contributions of each shape
-						gradVel(d1, d2) = 0.0;
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							if (!m_spMaster->laplace() || d1==d2)
-								gradVel(d1, d2) += bf->global_grad(sh)[d2]
-							                    	* u(d1, sh);
-						}					
-					}
-				}
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					for(int d2 = 0; d2 < dim; ++d2)
-					{
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
-						}
-					}
-				}
-			// update (/overwrite) viscosity
-				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
-				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensity[ip];
-			}
-		}
-	}//end if bingham
 
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
@@ -339,12 +263,14 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
 			if (!m_spMaster->stokes ())
 			{
+            //  Interpolate velocity with standard lagrange interpolation
 				MathVector<dim> StdVel(0.0);
 				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 					for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 						StdVel[d1] += u(d1, sh) * bf->shape(sh);
 				
-				VecScaleAppend(StdVel, -VecDot(StdVel, normal), normal);	//tangential part
+            //  Calculate tangential part of the velocity
+				VecScaleAppend(StdVel, -VecDot(StdVel, normal), normal);
 
 				number old_momentum_flux = VecDot (StdVel, bf->normal ()) * m_imDensity [ip];
 			
@@ -362,22 +288,23 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 			////////////////////////////////////////////////////
 			
 			MathMatrix<dim,dim> parallelVel;
-			MathVector<dim> normalParallelVel;
 			MatSet(parallelVel, 0.0);
-			VecSet(normalParallelVel, 0.0);
 			
-			for(size_t sh = 0; sh < bf->num_sh(); ++sh)
+		//  Evaluate velocity parallel to boundary
+			for(size_t sh = 0; sh < bf->num_sh(); ++sh) {
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				{
 					parallelVel(d1,d1) += bf->shape(sh);
-					normalParallelVel[d1] += bf->shape(sh);
 				}
+			}
 
+		//  Calculate u_{||} = (u - (u \cdot n) \cdot n)
 			for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					for(size_t sh = 0; sh < (size_t)dim; ++sh)
 						parallelVel(d1,d2) -= bf->shape(sh)*normal[d1]*normal[d2];
 			
+		//  Add k \cdot u_{||} to local Jacobian
 			for(int d1 = 0; d1 < dim; ++d1)
 				for(size_t d2 = 0; d2 < (size_t)dim; ++d2)
 					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
@@ -389,14 +316,23 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 			// Add sliding limit part
 			////////////////////////////////////////////////////
 		
-			if(VecLength(normalParallelVel) != 0)
+			MathVector<dim> normalizedParallelVel;
+			VecSet(normalizedParallelVel, 0.0);
+
+			for(size_t sh = 0; sh < bf->num_sh(); ++sh) {
+				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
+				{
+					normalizedParallelVel[d1] += bf->shape(sh);
+				}
+			}
+
+			if(VecLength(normalizedParallelVel) != 0)
 			{
-				VecNormalize(normalParallelVel, normalParallelVel);
+				VecNormalize(normalizedParallelVel, normalizedParallelVel);
 				for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 					for(int d1 = 0; d1 < dim; ++d1)
-						J(d1, bf->node_id(), d1, sh) += (-1.0) * normalParallelVel[d1] * m_imSlidingLimit[ip];
+						J(d1, bf->node_id(), d1, sh) += (-1.0) * normalizedParallelVel[d1] * m_imSlidingLimit[ip];
 			}
-			
 		}
 	}
 }
@@ -412,66 +348,6 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	// 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 	typedef typename TFVGeom::BF BF;
-
-	if(m_spMaster->bingham())
-	{
-		// get const point of viscosity at integration points
-		const number* pVisco = m_imKinViscosity.values();
-
-		// cast constness away
-		number* vVisco = const_cast<number*>(pVisco);
-
-	// 	loop registered boundary segments
-		typename std::vector<int>::const_iterator subsetIter;
-		size_t ip = 0;
-		for(subsetIter = m_vBndSubSetIndex.begin();
-			subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
-		{
-		//	get subset index corresponding to boundary
-			const int bndSubset = *subsetIter;
-			
-		//	get the list of the ip's:
-			if(geo.num_bf(bndSubset) == 0) continue;
-			const std::vector<BF>& vBF = geo.bf(bndSubset);
-
-		// 	loop the boundary faces
-			typename std::vector<BF>::const_iterator bf;
-			for(bf = vBF.begin(); bf != vBF.end(); ++bf, ++ip)
-			{
-				number innerSum = 0.0;
-				
-				MathMatrix<dim, dim> gradVel;
-				MathVector<dim> Vel;
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					Vel[d1] = 0.0;
-					for(int d2 = 0; d2 <dim; ++d2)
-					{
-					//	sum up contributions of each shape
-						gradVel(d1, d2) = 0.0;
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							if (!m_spMaster->laplace() || d1==d2)
-								gradVel(d1, d2) += bf->global_grad(sh)[d2]
-							                    	* u(d1, sh);
-						}					
-					}
-				}
-				for(int d1 = 0; d1 < dim; ++d1)
-				{
-					for(int d2 = 0; d2 < dim; ++d2)
-					{
-						for(size_t sh = 0; sh < bf->num_sh(); ++sh)
-						{
-							innerSum += pow(gradVel(d1,d2) + gradVel(d2,d1),2);
-						}
-					}
-				}
-				number secondInvariant = 1.0/(pow(2, dim))*innerSum;
-				vVisco[ip] = (m_imBinghamViscosity[ip] + m_imYieldStress[ip]/sqrt(0.5+secondInvariant))/m_imDensity[ip];
-			}
-		}
-	}//end if bingham
 	
 	// 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
@@ -495,24 +371,24 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 			// Add convective flux
 			////////////////////////////////////////////////////
 
-                        MathVector<dim> normal;
+            MathVector<dim> normal;
                         
-                        VecNormalize(normal, bf->normal());
+            VecNormalize(normal, bf->normal());
 
 			if (!m_spMaster->stokes ())
 			{
-			// A. Compute Velocity at ip
+            //  Interpolate velocity with standard lagrange interpolation
 				MathVector<dim> StdVel(0.0);
 				for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 					for(size_t sh = 0; sh < bf->num_sh(); ++sh)
 						StdVel[d1] += u(d1, sh) * bf->shape(sh);
 
+            //  Calculate parallel part of velocity
 				VecScaleAppend(StdVel, -VecDot(StdVel, normal), normal);
 
-			// The convection velocity according to the current approximation:
 				number old_momentum_flux = VecDot (StdVel, bf->normal ()) * m_imDensity [ip];
 			
-			// Add the flux to the defect:
+			// Add the flux to the defect
 				for(size_t d1 = 0; d1 < (size_t) dim; ++d1)
 					d(d1, bf->node_id()) += old_momentum_flux * StdVel[d1];
 			}
@@ -620,16 +496,12 @@ NavierStokesWSBCFV1(SmartPtr< IncompressibleNavierStokesBase<TDomain> > spMaster
 //	register imports
 	this->register_import(m_imKinViscosity);
 	this->register_import(m_imDensity);
-	this->register_import(m_imBinghamViscosity);
-	this->register_import(m_imYieldStress);
 	this->register_import(m_imSlidingFactor);
 	this->register_import(m_imSlidingLimit);
 
 //	initialize the imports from the master discretization
 	m_imKinViscosity.set_data(spMaster->kinematic_viscosity ());
 	m_imDensity.set_data(spMaster->density ());
-	m_imBinghamViscosity.set_data(spMaster->bingham_viscosity());
-	m_imYieldStress.set_data(spMaster->yield_stress());
 
 //	register assemble functions
 	this->register_all_funcs(false);
