@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014:  G-CSC, Goethe University Frankfurt
+ * Copyright (c) 2013-2017:  G-CSC, Goethe University Frankfurt
  * Author: Jonas Simon
  * 
  * This file is part of UG4.
