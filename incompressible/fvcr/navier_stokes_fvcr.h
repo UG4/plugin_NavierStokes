@@ -60,18 +60,6 @@ class NavierStokesFVCR
 	///	returns density
 		SmartPtr<CplUserData<number, dim> > density() {return m_imDensitySCVF.user_data ();}
 
-	///	sets the bingham viscosity
-		void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > user);
-
-	///	returns bingham viscosity
-		SmartPtr<CplUserData<number, dim> > bingham_viscosity() {return m_imBinghamViscosity.user_data ();}
-
-	///	sets the yield stress
-		void set_yield_stress(SmartPtr<CplUserData<number, dim> > user);
-
-	///	returns yield stress
-		SmartPtr<CplUserData<number, dim> > yield_stress() {return m_imYieldStress.user_data ();}
-
 	///	sets the source function
 		void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user);
 
@@ -119,10 +107,6 @@ class NavierStokesFVCR
 		DataImport<number, dim> m_imDensitySCVF;
 		DataImport<number, dim> m_imDensitySCV;
 
-	/// Data import for bingham
-		DataImport<number, dim> m_imBinghamViscosity;
-		DataImport<number, dim> m_imYieldStress;
-
 	/// Data import for central gradient
 		DataImport<MathMatrix<dim,dim>, dim> m_imCentralGradient;
 
@@ -140,7 +124,6 @@ class NavierStokesFVCR
 		using base_type::m_bStokes;
 		using base_type::m_bLaplace;
 		using base_type::m_gradDivFactor;
-		using base_type::m_bBingham;
 
 	public:
 		template <typename TElem, typename TFVGeom>

@@ -63,18 +63,6 @@ class NavierStokesFE
 	///	returns density
 		SmartPtr<CplUserData<number, dim> > density() {return m_imDensity.user_data ();}
 
-	///	sets the bingham viscosity
-		void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > user);
-
-	///	returns bingham viscosity
-		SmartPtr<CplUserData<number, dim> > bingham_viscosity() {return m_imBinghamViscosity.user_data ();}
-
-	///	sets the yield stress
-		void set_yield_stress(SmartPtr<CplUserData<number, dim> > user);
-
-	///	returns yield stress
-		SmartPtr<CplUserData<number, dim> > yield_stress() {return m_imYieldStress.user_data ();}
-
 	///	sets the source function
 		void set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > user);
 
@@ -115,10 +103,6 @@ class NavierStokesFE
 	///	Data import for density
 		DataImport<number, dim> m_imDensity;
 
-	/// Data import for bingham
-		DataImport<number, dim> m_imBinghamViscosity;
-		DataImport<number, dim> m_imYieldStress;
-
 	/// abbreviation for pressure
 		static const size_t _P_ = dim;
 
@@ -126,7 +110,6 @@ class NavierStokesFE
 		using base_type::m_bFullNewtonFactor;
 		using base_type::m_bStokes;
 		using base_type::m_bLaplace;
-		using base_type::m_bBingham;
 
 	public:
 		template<typename TElem, typename VGeom, typename PGeom>

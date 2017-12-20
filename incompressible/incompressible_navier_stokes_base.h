@@ -227,9 +227,6 @@ class IncompressibleNavierStokesBase
 	///	flag if using only laplace term
 		bool m_bLaplace;
 
-	/// flag if using bingham behaviour
-		bool m_bBingham;
-
 	///	Export for the gradient of the velocity gradient
 		SmartPtr<DataExport<MathMatrix<dim, dim>,dim> > m_exVelocityGrad;
 };
