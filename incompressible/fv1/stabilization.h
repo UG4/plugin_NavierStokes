@@ -39,6 +39,7 @@
 
 #include "../../upwind_interface.h"
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
+#include "lib_disc/spatial_disc/disc_util/fv1FT_geom.h"
 #include "lib_disc/spatial_disc/user_data/data_import.h"
 
 
@@ -111,11 +112,21 @@ class INavierStokesFV1Stabilization
 				UG_THROW("No update function registered for Geometry "<<id);
 		//	set current geometry
 			m_id = id;
-
-		//	set sizes
-			TFVGeom& geo = GeomProvider<TFVGeom>::get();
-			m_numScvf = geo.num_scvf();
-			m_numSh = geo.num_sh();
+            
+        //	set sizes
+            if (TFVGeom::staticLocalData)
+            {
+                TFVGeom& geo = GeomProvider<TFVGeom>::get();
+                m_numScvf = geo.num_scvf();
+                m_numSh = geo.num_sh();
+            }
+            else
+            {
+             // hard code as !maxNum, since maybe crash, e.g. in update() for computation of mat<N,N>!!
+                m_numScvf = TFVGeom::maxNumSCVF; // changed on march 2019! before it was: dim+2;    // TFVGeom::maxNumSCVF;
+                m_numSh = TFVGeom::maxNSH;;      // changed on march 2019! before it was: dim+2;    // TFVGeom::maxNSH;
+            }
+            
 		//	set sizes in upwind
 			if(m_spUpwind.valid()) m_spUpwind->template set_geometry_type<TFVGeom>();
 		}
@@ -332,7 +343,7 @@ class INavierStokesSRFV1Stabilization
 	///	diff length
 		number diff_length_sq_inv(size_t scvf) const
 		{
-			UG_NSSTAB_ASSERT(scvf < this_type::num_ip(), "Invalid index.");
+            //UG_NSSTAB_ASSERT(scvf < this_type::num_ip(), "Invalid index.");
 			return m_vDiffLengthSqInv[scvf];
 		}
 
@@ -476,12 +487,24 @@ class NavierStokesFIELDSStabilization
 		            const DataImport<MathVector<dim>, dim>* pSource,
 		            const LocalVector* pvCornerValueOldTime, number dt);
 
+    ///	update of values for DimFV1FTGeometry
+        template <typename TElem>
+        void update(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+                    const LocalVector& vCornerValue,
+                    const MathVector<dim> vStdVel[],
+                    const bool bStokes,
+                    const DataImport<number, dim>& kinVisco,
+                    const DataImport<number, dim>& density,
+                    const DataImport<MathVector<dim>, dim>* pSource,
+                    const LocalVector* pvCornerValueOldTime, number dt);
+    
 	private:
 		void register_func();
 
 		template <typename TElem>
 		void register_func()
 		{
+            {
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef void (this_type::*TFunc)(const TGeom* geo,
 											 const LocalVector& vCornerValue,
@@ -492,7 +515,23 @@ class NavierStokesFIELDSStabilization
 											 const DataImport<MathVector<dim>, dim>* pSource,
 											 const LocalVector* pvCornerValueOldTime, number dt);
 
+            
+
 			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+            }
+            {
+            typedef DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > TGeom;
+            typedef void (this_type::*TFunc)(const TGeom* geo,
+                                             const LocalVector& vCornerValue,
+                                             const MathVector<dim> vStdVel[],
+                                             const bool bStokes,
+                                             const DataImport<number, dim>& kinVisco,
+                                             const DataImport<number, dim>& density,
+                                             const DataImport<MathVector<dim>, dim>* pSource,
+                                             const LocalVector* pvCornerValueOldTime, number dt);
+            
+            this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+            }
 		}
 };
 
@@ -557,13 +596,25 @@ class NavierStokesFLOWStabilization
 					const DataImport<number, dim>& density,
 					const DataImport<MathVector<dim>, dim>* pSource,
 					const LocalVector* pvCornerValueOldTime, number dt);
-
+    
+    ///	update of values for DimFV1FTGeometry
+        template <typename TElem>
+        void update(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+                    const LocalVector& vCornerValue,
+                    const MathVector<dim> vStdVel[],
+                    const bool bStokes,
+                    const DataImport<number, dim>& kinVisco,
+                    const DataImport<number, dim>& density,
+                    const DataImport<MathVector<dim>, dim>* pSource,
+                    const LocalVector* pvCornerValueOldTime, number dt);
+    
 	private:
 		void register_func();
 
 		template <typename TElem>
 		void register_func()
 		{
+            {
 			typedef FV1Geometry<TElem, dim> TGeom;
 			typedef void (this_type::*TFunc)(const TGeom* geo,
 											 const LocalVector& vCornerValue,
@@ -573,8 +624,22 @@ class NavierStokesFLOWStabilization
 											 const DataImport<number, dim>& density,
 											 const DataImport<MathVector<dim>, dim>* pSource,
 											 const LocalVector* pvCornerValueOldTime, number dt);
+            
+            this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+            }
+            {
+            typedef DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > TGeom;
+            typedef void (this_type::*TFunc)(const TGeom* geo,
+                                             const LocalVector& vCornerValue,
+                                             const MathVector<dim> vStdVel[],
+                                             const bool bStokes,
+                                             const DataImport<number, dim>& kinVisco,
+                                             const DataImport<number, dim>& density,
+                                             const DataImport<MathVector<dim>, dim>* pSource,
+                                             const LocalVector* pvCornerValueOldTime, number dt);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+            }
 		}
 };
 

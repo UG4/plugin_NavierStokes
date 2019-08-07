@@ -30,6 +30,7 @@
  * GNU Lesser General Public License for more details.
  */
 
+
 #ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1__
 #define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1__
 
@@ -47,8 +48,10 @@
 #include "stabilization.h"
 
 namespace ug{
+    
 namespace NavierStokes{
 
+    
 /// \ingroup lib_disc_elem_disc
 /// @{
 
@@ -563,6 +566,9 @@ class NavierStokesFV1
 		virtual void init();
 
 	protected:
+    ///	current shape function set (needed for GeomProvider::get())
+        LFEID m_LFEID;
+    
 	///	register utils
 	///	\{
 		virtual void register_all_funcs(bool bHang);

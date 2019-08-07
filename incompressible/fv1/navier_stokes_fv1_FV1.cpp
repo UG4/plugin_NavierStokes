@@ -32,11 +32,15 @@
 
 #include "navier_stokes_fv1.h"
 
-#include "lib_disc/spatial_disc/disc_util/fv1FT_geom.h"
+#include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
+//#include "lib_disc/spatial_disc/disc_util/fv1FT_geom.h"
 #include "lib_disc/spatial_disc/disc_util/geom_provider.h"
+//#include "moving_particle/interface_handler_particle.h"
 
 namespace ug{
     
+//template <int TWorldDim>
+//class InterfaceHandlerLocalParticle;
     
 namespace NavierStokes{
 
@@ -104,8 +108,6 @@ prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid)
 			UG_THROW("NavierStokes: 'fv1' expects Lagrange P1 trial space "
 					"for velocity and pressure.");
 
-    m_LFEID = vLfeID[0];
-
 	//	update assemble functions
 	register_all_funcs(false);
 }
@@ -150,16 +152,16 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 //	check, that stabilization has been set
 	if(m_spStab.invalid())
 		UG_THROW("Stabilization has not been set.");
- 
+
 //	init stabilization for element type
 	m_spStab->template set_geometry_type<TFVGeom >();
- 
+
 	if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
 	{
 	//	check, that convective upwinding has been set
 		if(m_spConvStab.invalid()  && m_spConvUpwind.invalid())
 			UG_THROW("Upwinding for convective Term in Momentum eq. not set.");
- 
+
 	//	init convection stabilization for element type
 		if(m_spConvStab.valid())
 			m_spConvStab->template set_geometry_type<TFVGeom >();
@@ -183,13 +185,12 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes::prep_elem_loop:"
 						" Density has not been set, but is required.");
- 
+
 //	set local positions for imports
-	//if(!TFVGeom::usesHangingNodes)
-    if(!TFVGeom::usesHangingNodes && TFVGeom::staticLocalData)
+	if(!TFVGeom::usesHangingNodes)
 	{
 		static const int refDim = TElem::dim;
-		TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
+		TFVGeom& geo = GeomProvider<TFVGeom>::get();
 		const MathVector<refDim>* vSCVFip = geo.scvf_local_ips();
 		const size_t numSCVFip = geo.num_scvf_ips();
 		const MathVector<refDim>* vSCVip = geo.scv_local_ips();
@@ -200,7 +201,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 		m_imSourceSCV.template set_local_ips<refDim>(vSCVip,numSCVip);
 		m_imSourceSCVF.template set_local_ips<refDim>(vSCVFip,numSCVFip);
 	}
- 
+
 }
 
 template<typename TDomain>
@@ -216,16 +217,15 @@ void NavierStokesFV1<TDomain>::
 prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const MathVector<dim> vCornerCoords[])
 {
 // 	Update Geometry for this element
- 	TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
-    try{
+	TFVGeom& geo = GeomProvider<TFVGeom>::get();
+	try{
 		geo.update(elem, vCornerCoords, &(this->subset_handler()));
 	}
 	UG_CATCH_THROW("NavierStokes::prep_elem:"
 						" Cannot update Finite Volume Geometry.");
 
 //	set local positions for imports
-	//if(TFVGeom::usesHangingNodes)
-    if(TFVGeom::usesHangingNodes || !TFVGeom::staticLocalData)
+	if(TFVGeom::usesHangingNodes)
 	{
 	//	request ip series
 		static const int refDim = TElem::dim;
@@ -256,14 +256,13 @@ prep_elem(const LocalVector& u, GridObject* elem, ReferenceObjectID roid, const 
 template<typename TDomain>
 template<typename TElem, typename TFVGeom>
 void NavierStokesFV1<TDomain>::
-add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem,
-               const MathVector<dim> vCornerCoords[])
+add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 // 	Only first order implementation
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -287,8 +286,8 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem,
 	}
 
 //	interpolate velocity at ip with standard lagrange interpolation
-	//static const size_t numSCVF = TFVGeom::numSCVF;
-    static const size_t numSCVF = TFVGeom::maxNumSCVF;
+	static const size_t numSCVF = TFVGeom::numSCVF;
+//    static const size_t numSCVF = TFVGeom::maxNumSCVF;
     
 	MathVector<dim> StdVel[numSCVF];
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
@@ -614,7 +613,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
 	const DataImport<MathVector<dim>, dim>* pSource = NULL;
@@ -638,8 +637,9 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	}
 
 //	interpolate velocity at ip with standard lagrange interpolation
-   //static const size_t numSCVF = TFVGeom::numSCVF;
-   static const size_t numSCVF = TFVGeom::maxNumSCVF;
+
+    static const size_t numSCVF = TFVGeom::numSCVF;
+  //  static const size_t numSCVF = TFVGeom::maxNumSCVF;
     
 	MathVector<dim> StdVel[numSCVF];
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
@@ -702,9 +702,10 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 				gradVel(d1, d2) = 0.0;
 				for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
 					gradVel(d1, d2) += scvf.global_grad(sh)[d2]
-					                    * u(d1, sh);
+                                       * u(d1, sh);
 			}
 
+        
 	//	2. Compute flux
 		MathVector<dim> diffFlux;
 
@@ -786,7 +787,6 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 		d(_P_, scvf.from()) += contFlux;
 		d(_P_, scvf.to()  ) -= contFlux;
 	}
-    
 }
 
 
@@ -799,7 +799,7 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
@@ -829,7 +829,7 @@ add_def_M_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	UG_ASSERT((TFVGeom::order == 1), "Only first order implemented.");
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
@@ -862,7 +862,7 @@ add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoor
 	if(!m_imSourceSCV.data_given()) return;
 
 // 	get finite volume geometry
-	static const TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 // 	loop Sub Control Volumes (SCV)
 	for(size_t ip = 0; ip < geo.num_scv(); ++ip)
@@ -919,7 +919,7 @@ ex_velocity_grad(MathMatrix<dim, dim> vValue[],
         std::vector<std::vector<MathMatrix<dim, dim> > > vvvDeriv[])
 {
 // 	Get finite volume geometry
-	static const TFVGeom& geo = GeomProvider<TFVGeom>::get(m_LFEID, 1);
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	reference element
 	typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
@@ -1020,13 +1020,15 @@ template<>
 void NavierStokesFV1<Domain1d>::
 register_all_funcs(bool bHang)
 {
+    bool bRegisterUsual = true;
+
 //	switch assemble functions
 	if(!bHang)
 	{
-
-  //      register_func<RegularEdge, FV1Geometry<RegularEdge, dim> >();
-
-        register_func<RegularEdge, DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > >();
+        if ( bRegisterUsual )
+            register_func<RegularEdge, FV1Geometry<RegularEdge, dim> >();
+   //     else
+    //        register_func<RegularEdge, DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > >();
 	}
 	else
 	{
@@ -1040,23 +1042,24 @@ template<>
 void NavierStokesFV1<Domain2d>::
 register_all_funcs(bool bHang)
 {
+    bool bRegisterUsual = true;
+
 //	switch assemble functions
 	if(!bHang)
 	{
-
-  //      register_func<Quadrilateral, FV1Geometry<Quadrilateral, dim> >();
-   //     register_func<Triangle, FV1Geometry<Triangle, dim> >();
-
-        register_func<Triangle, DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > >();
-  //      register_func<Quadrilateral, DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > >();
+        if ( bRegisterUsual )
+        {
+            register_func<Triangle, FV1Geometry<Triangle, dim> >();
+            register_func<Quadrilateral, FV1Geometry<Quadrilateral, dim> >();
+        }
+   //     else
+    //        register_func<Triangle, DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > >();
 	}
 	else
 	{
 		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
 	}
-
 }
-    
 #endif
 
 #ifdef UG_DIM_3
@@ -1064,23 +1067,28 @@ template<>
 void NavierStokesFV1<Domain3d>::
 register_all_funcs(bool bHang)
 {
+    bool bRegisterUsual = true;
+    
 //	switch assemble functions
 	if(!bHang)
 	{
- /*
-        register_func<Tetrahedron, FV1Geometry<Tetrahedron, dim> >();
-        register_func<Prism, FV1Geometry<Prism, dim> >();
-        register_func<Pyramid, FV1Geometry<Pyramid, dim> >();
-        register_func<Hexahedron, FV1Geometry<Hexahedron, dim> >();
- */
-        register_func<Tetrahedron, DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > >();
-
-    }
+        if ( bRegisterUsual )
+        {
+            register_func<Tetrahedron, FV1Geometry<Tetrahedron, dim> >();
+            register_func<Prism, FV1Geometry<Prism, dim> >();
+            register_func<Pyramid, FV1Geometry<Pyramid, dim> >();
+            register_func<Hexahedron, FV1Geometry<Hexahedron, dim> >();
+        }
+  //      else
+   //         register_func<Tetrahedron, DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > >();
+	}
 	else
 	{
 		UG_THROW("NavierStokesFV1: Hanging Nodes not implemented.")
 	}
+    
 }
+    
 #endif
 
 template<typename TDomain>

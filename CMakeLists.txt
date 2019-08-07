@@ -74,7 +74,8 @@ set(SOURCES	navier_stokes_base.cpp
 			incompressible/fvcr/register_fvcr.cpp
 			incompressible/fe/register_fe.cpp	
 			
-			incompressible/incompressible_navier_stokes_plugin.cpp)
+			incompressible/incompressible_navier_stokes_plugin.cpp
+            incompressible/particle_laden_flow_plugin.cpp)
 
 
 ################################################################################
