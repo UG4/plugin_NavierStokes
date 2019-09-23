@@ -1,6 +1,6 @@
 
 /*
- * moving_interface_diffusion_impl.h
+ * two_phase_flow_impl.h
  *
  *  Created on: 24.08.2017
  *      Author: suze
@@ -23,7 +23,7 @@ template<typename TDomain, typename TAlgebra>
 MovingInterface2PF<TDomain, TAlgebra>::MovingInterface2PF(
                             SmartPtr<IAssemble<TAlgebra> > ass,
                             SmartPtr<NavierStokesFV1<TDomain> > spMaster,                            SmartPtr<DiffusionInterfaceProvider<dim> > interfaceProvider,
-                            SmartPtr<CutElementHandlerImmersed<dim> > cutElementHandler,
+                            SmartPtr<CutElementHandler_TwoSided<dim> > cutElementHandler,
                             number fluidDensity1, number fluidDensity2) :
     m_spInterfaceProvider(interfaceProvider),
     m_spInterfaceHandlerLocal(new InterfaceHandlerLocal2PF<dim>(interfaceProvider, cutElementHandler, fluidDensity1, fluidDensity2)),
@@ -81,8 +81,7 @@ set_analytic_solution(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spA
  	typedef Attachment<position_type> position_attachment_type;
  	typedef Grid::VertexAttachmentAccessor<position_attachment_type> position_accessor_type;
 
-	//SmartPtr<MultiGrid> m_spMG = mg.operator->();
-	position_attachment_type m_aPos = GetDefaultPositionAttachment<position_attachment_type>();
+ 	position_attachment_type m_aPos = GetDefaultPositionAttachment<position_attachment_type>();
 	position_accessor_type m_aaPos;
 
 	if(!mg->has_attachment<Vertex>(m_aPos))
@@ -142,8 +141,7 @@ adjust_for_error(vector_type& u, vector_type& uCopy, SmartPtr<ApproximationSpace
  	typedef Attachment<position_type> position_attachment_type;
  	typedef Grid::VertexAttachmentAccessor<position_attachment_type> position_accessor_type;
 
-	//SmartPtr<MultiGrid> m_spMG = mg.operator->();
-	position_attachment_type m_aPos = GetDefaultPositionAttachment<position_attachment_type>();
+    position_attachment_type m_aPos = GetDefaultPositionAttachment<position_attachment_type>();
 	position_accessor_type m_aaPos;
 
 	if(!mg->has_attachment<Vertex>(m_aPos))
@@ -162,7 +160,7 @@ adjust_for_error(vector_type& u, vector_type& uCopy, SmartPtr<ApproximationSpace
  	//	get element
 		grid_base_object* elem = *iter;
 
-		ElementModus elemModus = m_spInterfaceHandlerLocal->compute_element_modus(elem, 1);
+		ElementModus elemModus = m_spInterfaceHandlerLocal->compute_element_modus(elem);
 		bool do_adjust = false;
 
 		switch(elemModus)
@@ -213,7 +211,7 @@ initialize_interface(vector_type& u, ConstSmartPtr<DoFDistribution> dd)
  	//	get element
 		grid_base_object* elem = *iter;
 
- 		ElementModus elemModus = m_spCutElementHandler->compute_element_modus(elem, 1);
+ 		ElementModus elemModus = m_spCutElementHandler->compute_element_modus(elem);
 
 		if ( elemModus == CUT_BY_INTERFACE )
 			num_cutElements += 1;
@@ -294,29 +292,22 @@ update_interface( const int topLevel, number deltaT)
 
 // get level index
 	const int levIndex = get_Index(GridLevel(topLevel, GridLevel::LEVEL));
-	UG_LOG("update_prtCoords() for levIndex = " << levIndex << "\n");
-	UG_LOG("update_prtCoords() for deltaT = " << deltaT << "\n");
-
+ 
 // update center
 	for (size_t p = 0; p < m_spInterfaceProvider->num_particles(); ++p)
 	{
 #ifdef UG_PARALLEL
         std::vector<grid_base_object*> ElemList = m_spCutElementHandler->m_vvvElemListCut[levIndex][p];
 		std::vector<grid_base_object*> ElemList = m_vvvElemListCut[levIndex][p];
- 		UG_LOG("1_ update_prtCoords() ElemList.size(): " << ElemList.size() << "\n");
-		if ( ElemList.size() == 0 ) {
- 			UG_LOG("2_ update_prtCoords() ElemList.size(): " << ElemList.size() << " => skip assembling! \n");
-			continue;
-		}
+ 		if ( ElemList.size() == 0 )
+        { continue; }
 #endif
 
 	// get data:
   		MathVector<dim> centerNew = m_spInterfaceProvider->get_center(p);
   		number soution = m_spInterfaceProvider->get_solution(p, 0);
-		UG_LOG(" solution = " << soution << "\n");
- 		UG_LOG("deltaT = " << deltaT << "\n");
-
-// ToDo: Hier das interface irgendwie updaten??
+ 
+    // ToDo: Hier das interface updaten:
 
 
 	} // end particle loop

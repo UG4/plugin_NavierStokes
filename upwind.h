@@ -58,7 +58,8 @@ class NavierStokesNoUpwind
 : public INavierStokesUpwind<dim>,
   public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesNoUpwind<dim> >,
   public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesNoUpwind<dim> >,
-  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesNoUpwind<dim> >
+  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesNoUpwind<dim> >,
+  public NavierStokesUpwindRegisterDim<DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >, dim, NavierStokesNoUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
@@ -92,6 +93,14 @@ class NavierStokesNoUpwind
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 					 number vConvLength[maxNumSCVF]);
+    
+    ///	update of values for DimFV1FTGeometry
+        template <typename TElem>
+        static void compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+                            const MathVector<dim> vIPVel[maxNumSCVF],
+                            number vUpShapeSh[maxNumSCVF][maxNumSH],
+                            number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+                            number vConvLength[maxNumSCVF]);
 };
 
 /////////////////////////////////////////////////////////////////////////////

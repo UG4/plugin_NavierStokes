@@ -20,7 +20,7 @@ namespace NavierStokes{
 template<int TWorldDim>
 InterfaceHandlerLocal2PF<TWorldDim>::InterfaceHandlerLocal2PF(
 		SmartPtr<DiffusionInterfaceProvider<dim> > interfaceProvider,
-		SmartPtr<CutElementHandlerImmersed<dim> > cutElementHandler,
+		SmartPtr<CutElementHandler_TwoSided<dim> > cutElementHandler,
 		number fluidDensity, number fluidKinVisc) :
 		InterfaceHandlerLocalDiffusion<TWorldDim>(interfaceProvider, cutElementHandler),
  		m_fluidDensity(fluidDensity),
@@ -35,7 +35,7 @@ InterfaceHandlerLocal2PF<TWorldDim>::InterfaceHandlerLocal2PF(
 
 template<int TWorldDim>
 void InterfaceHandlerLocal2PF<TWorldDim>::
-write_solution(const std::vector<double > verticesValues)
+set_interface_values(const std::vector<double > verticesValues)
 {
 	this->m_verticesValue.clear();
 
@@ -48,7 +48,7 @@ write_solution(const std::vector<double > verticesValues)
 	{
 		UG_LOG("m_verticesValue.size(): " << this->m_verticesValue.size() << "\n");
 		UG_LOG("verticesValues.size(): " << verticesValues.size() << "\n");
-		UG_THROW("in InterfaceHandlerLocal2PF::write_solution: wrong size of m_verticesValue!\n");
+		UG_THROW("in InterfaceHandlerLocal2PF::set_interface_values: wrong size of m_verticesValue!\n");
 	}
 
 }
@@ -230,45 +230,6 @@ get_source(const MathVector<dim> position)
 	return 2.0; //returnValue;
 }
 
-template<int TWorldDim>
-LocalVector InterfaceHandlerLocal2PF<TWorldDim>::
-set_source(LocalIndices ind, const size_t size, const bool bElementIsCut)
-{
-	LocalVector source;
-	ind.resize_dof(0, size);
-	source.resize(ind);
-
-// loop and set solution in 'solU_tri':
-	for (size_t dof = 0; dof < source.num_all_dof(0); ++dof)
-	{
-/*		if ( dof > 2 )
-			source.value(0, dof) = sourceIm[2]; // done during 'add_def_elem_local()'
-		else
-			source.value(0, dof) = sourceIm[dof]; // done during 'add_def_elem_local()'
-*/
-
-
-	// if dof_real is index of m_vertex: get solution from class:
-		if ( this->lies_onInterface_size(dof, size) )
-		{
-			size_t dof_real = this->real_index_size(dof, size);
- 			source.value(0, dof) = get_source_kappa(this->get_VerticesPos(dof_real));
-		}
-		else
-		{
-/*
-            size_t dof_orig = this->corner_orig(dof);
-            source.value(0, dof) = sourceIm[dof_orig]; // done during 'add_def_elem_local()'
-*/
-		// careful: this->corner() returns corner coords of new corners => use dof-Index, NOT dof_orig-Index?!
- 			source.value(0, dof) = get_source_kappa(this->corner(dof));
-
- 		}
-
-	}
-
-	return source;
-}
 
 
 template<int TWorldDim>
@@ -382,7 +343,7 @@ CollectCorners_FlatTop_2d(GridObject* elem)
  	for(size_t i = 0; i < vVertex.size(); ++i)
 	{
 	// remember boolian for check, weather there existe at least one vertex, which is FT!
-		isFTVertex = this->is_FTVertex(vVertex[i], i);
+		isFTVertex = this->is_onInterfaceVertex(vVertex[i], i);
 		if ( isFTVertex )
 			break;
 	}
@@ -409,7 +370,7 @@ CollectCorners_FlatTop_2d(GridObject* elem)
 		//////////////////////////////////////////////
 		// case 1:
 		// vertex insideDomain
- 		if ( !this->is_FTVertex(vrtRoot, i) )
+ 		if ( !this->is_onInterfaceVertex(vrtRoot, i) )
  		{
 			if ( this->is_nearInterfaceVertex(vrtRoot, i) )
 				UG_THROW("NearInterface BUT !is_FT => neuerdings Fehler!!....\n");
@@ -467,11 +428,11 @@ CollectCorners_FlatTop_2d(GridObject* elem)
 				if ( this->is_nearInterfaceVertex(vrt2, vrtInd2) || this->is_nearInterfaceVertex(vrt1, vrtInd1) )
 				{ bNearInterface = true; continue; }
 			 // case2: vert2 = outsideParticle && vrt1 = insideParticle:
-				else if ( vrtRoot == vrt1 && !this->is_FTVertex(vrt2, vrtInd2) ){
+				else if ( vrtRoot == vrt1 && !this->is_onInterfaceVertex(vrt2, vrtInd2) ){
 					this->get_intersection_point(intersectionPnt, vrt2, vrt1);
  				}
 			// case3: vrt1 = outsideParticle && vrt2 = insideParticle:
-				else if ( vrtRoot == vrt2 && !this->is_FTVertex(vrt1, vrtInd1) )
+				else if ( vrtRoot == vrt2 && !this->is_onInterfaceVertex(vrt1, vrtInd1) )
 					this->get_intersection_point(intersectionPnt, vrt1, vrt2);
 				else
  					continue;
@@ -536,21 +497,21 @@ update_elem(GridObject* elem, const MathVector<TWorldDim>* vCornerCoords, int in
 	bool do_update_local = false;
 	this->m_vBF.clear();
 
-// computing flat top modus
+// computing the cut element modus
 	this->m_elemModus = compute_element_modus(elem, interfaceOrientation);
 
 	switch(this->m_elemModus)
 	{
- 		case INSIDE_DOM:	   if ( dim == 2 ) this->set_flat_top_data(elem, vCornerCoords, ROID_TRIANGLE);
- 							   if ( dim == 3 ) this->set_flat_top_data(elem, vCornerCoords, ROID_TETRAHEDRON);
+ 		case INSIDE_DOM:	   if ( dim == 2 ) this->set_element_data(elem, vCornerCoords, ROID_TRIANGLE);
+ 							   if ( dim == 3 ) this->set_element_data(elem, vCornerCoords, ROID_TETRAHEDRON);
 							   break;	// usual assembling
-		case OUTSIDE_DOM: 	   if ( dim == 2 ) this->set_flat_top_data(elem, vCornerCoords, ROID_TRIANGLE);
-							   if ( dim == 3 ) this->set_flat_top_data(elem, vCornerCoords, ROID_TETRAHEDRON);
+		case OUTSIDE_DOM: 	   if ( dim == 2 ) this->set_element_data(elem, vCornerCoords, ROID_TRIANGLE);
+							   if ( dim == 3 ) this->set_element_data(elem, vCornerCoords, ROID_TETRAHEDRON);
 							   break;	// usual assembling
-		case CUT_BY_INTERFACE: this->compute_flat_top_data(elem);
+		case CUT_BY_INTERFACE: this->compute_cut_element_data(elem);
 								//if ( m_roid == ROID_PYRAMID )UG_THROW("PYRAMID\n");
 							   do_update_local = true;
-						  	   break;  // flat top assembling
+						  	   break;  // cut element assembling
 		default:
 			throw(UGError("Error in InterfaceHandlerLocalDiffusion::update(): switch(m_elemModus)!"));
 	}

@@ -30,6 +30,9 @@
  * GNU Lesser General Public License for more details.
  */
 
+#ifndef MOVING_PARTICLE_PLUGIN_CPP_
+#define MOVING_PARTICLE_PLUGIN_CPP_
+
 #ifdef UG_PARALLEL
     #include "../../Parmetis/src/unificator_interface.h"
 #endif
@@ -40,9 +43,9 @@
 #include "common/log.h"
 #include "lib_disc/function_spaces/grid_function.h"
 #include "lib_disc/dof_manager/dof_distribution.h"
-#include "fv1/navier_stokes_fv1.h"
+#include "fv1/navier_stokes_fv1_cutElem.h"
 #include "incompressible_navier_stokes_base.h"
-#include "fv1/bnd/inflow_fv1.h"
+#include "fv1/bnd/inflow_fv1_cutElem.h"
 #include "bnd/inflow_base.h"
 
 
@@ -83,75 +86,32 @@ static void DomainAlgebra(Registry& reg, string grp)
 	typedef ApproximationSpace<TDomain> approximation_space_type;
 	typedef GridFunction<TDomain, TAlgebra> function_type;
 
-//	IMovingInterfaceBase
+//	IImmersedInterfaceBase
     {
-        typedef IMovingInterface<TDomain, TAlgebra> T;
-        string name = string("IMovingInterfaceBase").append(suffix);
+        typedef IImmersedInterface<TDomain, TAlgebra> T;
+        string name = string("IImmersedInterface").append(suffix);
         reg.add_class_<T>(name, grp);
-        reg.add_class_to_group(name, "IMovingInterfaceBase", tag);
+        reg.add_class_to_group(name, "IImmersedInterface", tag);
         
     }
-/*
-    //	MovingInterface2PF
-    {
-        typedef MovingInterface2PF::MovingInterface2PF<TDomain, TAlgebra> T;
-        typedef IMovingInterface<TDomain, TAlgebra> TBase;
-        string name = string("MovingInterface2PF").append(suffix);
-        reg.add_class_<T, TBase>(name, grp)
-        .template add_constructor<void (*)(SmartPtr<IAssemble<TAlgebra> > ass,
-                                           SmartPtr<NavierStokesFV1<TDomain> > spMaster,															SmartPtr<DiffusionInterfaceProvider<TDomain::dim> > interfaceProvider,
-                                           SmartPtr<CutElementHandlerImmersed<TDomain::dim> > cutElementHandler,
-                                           number fluidDensity1, number fluidDensity2)>("domain disc, global handler")
-        .add_method("init", &T::init)
-        .add_method("get_integral", &T::get_integral)
-        .add_method("adjust_for_error", &T::adjust_for_error)
-        .add_method("initialize_threshold", &T::initialize_threshold)
-        .add_method("set_threshold", &T::set_threshold, "", "Set Threshold")
-        .add_method("set_analytic_solution", &T::set_analytic_solution, "", "Set Threshold")
-        .set_construct_as_smart_pointer(true);
-        reg.add_class_to_group(name, "MovingInterface2PF", tag);
-    }
-    
-    //	MovingInterfaceDiffusionFE
-    {
-        typedef MovingInterfaceDiffusionFE::MovingInterfaceDiffusionFE<TDomain, TAlgebra> T;
-        typedef IMovingInterface<TDomain, TAlgebra> TBase;
-        string name = string("MovingInterfaceDiffusionFE").append(suffix);
-        reg.add_class_<T, TBase>(name, grp)
-        .template add_constructor<void (*)(SmartPtr<IAssemble<TAlgebra> > ass,
-                                           SmartPtr<ConvectionDiffusionPlugin::ConvectionDiffusionFE<TDomain> > spMaster,
-                                           SmartPtr<DiffusionInterfaceProvider<TDomain::dim> > interfaceProvider,
-                                           SmartPtr<CutElementHandlerImmersed<TDomain::dim> > cutElementHandler)>("domain disc, global handler")
-        .add_method("init", &T::init)
-        .set_construct_as_smart_pointer(true);
-        reg.add_class_to_group(name, "MovingInterfaceDiffusionFE", tag);
-    }
-    */
+
 
     
 //	MovingParticle
     {
         typedef MovingParticle<TDomain, TAlgebra> T;
-        typedef IMovingInterface<TDomain, TAlgebra> TBase;
+        typedef IImmersedInterface<TDomain, TAlgebra> TBase;
         string name = string("MovingParticle").append(suffix);
         reg.add_class_<T, TBase>(name, grp)
         .template add_constructor<void (*)(SmartPtr<IAssemble<TAlgebra> > ass,
-                                           SmartPtr<NavierStokesFV1<TDomain> > spMaster,
-                                           SmartPtr<CutElementHandlerFlatTop<TDomain::dim> > cutElementHandler,
+                                           SmartPtr<NavierStokesFV1_cutElem<TDomain> > spMaster,
+                                           SmartPtr<CutElementHandler_FlatTop<TDomain::dim> > cutElementHandler,
                                            number fluidDensity, number fluidKinVisc)>("domain disc, global handler")
         .add_method("init", &T::init)
-     //   .add_method("compute_functional_combined", &T::compute_functional_combined)
-        .add_method("compute_functional", &T::compute_functional)
-        .add_method("compute_functional_all", &T::compute_functional_all)
-        .add_method("gradient_descent", &T::gradient_descent)
-        .add_method("project_directions", &T::project_directions)
-        .add_method("rescale_directions", &T::rescale_directions)
         .add_method("print_velocity", &T::print_velocity)
-     //   .add_method("print_velocity_many_particles", &T::print_velocity_many_particles)
-        .add_method("print_pressure", &T::print_pressure)
         .add_method("print_deltaP", &T::print_deltaP)
         .add_method("print_pressure_nodal", &T::print_pressure_nodal)
-   //     .add_method("compute_error_on_circle", &T::compute_error_on_circle)
+        .add_method("print_pressure_teta", &T::print_pressure_teta)
         .add_method("update", &T::update)
         .add_method("get_velocity", &T::get_velocity)
         .add_method("adjust_global_solution", &T::adjust_global_solution)
@@ -160,9 +120,11 @@ static void DomainAlgebra(Registry& reg, string grp)
         .add_method("set_time_step", &T::set_time_step)
         .add_method("set_volume_comp_mode", &T::set_volume_comp_mode)
         .add_method("set_StdFV_assembling", &T::set_StdFV_assembling)
+        .add_method("set_print_cutElemData", &T::set_print_cutElemData)
         .add_method("initialize_threshold", &T::initialize_threshold)
+        .add_method("set_threshold", &T::set_threshold)
         .add_method("get_BndCond", &T::get_BndCond)
-//      .add_method("get_particles", &T::get_particles)
+        .add_method("get_numCutElements", &T::get_numCutElements)
     // methods for parallel many-particle simulations:
 #ifdef UG_PARALLEL
         .add_method("pre_balancing_update", &T::pre_balancing_update)
@@ -186,7 +148,7 @@ static void DomainAlgebra(Registry& reg, string grp)
         typedef ITransferOperator<TDomain, TAlgebra> TBase;
         string name = string("ParticleTransfer").append(suffix);
         reg.add_class_<T, TBase>(name, grp)
-        .template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> > approxSpace, SmartPtr<CutElementHandlerFlatTop<TDomain::dim> > cutElementHandler)>("approxSpace, globalHandler")
+        .template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> > approxSpace, SmartPtr<CutElementHandler_FlatTop<TDomain::dim> > cutElementHandler)>("approxSpace, globalHandler")
         .add_method("set_debug", &T::set_debug, "", "")
         .add_method("set_use_transposed", &T::set_use_transposed, "", "")
         .set_construct_as_smart_pointer(true);
@@ -269,16 +231,16 @@ static void Dimension(Registry& reg, string grp)
     string suffix = GetDimensionSuffix<dim>();
     string tag = GetDimensionTag<dim>();
 
-    // CutElementHandlerFlatTop
+    // CutElementHandler_FlatTop
     {
-        typedef CutElementHandlerFlatTop<dim> T;
-        string name = string("CutElementHandlerFlatTop").append(suffix);
+        typedef CutElementHandler_FlatTop<dim> T;
+        string name = string("CutElementHandler_FlatTop").append(suffix);
         reg.add_class_<T>(name, grp)
         .template add_constructor<void (*)(SmartPtr<MultiGrid> mg, const char*, SmartPtr<ParticleProviderSphere<dim> >)>("multigrid, fct names")
         .template add_constructor<void (*)(SmartPtr<MultiGrid> mg, const char*, SmartPtr<ParticleProviderEllipse<dim> >)>("multigrid, fct names")
    //     .add_method("update_prtCoords", &T::update_prtCoords)
         .set_construct_as_smart_pointer(true);
-        reg.add_class_to_group(name, "CutElementHandlerFlatTop", tag);
+        reg.add_class_to_group(name, "CutElementHandler_FlatTop", tag);
     }
     
     
@@ -364,3 +326,4 @@ void Init___ParticleLadenFlow(Registry* reg, string grp)
 }// namespace ug
 
 
+#endif /* MOVING_PARTICLE_PLUGIN_CPP_ */

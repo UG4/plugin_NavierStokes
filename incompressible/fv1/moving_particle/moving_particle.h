@@ -38,7 +38,7 @@ namespace NavierStokes{
 
 template <	typename TDomain, typename TAlgebra>
 class MovingParticle
-		: public IMovingInterface<TDomain, TAlgebra>
+		: public IImmersedInterface<TDomain, TAlgebra>
 {
 	public:
 	///	world Dimension
@@ -56,256 +56,201 @@ class MovingParticle
 		typedef typename domain_traits<dim>::grid_base_object grid_base_object;
 
  		MovingParticle(SmartPtr<IAssemble<TAlgebra> > ass,
- 					   SmartPtr<NavierStokesFV1<TDomain> > spMaster,
- 					  SmartPtr<CutElementHandlerFlatTop<dim> > cutElementHandler,
- 					  number fluidDensity, number fluidKinVisc);
-
- 		SmartPtr<ParticleBndCond<TDomain> > get_BndCond() { return m_spInterfaceBndCond; }
- 
-      //  SmartPtr<ParticleProviderSphere<dim> > get_particles() { return m_spParticleHandlerGlobal->get_particles(); }
-
- 		void set_gravity(bool gravity, number gravityConst) { m_spInterfaceMapper->set_gravity(gravity, gravityConst); }
-        void set_repulsive_force(bool repForce,  number forceValue) { m_spInterfaceMapper->set_repulsive_force(repForce, forceValue); }
-        void set_glowinski_repulsive_force(bool maxRepForce, number rho, number eps) { m_spInterfaceMapper->set_glowinski_repulsive_force(maxRepForce, rho, eps); }
-        void set_minimum_correction_force(bool EquiRepForce, number repulsiveDistance) { m_spInterfaceMapper->set_minimum_correction_force(EquiRepForce, repulsiveDistance); }
-
-        void set_time_step(number dt) { m_spInterfaceMapper->set_time_step(dt); }
-        void set_volume_comp_mode(bool bVolumeCompMode) { m_spInterfaceMapper->set_volume_comp_mode(bVolumeCompMode); }
-
-		void set_StdFV_assembling(bool bValue) { m_spInterfaceHandlerLocal->set_StdFV_assembling(bValue);}
-     	bool StdFV_assembling() { return m_spInterfaceHandlerLocal->StdFV_assembling(); }
-
+                       SmartPtr<NavierStokesFV1_cutElem<TDomain> > spMaster,
+                       SmartPtr<CutElementHandler_FlatTop<dim> > cutElementHandler,
+                       number fluidDensity, number fluidKinVisc);
 
  	// destructor
-		~MovingParticle(){};
+		virtual ~MovingParticle(){};
 
-	/// called via .lua:
-		void init(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int baseLevel, const int topLevel)
-		{
-//            UG_LOG("initialize on process " << pcl::ProcRank() << "\n");
-
-			m_spApproxSpace = spApproxSpace;
-
-			ConstSmartPtr<DoFDistribution> dd = spApproxSpace->dof_distribution(GridLevel(topLevel, GridLevel::LEVEL));
-
-			m_spParticleHandlerGlobal->template init<TDomain>(dd, baseLevel, topLevel);
-			// => update_multigrid_data() for all given levels
-
-			//  transfer direction:  m_vvLinearVelocity/m_vvAngularVelocity ---> DoFRef(u, transInd)
-			//		--> if particle velocities are FREE: m_vvLinearVelocity/m_vvAngularVelocity are initialized
-			//			during ParticleProvider:adfd() with 0.0 => ok and INDEPENDENT of FREE or MOVING modus
-			update_particle_solution(u, topLevel);
-		}
-
-        number MeanElementDiameter(TDomain& domain, int level);
-        void set_element_diameter(double val) { m_spInterfaceMapper->set_element_diameter(val); }
-
-		//////////////////////////////////////////////////////////////////////////////////
-		// ---> .lua:  update(u, deltaT, u:grid_level()): update global indices (transInd...)
-		// 				=> A. copy_solution(topLev)
-		// 				   B. update(baseLev-topLev)
-		// 				   C. update_solution(topLev)
- 		//////////////////////////////////////////////////////////////////////////////////
-		// write solution to nodes outside fluid with particle velocities
-		//		--> call method vie .lua BEFORE 'solTimeSeries:push_discard_oldest(oldestSol, time)':
-		//			=> in case that outside nodes are inside AFTER update_prtCoords: NO solution defined here!
-        void update(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int baseLevel, const int topLevel, const number time, const number deltaT)
-        {
-			int topLev = spApproxSpace->num_levels()-1;
-			if ( topLev != topLevel )
-				UG_THROW("NavierStokes::update: parameter 'topLevel' = " << topLevel << " != "
-						 << topLev << "current top leven! \n");
-
-		// A. copy solution to data: DoFRef(u, transInd/rotInd) ---> m_vvLinearVelocity/m_vvAngularVelocity
-		// reverse direction done during 'NavierStokes::update_particle_solution()'
-			copy_particle_solution(u, topLevel);
-
-        // B. synchronize particle data when everything in ParticleProvider is up to date.
-#ifdef UG_PARALLEL
-            const int levIndex = get_Index(GridLevel(topLevel, GridLevel::LEVEL));
-            m_spParticleHandlerGlobal->synchronize_particles(levIndex);
-#endif
-        // C. calculate new particle coordinates
-            m_spParticleHandlerGlobal->update_prtCoords(topLevel, deltaT);
-            
-		// D. fill particle nodes with their real solution
-		// 		--> FIRST copy_particle_solution() necessary, since eventually during
-		//			fill extraDoF-nodes will be overwriten
-			fill_particle_solution(u, topLevel, time);
-
-	 	// E. update data => new node for (u, transInd) !
-			ConstSmartPtr<DoFDistribution> dd = spApproxSpace->dof_distribution(GridLevel(topLevel, GridLevel::LEVEL));
-  			m_spParticleHandlerGlobal->template init<TDomain>(dd, baseLevel, topLevel);
-
-  		// F. update solution from data: m_vSolTransDoFRef(u, transInd/rotInd)
-  		//  transfer direction:  m_vvLinearVelocity/m_vvAngularVelocity ---> DoFRef(u, transInd)
-  			update_particle_solution(u, topLevel);
-
-  		// reset volume:
-  			m_spInterfaceMapper->reset_volume();
-        }
-
-        void get_velocity(MathVector<dim>& transSol, MathVector<dim>& rotSol, const vector_type& u, const int topLevel, number deltaT, const size_t prtIndex);
-#ifdef UG_PARALLEL
-        void pre_balancing_update(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int baseLevel, const int topLevel, const number time, number deltaT)
-        {
-            int topLev = spApproxSpace->num_levels()-1;
-            if ( topLev != topLevel )
-                UG_THROW("NavierStokes::update: parameter 'topLevel' = " << topLevel << " != "
-                     << topLev << "current top leven! \n");
-        
-            const char* filename = "update_times";
-            std::string name(filename);
-            char ext[50];
-            sprintf(ext, "_%d.txt", pcl::ProcRank());
-            //sprintf(ext, ".txt");
-            name.append(ext);
-            FILE* outputFile = fopen(name.c_str(), "a");
-        
-            std::clock_t begin = std::clock();
-        // A. copy solution to data: DoFRef(u, transInd) ---> m_vSolTrans
-        // reverse direction done during 'NavierStokes::update_particle_solution()'
-            copy_particle_solution(u, topLevel);
-            std::clock_t end = std::clock();
-            fprintf(outputFile,"copy_particle_solution %f", double(end - begin) / CLOCKS_PER_SEC);
-        
-            begin = std::clock();
-        
-        // C. calculate new particle coordinates
-            m_spParticleHandlerGlobal->update_prtCoords(topLevel, deltaT);
-            end = std::clock();
-            fprintf(outputFile,"update_prtCoords %f", double(end - begin) / CLOCKS_PER_SEC);
-            
-            begin = std::clock();
-            // B. synchronize particle data when everything in ParticleProvider is up to date.
-
-            const int levIndex = get_Index(GridLevel(topLevel, GridLevel::LEVEL));
-            m_spParticleHandlerGlobal->synchronize_particles(levIndex);
-
-            end = std::clock();
-            fprintf(outputFile,"synchronize_particles %f", double(end - begin) / CLOCKS_PER_SEC);
-            
-            begin = std::clock();
-            
-        // D. fill particle nodes with their real solution
-        // 		--> FIRST copy_particle_solution() necessary, since eventually during
-        //			fill extraDoF-nodes will be overwriten
-            fill_particle_solution(u, topLevel, time);
-            end = std::clock();
-            fprintf(outputFile,"fill_particle_solution %f", double(end - begin) / CLOCKS_PER_SEC);
-            
-            fclose(outputFile);
-
-        }
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // main methods
+    //////////////////////////////////////////////////////////////////////////////////////////
     
-        void post_balancing_update(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int baseLevel, const int topLevel, const number time, number deltaT)
-        {
-        // E. update data => new node for (u, transInd) !
-            ConstSmartPtr<DoFDistribution> dd = spApproxSpace->dof_distribution(GridLevel(topLevel, GridLevel::LEVEL));
-            m_spParticleHandlerGlobal->template init<TDomain>(dd, baseLevel, topLevel);
-        
-        // F. update solution from data: m_vSolTransDoFRef(u, transInd)
-        //  transfer direction:  m_vSolTrans ---> DoFRef(u, transInd)
-            update_particle_solution(u, topLevel);
-        
-        // reset volume:
-            m_spInterfaceMapper->reset_volume();
-        }
-#endif    
+    //  general initialisation of set up data;
+    //  most important: call of 'update_interface_data()' during init() of CutElementHandler
+    //          --> marks the cut elements and interface vertices as
+    //              INSIDE, OUTSIDE, CUT_BY_INTERFACE(element)/ON_INTERFACE(vertx)
+    //          --> sets up the element lists CutElementHandlerParticle::m_vvvElemList,
+    //                  ::m_vvvElemListCut, ::m_vvvElemListOutside
+	/// called via .lua:
+        void init(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int baseLevel,
+              const int topLevel);
+    
+    // mainly updates the coordinates of the particles for the next time step and updates the marker accordingly
+    //      --> for that the solution in the DoFs for the particle motion needs to be
+    //          (1) copied from DoFRef(u, ) into external storage:     via call of 'store_particle_velocity()'
+    //          (2) written back from storage to DoFRef(u, ):          via call of 'write_particle_velocity()'
+        void update(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int baseLevel,
+                const int topLevel, const number time, const number deltaT);
+    
+#ifdef UG_PARALLEL
+        void pre_balancing_update(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace,
+                              const int baseLevel, const int topLevel, const number time, number deltaT);
+    
+        void post_balancing_update(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace,
+                               const int baseLevel, const int topLevel, const number time, number deltaT);
+#endif
+    
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // helper methods for init() and update()
+    //////////////////////////////////////////////////////////////////////////////////////////
+    
+    // transfer direction:
+    //  DoFRef(u, transInd) ---> ParticleProvider::m_vvLinearVelocity/m_vvAngularVelocity
+        void store_particle_velocity(vector_type& u, const int topLevel);
 
-		void compute_gradient_local_max(vector_type& sol, vector_type& grad,SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int topLevel);
-
-		/// call of the method via lua to set the real velocity values within the particle domain
+    // transfer direction:
+    //  ParticleProvider::m_vvLinearVelocity/m_vvAngularVelocity ---> DoFRef(u, transInd)
+        void write_particle_velocity(vector_type& u, const int topLevel);
+    
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // write solution to 'FREED' nodes, i.e. nodes which were inside particle in the last
+    //  time step and are outside the particle (i.e. freed) in the current time step
+    //		--> call method via .lua BEFORE 'solTimeSeries:push_discard_oldest(oldestSol, time)':
+    //			(if not: in case that outside nodes are inside the domain AFTER updating the
+    //           particle coordinates, NO solution will be defined here!)
+        void fill_freed_nodes(vector_type& u, const int topLevel, const number time);
+    
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // helper methods for init() and update()
+    //////////////////////////////////////////////////////////////////////////////////////////
+    
+    // currently not used
+        void compute_gradient_local_max(vector_type& sol, vector_type& grad,
+                                        SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int topLevel);
+   
+    /// writes the physical velocity values to the nodes lying in the particle domain
+    //   (call via lua for visualisation purposes)
 		void adjust_global_solution(vector_type& u, const int topLevel);
 
-		void fill_particle_solution(vector_type& u, const int topLevel, const number time);
 
-		/// transfer direction: DoFRef(u, transInd) ---> m_vSolTrans
-		void copy_particle_solution(vector_type& u, const int topLevel);
-
-		/// transfer direction:  m_vSolTrans ---> DoFRef(u, transInd)
-		void update_particle_solution(vector_type& u, const int topLevel);
-
-		void initialize_threshold(TDomain& domain, const int baseLevel, const int topLevel);
-
-	   /// checks if grid data is updated and returns 'levIndex'-pair for 'gridLevel' in 'm_Map'
-	    int get_Index(const GridLevel& gridLevel)
-	    {
-	    	ConstSmartPtr<DoFDistribution> dd = m_spApproxSpace->dof_distribution(gridLevel);
-
- 	 		const int levIndex = m_spParticleHandlerGlobal->get_Index(gridLevel, dd);
-
-	    	return levIndex;
-	    }
-
- //       void clear_solution(SmartPtr<VectorTimeSeries<vector_type> > vSol, const GridLevel& topGrid);
-		void clear_solution(vector_type& u, const int topLevel);
-	/// see ParticleConstraint::adjust_solution()
-//        void update_solution(SmartPtr<VectorTimeSeries<vector_type> > vSol, const GridLevel& topGrid);
-
-		bool is_time_dependent() { return m_spInterfaceMapper->is_time_dependent();}
-
-number compute_functional_fixed(const size_t n, vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
-
-number compute_functional_combined(const size_t n, vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// methods for setting up the forces for collision (by Jonas Simon, see Master Thesis)
+    //////////////////////////////////////////////////////////////////////////////////////////
     
-number compute_functional(const size_t n, vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
-number compute_functional_all(const size_t n, vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
+        void set_repulsive_force(bool repForce,  number forceValue)
+            { m_spInterfaceMapper->set_repulsive_force(repForce, forceValue); }
+        void set_glowinski_repulsive_force(bool maxRepForce, number rho, number eps)
+            { m_spInterfaceMapper->set_glowinski_repulsive_force(maxRepForce, rho, eps); }
+        void set_minimum_correction_force(bool EquiRepForce, number repulsiveDistance)
+            { m_spInterfaceMapper->set_minimum_correction_force(EquiRepForce, repulsiveDistance); }
     
-number compute_max_step_size(SmartPtr<ApproximationSpace<TDomain> > spApproxSpace,
-                                 SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
-number gradient_descent(const size_t n, const number functional, const number bound, const number scaleAlpha, vector_type& u, SmartPtr<ApproximationSpace<TDomain> >
-                                spApproxSpace, SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
-void project_directions(const number functional, vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace,
-                                SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
-void rescale_directions(const number functional, vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace,
-                        SmartPtr<NavierStokesFV1<TDomain> > spMaster, const int topLevel);
-
-    
-  		/// helper functions for compute_error_on_circle()
-		void interpolate_point(ConstSmartPtr<DoFDistribution> dd, const vector_type& u,
-				const MathVector<dim>& evalPos, MathVector<dim+1>& interpolation);
-//		void compute_error_on_circle(const vector_type& u, const int topLevel, number radius);
-
-		void print_deltaP(const vector_type& u, const int topLevel);
-		void print_pressure(const vector_type& u, const int topLevel);
-		void print_pressure_nodal(const vector_type& u, const int topLevel);
-
-	/// writing data to file; called via .lua
-		void print_velocity(const vector_type& u, const int topLevel, number time, const char* filename);
-	//	void print_velocity_many_particles(const vector_type& u, const int topLevel, number time, const char* filename);
-
         bool mark_collision_area(SmartPtr<AdaptiveRegularRefiner_MultiGrid> refiner, int level);
         double estimate_repulsive_force_parameters(vector_type& u, int topLevel, double MaxElemDiameter, double deltaT);
+        void set_forceLog(bool val)  { m_spInterfaceMapper->set_forceLog(val); }
+        void set_mpi_routine(int val){ m_spCutElementHandler->set_mpi_routine(val); }
     
-        void set_forceLog(bool val) {
-            m_spInterfaceMapper->set_forceLog(val);
-        }
     
-        void set_mpi_routine(int val){
-            m_spParticleHandlerGlobal->set_mpi_routine(val);
-        }
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // some getter and setter methods
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+        SmartPtr<ParticleBndCond<TDomain> > get_BndCond() { return m_spInterfaceBndCond; }
+
+    /// checks if grid data is updated and returns the 'levIndex' of the 'gridLevel' via access to 'CutElementHandlerBase::m_Map'
+        int get_Index(const GridLevel& gridLevel);
     
+    /// returns true, if computation is time dependent
+        bool is_time_dependent() { return m_spInterfaceMapper->is_time_dependent();}
+    
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// lua-methods for set up:
+    //////////////////////////////////////////////////////////////////////////////////////////
+    
+    // the 'threshold' defines the bandwidth around the immersed interface, in which a node
+    //  counts as 'OUTSIDE' or 'ON_INTERFACE' during call of 'CutElementHandler::is_outside()'
+    //  and 'CutElementHandler::is_nearInterface()
+        void initialize_threshold(TDomain& domain, const int baseLevel, const int topLevel);
+        void set_threshold(size_t level, const number threshold)
+            { m_spCutElementHandler->set_threshold(level, threshold); }
+        number MeanElementDiameter(TDomain& domain, int level);
+    
+    // If StdFV-assembling is ON, NO new 'vCornerCoords' will be computed on the cut elements.
+    // The original nodes ACCROSS the interface (ON the euclidian mesh) will be chosen for the
+    // computation of the solution of the interface
+    //  ==> the standard shape functions w.r.t. the non-conforming mesh will be used
+    //       (similar as in common 'ficticious domain' methods)
+    //  ==> the shape functions will NOT be 1 ON the interface and the gradient will NOT
+    //          point normal to the interface
+        void set_StdFV_assembling(bool bValue)              { m_spInterfaceHandlerLocal->set_StdFV_assembling(bValue);}
+        bool StdFV_assembling()                             { return m_spInterfaceHandlerLocal->StdFV_assembling(); }
+    
+    // setting and getting flag for printing of cut-element data into file:
+        void set_print_cutElemData(bool bValue) { m_spInterfaceHandlerLocal->set_print_cutElemData(bValue); }
+
+        void set_element_diameter(double val)               { m_spInterfaceMapper->set_element_diameter(val); }
+        void set_volume_comp_mode(bool bVolumeCompMode)     { m_spInterfaceMapper->set_volume_comp_mode(bVolumeCompMode); }
+        void set_gravity(bool gravity, number gravityConst) { m_spInterfaceMapper->set_gravity(gravity, gravityConst); }
+        void set_time_step(number dt)                       { m_spInterfaceMapper->set_time_step(dt); }
+
+    // writes the velocity of the prtIndex-th particle into 'transSol' and 'rotSol' for further computatino or output
+        void get_velocity(MathVector<dim>& transSol, MathVector<dim>& rotSol, const vector_type& u,
+                      const int topLevel, number deltaT, const size_t prtIndex);
+    
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // lua-methods for output
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    /// writing data to file; called via .lua
+        void print_velocity(const vector_type& u, const int topLevel, number time, const char* filename);
+    
+    // writes the pressure on the front and back of the cylinder and the delta of it into a file
+        void print_deltaP(const vector_type& u, const int topLevel);
+    
+    // writes the pressure value along the circular interface in grid nodes into file
+        void print_pressure_nodal(const vector_type& u, const int topLevel);
+    
+    // writes the pressure value along the circular interface for equidistant angle teta into file
+        void print_pressure_teta(const vector_type& u, const int topLevel);
+
+    
+    // interpolates the value at a non-grid point (used for the computation of deltaP in 'print_deltaP()'
+        void interpolate_point(ConstSmartPtr<DoFDistribution> dd, const vector_type& u,
+                           const MathVector<dim>& evalPos, MathVector<dim+1>& interpolation);
+    
+    // returns the number of DoFs on the original grid
+        size_t get_numCutElements(const int gridlevel, const size_t prtIndex)
+            {
+                ConstSmartPtr<DoFDistribution> dd = m_spApproxSpace->dof_distribution(GridLevel(gridlevel, GridLevel::LEVEL));
+                const int levIndex = m_spCutElementHandler->get_Index(gridlevel, dd);
+                
+                return m_spCutElementHandler->get_numCutElements(levIndex, prtIndex);
+            }
+
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // class member
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	private:
-	// new member
-		SmartPtr<CutElementHandlerFlatTop<dim> > m_spParticleHandlerGlobal;
-	    SmartPtr<InterfaceHandlerLocalParticle<dim> > m_spInterfaceHandlerLocal;
+    // new member
+		SmartPtr<CutElementHandler_FlatTop<dim> > m_spCutElementHandler;
 
 	// member from base class
-		SmartPtr<ParticleMapper<TDomain, TAlgebra> > m_spInterfaceMapper;  	// contains member of class 'IInterfaceHandlerLocal'
-		SmartPtr<ParticleBndCond<TDomain> > m_spInterfaceBndCond;			// contains member of class 'IInterfaceHandlerLocal'
+        SmartPtr<InterfaceHandlerLocalParticle<dim> > m_spInterfaceHandlerLocal;    // contains class member
+                                                                                    //  'CutElementHandler_FlatTop'
+		SmartPtr<ParticleMapper<TDomain, TAlgebra> > m_spInterfaceMapper;           // contains class member
+                                                                                    //  'IInterfaceHandlerLocal'
+		SmartPtr<ParticleBndCond<TDomain> > m_spInterfaceBndCond;                   // contains class member
+                                                                                    //  'IInterfaceHandlerLocal'
 
 	///	current ApproxSpace
 		SmartPtr<ApproximationSpace<TDomain> > m_spApproxSpace;
 
 
-};
+};  // end class MovingParticle
 
     
+    
+    
 #ifdef UG_PARALLEL
-    template<typename TDomain>
-    class ParticleUnificator : public parmetis::IUnificator<typename GeomObjBaseTypeByDim<TDomain::dim>::base_obj_type>
-    {
+template<typename TDomain>
+class ParticleUnificator : public parmetis::IUnificator<typename GeomObjBaseTypeByDim<TDomain::dim>::base_obj_type>
+{
+
     public:
         typedef typename GeomObjBaseTypeByDim<TDomain::dim>::base_obj_type elem_t;
         typedef typename elem_t::side side_t;
@@ -327,7 +272,7 @@ void rescale_directions(const number functional, vector_type& u, SmartPtr<Approx
         
         /// constructor
         ParticleUnificator(SmartPtr<TDomain> spDom)
-        : m_spMG(spDom->grid().operator->())
+        : m_spMG(spDom->grid())
         {
             //	get position attachment
             m_aPos = GetDefaultPositionAttachment<position_attachment_type>();
@@ -635,7 +580,8 @@ void rescale_directions(const number functional, vector_type& u, SmartPtr<Approx
         position_accessor_type m_aaPos;		///<Accessor
         
         std::vector<std::pair<number, MathVector<dim> > > m_vParticleCoord;
-    };
+
+}; // end class ParticleUnificator
     
 #endif
 
@@ -645,7 +591,6 @@ void rescale_directions(const number functional, vector_type& u, SmartPtr<Approx
 
 #include "moving_particle_impl.h"
 #include "moving_particle_tools.h"
-#include "meanID_tools.h"
 
 
 

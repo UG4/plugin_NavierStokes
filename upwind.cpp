@@ -126,6 +126,39 @@ compute(const HCRFVGeometry<TElem, dim>* geo,
 		}
 	}
 }
+
+    
+    template <int dim>
+    template <typename TElem>
+void
+NavierStokesNoUpwind<dim>::
+compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+    //	set shapes
+    for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+    {
+        //	get SubControlVolumeFace
+        const typename DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >::SCVF& scvf = geo->scvf(ip);
+
+        for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+        {
+            //	set upwind shape
+            vUpShapeSh[ip][sh] = scvf.shape(sh);
+        }
+        //	compute convection length
+        //  \todo: (optional) A convection length is not really defined for no upwind.
+        //	       but in the computation of a stabilization the term cancels, so
+        //   	   we only have to ensure that the conv_lengh is non-zero
+        vConvLength[ip] = 1.0;
+        
+    }
+    
+}
+    
 /////////////////////////////////////////////////////////////////////////////
 // Full Upwind
 /////////////////////////////////////////////////////////////////////////////

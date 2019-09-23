@@ -52,7 +52,8 @@ set(SOURCES	navier_stokes_base.cpp
 			incompressible/incompressible_navier_stokes_base.cpp	
 			
 			incompressible/fv1/navier_stokes_fv1.cpp
-			incompressible/fe/navier_stokes_fe.cpp
+            incompressible/fv1/navier_stokes_fv1_cutElem.cpp
+            incompressible/fe/navier_stokes_fe.cpp
 			incompressible/fvcr/navier_stokes_fvcr.cpp
 			incompressible/fv/navier_stokes_fv.cpp
 

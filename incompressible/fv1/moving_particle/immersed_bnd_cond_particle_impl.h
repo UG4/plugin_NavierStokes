@@ -19,7 +19,7 @@ namespace NavierStokes{
 // see 'no_normal_stress_outflow.cpp':
 template<typename TDomain>
 ParticleBndCond<TDomain>::
-ParticleBndCond(SmartPtr<NavierStokesFV1<TDomain> > spMaster,
+ParticleBndCond(SmartPtr<NavierStokesFV1_cutElem<TDomain> > spMaster,
 				SmartPtr<InterfaceHandlerLocalParticle<dim> > localHandler)
 				: IInterfaceBndCond<TDomain>(spMaster->symb_fcts(), spMaster->symb_subsets(), localHandler),
 				  m_spMaster(spMaster),
@@ -82,15 +82,10 @@ diffusive_flux_Jac_rot(const size_t ip, const interfaceBF& bf, LocalMatrix& J, c
 	MathVector<dim> angularVel;
 	RotIndMat = 0.0; RotRotMat = 0.0; angularVel = 0.0;
 
-	UG_LOG("*RotIndMat = " << RotIndMat << "\n");
-	UG_LOG("*RotRotMat = " << RotRotMat << "\n");
-	UG_LOG("*angularVel = " << angularVel << "\n");
-
 	MathMatrix<dim,dim> rotationMatIP_transposed = m_spInterfaceHandlerLocal->get_rotationMat(m_spInterfaceHandlerLocal->radial_at_ip(bf.node_id()));
 	Transpose(rotationMatIP_transposed);
 
-	UG_LOG("start sh-loop for = " << ip << "\n");
-
+ 
 	for(size_t sh = 0; sh < bf.num_sh(); ++sh) // loop shape functions
 	{
  	//	1. Compute the total flux
@@ -110,33 +105,22 @@ diffusive_flux_Jac_rot(const size_t ip, const interfaceBF& bf, LocalMatrix& J, c
 	// 2. compute r x [\sigma(u)]*n
 	//		=> compute local couplings between rotation and translation/fluid
 		MatMultiply(RotIndMat, rotationMatIP_transposed, diffFlux);
-		UG_LOG("rotationMatIP_transposed " << rotationMatIP_transposed << "\n");
-		UG_LOG(". diffFlux " << diffFlux << "\n");
-		UG_LOG("= RotIndMat " << RotIndMat << "\n");
 
 	// 3. compute r x [\sigma(w x r)]*n
 		if ( m_spInterfaceHandlerLocal->lies_onInterface(sh) )
 		{
-			UG_LOG("sh = " << sh << "on interface\n");
-			UG_LOG("rotationMatIP_transposed " << rotationMatIP_transposed << "\n");
-
 		// 3.1 compute r x [...]*n
  			MatMultiply(RotRotMat, rotationMatIP_transposed, diffFlux);
 
  		// 3.2 compute  [\sigma(w x r)]*n
 			MathMatrix<dim,dim> rotationMatSH = m_spInterfaceHandlerLocal->get_rotationMat(m_spInterfaceHandlerLocal->radial_at_co(sh));
 			MatMultiply(RotRotMat, RotRotMat, rotationMatSH);
-			UG_LOG("rotationMatSH " << rotationMatSH << "\n");
-
+ 
 		//  3.3 compute (w x r)*n for continuity equation
 			// transpose in order to multiply from left:
 			//		n^T*rotationMatSH = rotationMatSH^T*n
 			Transpose(rotationMatSH);
 			MatVecMult(angularVel, rotationMatSH, bf.normal());
-			UG_LOG("transposed rotationMatSH " << rotationMatSH << "\n");
-			UG_LOG("bf.normal() " << bf.normal() << "\n");
-		 	UG_LOG("__angularVel(2. komp = 0?? " << angularVel << "\n");
-
 		}
 
 	//	4. Change sign, since force acts onto particle in inverse direction:
@@ -164,17 +148,8 @@ diffusive_flux_Jac_rot(const size_t ip, const interfaceBF& bf, LocalMatrix& J, c
 		VecScale(angularVel, angularVel, bf.shape(sh));
 	 	for (size_t d2 = 0; d2 < (size_t)dim; ++d2)
  			rotJ_ind(_P_, bf.node_id(), d2, sh) += angularVel[d2];
-
-	 	UG_LOG("angularVel(2. komp = 0?? " << angularVel << "\n");
-
 	}
 
-
-	UG_LOG("RotIndMat " << RotIndMat << "\n");
-	UG_LOG("RotRotMat " << RotRotMat << "\n");
-
-	if ( m_spInterfaceHandlerLocal->m_vInterfaceID[0] == m_spInterfaceHandlerLocal->m_vInterfaceID[1])
-		UG_THROW("end sh-loop for = " << ip << "\n");
 
 }
 
@@ -212,7 +187,6 @@ diffusive_flux_Jac(const size_t ip, const interfaceBF& bf, LocalMatrix& J, const
 		for(size_t d1 = 0; d1 < (size_t)dim; ++d1)
 			for(size_t d2 = 0; d2 < (size_t)dim; ++d2){
 				J(d1, bf.node_id(), d2, sh) += diffFlux (d1, d2);
-			// 	if ( sh < 2 ) UG_LOG("bf.node_id(): " << bf.node_id() << "sh: " << sh << ": diff_flux added: " << diffFlux (d1, d2) << "\n");
 			}
 
 	//	5. Add pressure term to local Jacobian
@@ -233,8 +207,8 @@ add_jac_A_elem_Quadri_for2(LocalMatrix& J, const LocalVector locU)
 	std::vector<interfaceBF>& vBF = m_spInterfaceHandlerLocal->get_boundary_faces();
 
 	if ( vBF.size() != 4 )
-		UG_THROW("in 'ParticleBndCond::add_jac_A_elem_Quadri_for2(): vBF.size() should be 4 but is " << vBF.size() << "\n");
-
+		UG_THROW("in 'ParticleBndCond::add_jac_A_elem_Quadri_for2(): vBF.size() should be 4 but is "
+                 << vBF.size() << "\n");
 
 // get density
 	number importDensity = fluidDensity->value(0, 0);
@@ -264,21 +238,7 @@ add_jac_A_elem_Quadri_for2(LocalMatrix& J, const LocalVector locU)
 						* importDensity;
 		}
 
-	if ( 1 )
-	{
-  		UG_LOG("----- ip = " << ip << "------\n");
-		UG_LOG("bf.nodeID: " << bf.node_id() << "\n");
-   		UG_LOG(" bf.normal(): " << bf.normal() << "\n");
-		UG_LOG("bf.vGloPos[0: " << bf.global_corner(0) << "\n");
-		UG_LOG("bf.vGloPos[1]: " << bf.global_corner(1) << "\n");
-	}
 	} // end vBF-loop
-
-	if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 4 )
-	{
-		UG_LOG("J = " << J << "\n");
-		UG_LOG("J.num_all_row_dof(0): " << J.num_all_row_dof(0) << "\n");
-	}
 
 }
 
@@ -303,14 +263,6 @@ remap_for2( size_t dof)
 	if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 2 )
 		if ( dof == m_spInterfaceHandlerLocal->m_vNOInterfaceID[0] )
 			return 4;
-
-	UG_LOG("m_spInterfaceHandlerLocal->m_vInterfaceID[0]: " << m_spInterfaceHandlerLocal->m_vInterfaceID[0] << "\n");
-	UG_LOG("m_spInterfaceHandlerLocal->m_vInterfaceID[1]: " << m_spInterfaceHandlerLocal->m_vInterfaceID[1] << "\n");
-
-	UG_LOG("m_spInterfaceHandlerLocal->m_vQuadriOrigID[0]: " << m_spInterfaceHandlerLocal->m_vQuadriOrigID[0] << "\n");
-	UG_LOG("m_spInterfaceHandlerLocal->m_vQuadriOrigID[2]: " << m_spInterfaceHandlerLocal->m_vQuadriOrigID[2] << "\n");
-
-	UG_LOG("m_spInterfaceHandlerLocal->m_vNOInterfaceID[0]: " << m_spInterfaceHandlerLocal->m_vNOInterfaceID.size() << "\n");
 
 	if ( m_spInterfaceHandlerLocal->m_vInterfaceID[0] == m_spInterfaceHandlerLocal->m_vQuadriOrigID[0] )
 	{
@@ -337,10 +289,13 @@ template<typename TElem, typename TFVGeom>
 void ParticleBndCond<TDomain>::
 add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
-	ElementModus elemModus = m_spInterfaceHandlerLocal->get_element_modus(elem); // computed via 'compute_element_modus()' during 'update_marker()'
+	ElementModus elemModus = m_spInterfaceHandlerLocal->get_element_modus(elem);
+    // --> computed via 'compute_element_modus()' during 'update_interface_data()'
 
-	////////////////////////////////////////////////////////////////////////////////
-	//  Remove local impuls equations for interface-corners
+////////////////////////////////////////////////////////////////////////////////
+//  (A) Remove local impuls equations for interface-corners
+////////////////////////////////////////////////////////////////////////////////
+
 	if ( ! m_spInterfaceHandlerLocal->StdFV_assembling() ) // only remove, if NOT StdFVAssembling
 	{
 
@@ -364,26 +319,21 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
 	}
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  (B) If CUT_BY_2_INTERFACE or StdFVAssembling, no additional interface stresses will be computed
+//      => map existing entries
+////////////////////////////////////////////////////////////////////////////////
+
 	if ( elemModus == CUT_BY_2_INTERFACE && ! m_spInterfaceHandlerLocal->StdFV_assembling() )
 	{
-
-		for ( size_t i = 0; i < m_spInterfaceHandlerLocal->m_vNOInterfaceID.size(); ++i )
-			UG_THROW("m_vNOInterfaceID[" << i << "]: " << m_spInterfaceHandlerLocal->m_vNOInterfaceID[i] << "\n");
-		for ( size_t i = 0; i < m_spInterfaceHandlerLocal->m_vInterfaceID.size(); ++i )
-			UG_LOG("m_vInterfaceID[" << i << "]: " << m_spInterfaceHandlerLocal->m_vInterfaceID[i] << "\n");
-		for ( size_t i = 0; i < m_spInterfaceHandlerLocal->m_vQuadriOrigID.size(); ++i )
-			UG_LOG("m_vQuadriOrigID[" << i << "]: " << m_spInterfaceHandlerLocal->m_vQuadriOrigID[i] << "\n");
-
 		if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 2 )
 		{
 			size_t copyID = m_spInterfaceHandlerLocal->m_vNOInterfaceID[0];
 			const LocalIndices& ind = m_spInterfaceHandlerLocal->get_local_indices();
 			LocalMatrix buffJ; buffJ.resize(ind); buffJ = 0;
-			UG_LOG("1 buffJ = " << buffJ << "\n");
-
+ 
 			copy_and_reset(buffJ,J);
-			UG_LOG("2 buffJ = " << buffJ << "\n");
-
+ 
 
 		// remap impulse equation for inside node
  			for(size_t j = 0; j < dim; ++j)
@@ -397,20 +347,12 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 				for(size_t fct = 0; fct < J.num_all_row_fct(); ++fct)
 					for(size_t dof2 = 0; dof2 < 3; ++dof2)
 						J(_P_, remap_for2(dof1), fct, remap_for2(dof2)) = buffJ(_P_, dof1, fct, dof2);
-
-
 		}
 
 	 	// case == 4: all entries (also for pressure eq) will be written newly, since only boundary faces are relevant
 		//		=> during remove_equations() only velocity equations were removed!
-
-		//if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 2 )
-		//	remap_inside_equation(J, vFctID, vDoFID);
-		//else
 		if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 4 )
 			J = 0.0;
-		//else
-		//	UG_THROW("in ParticleBndCond::add_def_A_elem(): wrong amount of interface.size() for CUT_BY_2_INTERFACE: " << m_spInterfaceHandlerLocal->interface_id_all().size() << " ( should be 2!)\n");
 
 
 		const LocalIndices& ind = m_spInterfaceHandlerLocal->get_local_indices();
@@ -424,23 +366,19 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 		else
 			UG_THROW("in ParticleBndCond::add_def_A_elem(): wrong amount of interface.size() for CUT_BY_2_INTERFACE: " << m_spInterfaceHandlerLocal->interface_id_all().size() << " ( should be 2!)\n");
 
-		if ( 0 ) //m_spInterfaceHandlerLocal->interface_id_all().size() == 2 )
-			UG_THROW("J = \n" << J << "\n");
-
-		UG_LOG("end CUT_BY_2_INTERFACE\n");
-
 		return;
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
-// see 'ParticleFlatTop::add_jac_A_elem_interface()'
+// (C) For CUT_BY_INTERFACE: compute stresses on inner boundary faces 'vBF'
+//      via 'diffusive_flux_Jac()' and add the to local stiffness matrix
 ////////////////////////////////////////////////////////////////////////////////
 
 // 	Loop the boundary faces for new impuls equations
 // --> IFF INSIDE_DOM: vBF.size() = 0 ;-)
 	SmartPtr<CplUserData<number, dim> > fluidDensity = m_spMaster->density();
 	std::vector<interfaceBF>& vBF = m_spInterfaceHandlerLocal->get_boundary_faces();
-
+    
 // initialize data (written during call of 'diffusive_flux_Jac()':
 	LocalIndices ind = u.get_indices();
 	rotJ_ind.resize(ind); rotJ_ind = 0.0;
@@ -448,7 +386,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
  	for(size_t ip = 0; ip < vBF.size(); ++ip)
 	{
-
 		interfaceBF bf = vBF[ip];
 
 		if ( fluidDensity->value(0, ip) != fluidDensity->value(1, ip) )
@@ -460,12 +397,6 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 	// The momentum equation:
 		if ( ! m_spInterfaceHandlerLocal->StdFV_assembling() ) // only remove, if NOT StdFVAssembling
 			diffusive_flux_Jac(ip, bf, J, u);
-	//	diffusive_flux_Jac_rot(ip, bf, J, u, importDensity);
-
-	// scale with deltaT ( = 1.0 for non-time-dependent)
-		// buffJ *= deltaT;
-		// ToDo --> NOT necessary, since add_def_A_elem() will be multiplied by 'dt'
-		// during elem_dis_assemble_util.h ???
 
 	//	The continuity equation
 		if ( 1 ) //! m_spInterfaceHandlerLocal->StdFV_assembling() ) // only remove, if NOT StdFVAssembling
@@ -534,7 +465,6 @@ diffusive_flux_defect_rot(const size_t ip, const interfaceBF& bf, LocalVector& d
 				{
 					MathVector<dim> radialCo;
 					VecSubtract(radialCo, m_spInterfaceHandlerLocal->corner(sh), center);
-					UG_LOG("m_spInterfaceHandlerLocal->corner(sh) = " << m_spInterfaceHandlerLocal->corner(sh) << "\n");
 					MathMatrix<dim,dim> rotationMatCo = m_spInterfaceHandlerLocal->get_rotationMat(radialCo);
 				//	set solution
 					number sol = transSol[d1];
@@ -650,8 +580,6 @@ add_def_A_elem_Quadri_for2(LocalVector& locD, const LocalVector locU)
 	if ( vBF.size() != 4 )
 		UG_THROW("in 'ParticleBndCond::add_def_A_elem_Quadri_for2(): vBF.size() should be 4 but is " << vBF.size() << "\n");
 
-	UG_LOG("vBF.size(): " << vBF.size() << "\n");
-
 // get density
 	number importDensity = fluidDensity->value(0, 0);
 	if ( fluidDensity->value(0, 0) != fluidDensity->value(1, 0) )
@@ -690,13 +618,10 @@ template<typename TDomain>
 void ParticleBndCond<TDomain>::
 write_QuadriSol(const LocalVector origU)
 {
-	UG_LOG("start write_QuadriSol\n");
-
+ 
 // initialize data
 	LocalIndices ind = origU.get_indices();
  	LocalVector quadriU;
-
-	UG_LOG("1 start write_QuadriSol\n");
 
 	if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 2 )
 	{
@@ -708,18 +633,13 @@ write_QuadriSol(const LocalVector origU)
 	}
  	quadriU.resize(ind);
 
-	UG_LOG("2 start write_QuadriSol\n");
-
  // A. remap solution (velocity AND pressure!) of inside node
  	if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 2 )
  	{
 		size_t copyID = m_spInterfaceHandlerLocal->m_vNOInterfaceID[0];
  		for(size_t fct = 0; fct < dim+1; ++fct)
- 			{quadriU(fct,4) = origU(fct,copyID);
- 			UG_LOG("origU(fct,copyID) = " << origU(fct,copyID) << "\n");}
- 	}
-
-	UG_LOG("3 start write_QuadriSol: quadriU \n" << quadriU << "\n");
+ 			quadriU(fct,4) = origU(fct,copyID);
+  	}
 
  	if ( m_spInterfaceHandlerLocal->interface_id_all().size() == 2 )
  	{
@@ -727,10 +647,6 @@ write_QuadriSol(const LocalVector origU)
 		UG_THROW("m_vNOInterfaceID[" << i << "]: " << m_spInterfaceHandlerLocal->m_vNOInterfaceID[i] << "\n");
 
  	}
- 	for ( size_t i = 0; i < m_spInterfaceHandlerLocal->m_vInterfaceID.size(); ++i )
-		UG_LOG("m_vInterfaceID[" << i << "]: " << m_spInterfaceHandlerLocal->m_vInterfaceID[i] << "\n");
-	for ( size_t i = 0; i < m_spInterfaceHandlerLocal->m_vQuadriOrigID.size(); ++i )
-		UG_LOG("m_vQuadriOrigID[" << i << "]: " << m_spInterfaceHandlerLocal->m_vQuadriOrigID[i] << "\n");
 
 	std::vector<number> testV;
 	for(size_t dof = 0; dof < 4; ++dof)
@@ -741,23 +657,14 @@ write_QuadriSol(const LocalVector origU)
 		for(size_t dof = 0; dof < 4; ++dof)
 		{
 			quadriU(fct,dof) = testV[m_spInterfaceHandlerLocal->m_vQuadriOrigID[dof]]; //origU(fct,m_spInterfaceHandlerLocal->m_vQuadriOrigID[dof]);
-			UG_LOG("quadriU(fct,dof): " << quadriU(fct,dof) << "\n");
-			UG_LOG("testV[" << m_spInterfaceHandlerLocal->m_vQuadriOrigID[dof] << "]: " << testV[m_spInterfaceHandlerLocal->m_vQuadriOrigID[dof]] << "\n");
-		}
+ 		}
 
- 	UG_LOG("start write_QuadriSol: quadriU = \n" << quadriU << "\n");
-	UG_THROW("4 start write_QuadriSol\n");
-
+  
 // C. write velocities of the 2 particles:
  	MathVector<dim> transSol1 = m_spInterfaceHandlerLocal->get_transSol(0, 0);
 	MathVector<dim> rotSol1 = m_spInterfaceHandlerLocal->get_rotSol(0, 0);
  	MathVector<dim> transSol2 = m_spInterfaceHandlerLocal->get_transSol(1, 0);
 	MathVector<dim> rotSol2 = m_spInterfaceHandlerLocal->get_rotSol(1, 0);
-
-	UG_LOG("transSol1 = " << transSol1 << "\n");
-	UG_LOG("transSol2 = " << transSol2 << "\n");
-	UG_LOG("rotSol1 = " << rotSol1 << "\n");
-	UG_LOG("rotSol2 = " << rotSol2 << "\n");
 
 // resize local data as done during 'modify_LocalSol'
 //	 --> but there with num_co = 3 for the Triangle with inside node!
@@ -765,8 +672,7 @@ write_QuadriSol(const LocalVector origU)
 		for(size_t dof = 0; dof < 4; ++dof)
 		{
 			MathMatrix<dim,dim> rotationMatCo = m_spInterfaceHandlerLocal->get_rotationMat(m_spInterfaceHandlerLocal->radial_at_co(dof));
-			UG_LOG("write_QuadriSol: radial(" << dof << ": " << m_spInterfaceHandlerLocal->radial_at_co(dof) << "\n");
-
+ 
 		// write solution of particle with prtIndex = 0:
 			if ( dof < 2 )
 			{
@@ -782,33 +688,20 @@ write_QuadriSol(const LocalVector origU)
 					quadriU(fct,dof) += rotationMatCo[fct][d]*rotSol2[d];
 			}
 		}
-
-
-	UG_LOG("after write_QuadriSol: quadriU = \n" << quadriU << "\n");
-
 }
 
+    
+    
 template<typename TDomain>
 void ParticleBndCond<TDomain>::
 add_quadri_to_defect(LocalVector& d, const LocalVector& quadriD)
 {
-//	const LocalIndices& ind = quadriD.get_indices();
-	UG_LOG("START add_quadri_to_defect \n");
-
-	for ( size_t i = 0; i < m_spInterfaceHandlerLocal->m_vQuadriOrigID.size(); ++i )
-		UG_LOG("m_vOrig[" << i << "] = " << m_spInterfaceHandlerLocal->m_vQuadriOrigID[i] << "\n");
-
-	UG_LOG("d: \n" << d << "\n");
-	UG_LOG("quadriD: \n" << quadriD << "\n");
+    
 	for(size_t fct=0; fct < quadriD.num_all_fct(); ++fct)
 	{
-		UG_LOG("fct = " << fct << "quadriD.num_all_dof(fct) = " << quadriD.num_all_dof(fct) << "\n");
-
 		for(size_t dof=0; dof < quadriD.num_all_dof(fct); ++dof)
 		{
-			UG_LOG("0 -> dof = " << dof << "\n");
-
-			if ( quadriD.value(fct,dof) != quadriD.value(fct,dof))
+			if ( quadriD.value(fct,dof) != quadriD.value(fct,dof) )
 				UG_THROW("NAN in 'add_quadri_to_defect()'!...\n");
 
 			bool isPrtNode = m_spInterfaceHandlerLocal->lies_onInterface(dof);
@@ -816,11 +709,9 @@ add_quadri_to_defect(LocalVector& d, const LocalVector& quadriD)
 			if ( isPrtNode )
 			{
 				size_t _dof = m_spInterfaceHandlerLocal->m_vQuadriOrigID[dof];
-				UG_LOG("dof = " << dof << ", _dof = " << _dof << "\n");
-
+ 
 				d.value(fct,_dof) += quadriD.value(fct,dof);
-				UG_LOG("d = \n" << d << "\n");
-
+ 
 			}
 
 		}
@@ -836,10 +727,12 @@ void ParticleBndCond<TDomain>::
 add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
 ////////////////////////////////////////////////////////////////////////////////
-//  Remove local impulse equations for interface-corners
-
- 	ElementModus elemModus = m_spInterfaceHandlerLocal->get_element_modus(elem); // computed via 'compute_element_modus()' during 'update_marker()'
-	if ( ! m_spInterfaceHandlerLocal->StdFV_assembling() ) // only remove, if NOT StdFVAssembling
+//  (A) Remove local impuls equations for interface-corners
+///////////////////////////////////////////////////////////////////////////////
+    
+// element modus was computed via 'compute_element_modus()' during 'update_interface_data()':
+    ElementModus elemModus = m_spInterfaceHandlerLocal->get_element_modus(elem);
+    if ( ! m_spInterfaceHandlerLocal->StdFV_assembling() ) // only remove, if NOT StdFVAssembling
 	{
 		if ( elemModus != INSIDE_DOM )
 		{
@@ -852,7 +745,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 			for(size_t i = 0; i < m_spInterfaceHandlerLocal->m_vInterfaceID.size(); ++i)
 			{
 				size_t interfaceID = m_spInterfaceHandlerLocal->m_vInterfaceID[i];
-				size_t indexToRemove = interfaceID; //m_spInterfaceHandlerLocal->m_vOriginalCornerID[interfaceID];
+				size_t indexToRemove = interfaceID;
 				vDoFID.push_back(indexToRemove);
 			}
 
@@ -860,7 +753,11 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
 		}
 	}
-
+    
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  (B) If CUT_BY_2_INTERFACE or StdFVAssembling, no additional interface stresses will be computed
+//      => map existing entries
+////////////////////////////////////////////////////////////////////////////////
  
 	if ( elemModus == CUT_BY_2_INTERFACE && !m_spInterfaceHandlerLocal->StdFV_assembling())
 	{
@@ -881,17 +778,15 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
    		return;
 	}
- 
+    
 ////////////////////////////////////////////////////////////////////////////////
+// (C) For CUT_BY_INTERFACE: compute stresses on inner boundary faces 'vBF'
+//      via 'diffusive_flux_def()' and add the to local defect
 ////////////////////////////////////////////////////////////////////////////////
 
 // initialize data (written during call of 'diffusive_flux_Jac()':
 	LocalIndices ind = u.get_indices();
 	rotD.resize(ind); rotD = 0.0;
-
-
-	// ToDo: if ( CUT_BY_2 && m_spInterfaceHandlerLocal->m_vInterfaceID.size() == 2 )
-		//	=> TRIANGLE/5-Eck! => write u( , ) neu!!
 
 //  Loop the boundary faces to assemble impulse equations
 	SmartPtr<CplUserData<number, dim> > fluidDensity = m_spMaster->density();
@@ -917,7 +812,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
 	// scale with deltaT ( = 1.0 for non-time-dependent)
 	//	d *= deltaT;
-		// ToDo --> NOT necessary, since add_def_A_elem() will be multiplied by 'dt'
+		// NOT necessary, since add_def_A_elem() will be multiplied by 'dt'
 		// during elem_dis_assemble_util.h ???
 
 		if ( fluidDensity->value(0, ip) != fluidDensity->value(1, ip) )
@@ -932,15 +827,8 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	// Continuity equation:
 		if ( 1 ) //! m_spInterfaceHandlerLocal->StdFV_assembling() ) // only remove, if NOT StdFVAssembling
 			d(_P_, bf.node_id()) += VecDot(stdVel, bf.normal()) * importDensity;
-		// ToDo m_massDefect += VecDot(stdVel, bf.normal());
-	}
+ 	}
 
-/*	if ( elemModus == CUT_BY_INTERFACE )
-		if ( m_spInterfaceHandlerLocal->m_vInterfaceID.size() == 2 )
-			UG_THROW("vBF.size() = " << vBF.size() << "\n");
-*/
- // copy rotJ_ind/rotJ_rot to m_spInterfaceHandlerLocal data for access from mapper
- 
  	copy_local_couplings_def();
 
 
@@ -962,12 +850,12 @@ add_jac_M_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 		return;
 
 // B. for outside elements: geo.num_scv() = 0
-//		=> nothing added during NavierStokesFV1::add_jac_M_elem
+//		=> nothing added during NavierStokesFV1_cutElem::add_jac_M_elem
 //		 	=> nothing will be subtracted here :)
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// substract part added by NavierStokesFV1::add_jac_M_elem():
+// substract part added by NavierStokesFV1_cutElem::add_jac_M_elem():
 // 		(instead of setting scv.volume() to zero)
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1073,12 +961,12 @@ add_def_M_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 		return;
 
 // B. for outside elements: geo.num_scv() = 0
-//		=> nothing added during NavierStokesFV1::add_jac_M_elem
+//		=> nothing added during NavierStokesFV1_cutElem::add_jac_M_elem
 //		 	=> nothing will be subtracted here :)
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// substract part added by NavierStokesFV1::add_jac_M_elem():
+// substract part added by NavierStokesFV1_cutElem::add_jac_M_elem():
 // 		(instead of setting scv.volume() to zero)
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1129,6 +1017,7 @@ template<typename TElem, typename TFVGeom>
 void ParticleBndCond<TDomain>::
 add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoords[])
 {
+    // no additional rhs, already done by the local-to-global mapper
  	return;
 
 
@@ -1139,12 +1028,12 @@ add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoor
 		return;
 
 // B. for outside elements: geo.num_scv() = 0
-//		=> nothing added during NavierStokesFV1::add_jac_M_elem
+//		=> nothing added during NavierStokesFV1_cutElem::add_jac_M_elem
 //		 	=> nothing will be subtracted here :)
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// substract part added by NavierStokesFV1::add_rgh_elem():
+// substract part added by NavierStokesFV1_cutElem::add_rgh_elem():
 // 		(instead of setting scv.volume() to zero)
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1170,66 +1059,6 @@ add_rhs_elem(LocalVector& d, GridObject* elem, const MathVector<dim> vCornerCoor
 		d(0, sh) -= scv.volume() * (-9.81);
 
 	}
-
-
-	/*
-
-REMARK: funktioniert so nicht, da
-		'elem->num_vertices()' nicht existiert fuer 'GridObject* elem' :-(...
-
-		=> weiterhin 'set_gravity()' in 'local_to_global' verwenden
-
-// only assembling for single marked element, containing the transVel-DoF
-	if (  !m_spInterfaceHandlerLocal->m_spParticleHandlerGlobal->m_spTransVelMarker->is_marked(elem) )
-		return;
-
-	UG_LOG("------------------------------------------------------------- add_rhs_elem assembling...\n");
-
-// A. get location of DoF of translational velocity
-	size_t transDoF;
-	for(size_t dof = 0; dof < elem->num_vertices(); ++dof)
- 		if (  m_spInterfaceHandlerLocal->m_spParticleHandlerGlobal->m_spTransVelMarker->is_marked(elem->vertex(dof)) )
- 			transDoF = dof;
-
-// B. get corresponding DoFIndex
-	const size_t fct_gravity = 0;
-	const LocalIndices& ind = d.get_indices();
-	const DoFIndex transInd = DoFIndex(ind.index(fct_gravity,transDoF), ind.comp(fct_gravity,transDoF));
-
-// C. compute gravitational force
-	bool logGravity = true;
-
-	if ( logGravity ) UG_LOG("//////////////////////////////// - log_Gravity - ///////////////////////////////\n");
-	if ( logGravity ) UG_LOG("*VORHER: defect(trans,0): " << DoFRef(vec, transInd[0]) << "\n");
-	if ( logGravity ) UG_LOG("*VORHER: defect(trans,1): " << DoFRef(vec, transInd[1]) << "\n");
-	if ( logGravity ) UG_LOG("*VORHER: defect(rot,0): " << DoFRef(vec, rotInd[0]) << "\n");
-	if ( logGravity ) UG_LOG("*VORHER: defect(rot,1): " << DoFRef(vec, rotInd[1]) << "\n");
-
-	const int prtIndex = get_prtIndex();
-	const number radius = m_spInterfaceHandlerLocal->m_spParticleHandlerGlobal->get_radius(prtIndex);
-	number volume; // = Volume(Index,p);    	// VORSICHT! -> gmg divergiert fuer diese Version: volume = 3.1415*radius*radius;
-	if ( dim == 2 )
-		volume = 3.1415*radius*radius;
-	if ( dim == 3 )
-		volume = 4/3*3.1415*radius*radius*radius;
-	const number gravitationalMass = volume*1.0; //m_DensityPrt[prtIndex]; //m_EffectiveDensityPrt[p];
-	const number gravityForce = -9.81*gravitationalMass;
-
-	if ( logGravity ) UG_LOG ("*radius: " << radius << "\n");
-	if ( logGravity ) UG_LOG ("*volume: " << volume << "\n");
-	if ( logGravity ) UG_LOG ("*prtIndex: " << prtIndex << "\n");
-
-	if ( logGravity ) UG_LOG ("*gravForce added: " << gravityForce << "timeFactor: " << timeFactor <<"\n");
-	if ( logGravity ) UG_LOG("//////////////////////////////// - log_Gravity - ///////////////////////////////\n");
-	if ( logGravity ) UG_LOG("*NACHHER: defect(trans,0): " << DoFRef(vec, transInd[0]) << "\n");
-	if ( logGravity ) UG_LOG("*NACCHHER: defect(trans,1): " << DoFRef(vec, transInd[1]) << "\n");
-	if ( logGravity ) UG_LOG("*NACHHER: defect(rot,0): " << DoFRef(vec, rotInd[0]) << "\n");
-	if ( logGravity ) UG_LOG("*NACHHER: defect(rot,1): " << DoFRef(vec, rotInd[1]) << "\n");
-
-// D. add gravitational force to rhs
-	DoFRef(d, transInd) -= gravityForce;
-
-*/
 }
 
 
@@ -1318,7 +1147,7 @@ register_func()
 	this->set_add_jac_M_elem_fct(	id, &T::template add_jac_M_elem<TElem, TFVGeom>);
 	this->set_add_def_A_elem_fct(	id, &T::template add_def_A_elem<TElem, TFVGeom>);
 	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem<TElem, TFVGeom>);
-	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
+	this->set_add_rhs_elem_fct(	    id, &T::template add_rhs_elem<TElem, TFVGeom>);
 }
 
 

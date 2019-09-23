@@ -37,7 +37,7 @@ class InterfaceMapper2PF : public IInterfaceMapper<TAlgebra>
 
         InterfaceMapper2PF(SmartPtr<InterfaceHandlerLocal2PF<dim> > localHandler)
         	: m_spInterfaceHandlerLocal(localHandler),
-        	  m_numDoFs(0),
+        	  m_numGridNodes(0),
         	  m_resized(false),
         	  m_resized_defect(false),
         	  m_scaleDoFs(false)
@@ -95,12 +95,12 @@ class InterfaceMapper2PF : public IInterfaceMapper<TAlgebra>
 		LocalVector& get_local_defect_quad()
 		{ return m_spInterfaceHandlerLocal->get_local_defect_quad(); }
 
-		void write_solution(const std::vector<double > verticesValues)
-		{ m_spInterfaceHandlerLocal->write_solution(verticesValues); }
+		void set_interface_values(const std::vector<double > verticesValues)
+		{ m_spInterfaceHandlerLocal->set_interface_values(verticesValues); }
 
 		// called during init() of diffusionInterface:
 		void set_numDoFs(const size_t numDoFs)
-		{ m_numDoFs = numDoFs;}
+		{ m_numGridNodes = numDoFs;}
 		void set_numNewDoFs(const size_t numNewDoFs)
 		{ m_numNewDoFs = numNewDoFs;}
 
@@ -109,7 +109,7 @@ class InterfaceMapper2PF : public IInterfaceMapper<TAlgebra>
 	private:
 		SmartPtr<InterfaceHandlerLocal2PF<dim> > m_spInterfaceHandlerLocal;
 	// number of DoFs in global matrix
-		size_t m_numDoFs;
+		size_t m_numGridNodes;
 		size_t m_numNewDoFs;
 		bool m_resized;
 		bool m_resized_defect;

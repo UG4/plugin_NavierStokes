@@ -123,8 +123,8 @@ class INavierStokesFV1Stabilization
             else
             {
              // hard code as !maxNum, since maybe crash, e.g. in update() for computation of mat<N,N>!!
-                m_numScvf = TFVGeom::maxNumSCVF; // changed on march 2019! before it was: dim+2;    // TFVGeom::maxNumSCVF;
-                m_numSh = TFVGeom::maxNSH;;      // changed on march 2019! before it was: dim+2;    // TFVGeom::maxNSH;
+                m_numScvf = traits::maxNumSCVF;
+                m_numSh = traits::maxNSH;        
             }
             
 		//	set sizes in upwind

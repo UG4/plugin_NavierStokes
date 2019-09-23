@@ -36,12 +36,12 @@ modify_GlobalSol(vector_type& vecMod, const vector_type& vec, ConstSmartPtr<DoFD
 {
 
 	size_t numDoFs = vecMod.size();
-	const size_t numNewDoFs = numDoFs - m_numDoFs;
+	const size_t numNewDoFs = numDoFs - m_numGridNodes;
 
 	UG_LOG("---------------modify_GlobalSol--------------\n");
 	UG_LOG(" vecMod.size(): " << numDoFs << "\n");
     UG_LOG(" vec.size(): " << vec.size() << "\n");
-    UG_LOG("m_numDoFs: " << m_numDoFs << "\n");
+    UG_LOG("m_numGridNodes: " << m_numGridNodes << "\n");
 	UG_LOG(" computed numNewDoFs: " << numNewDoFs << "\n");
 	UG_LOG(" m_numNewDoFs: " << m_numNewDoFs << "\n");
 
@@ -53,7 +53,7 @@ modify_GlobalSol(vector_type& vecMod, const vector_type& vec, ConstSmartPtr<DoFD
     // numNewDoFs enthaelt schon fact *fct! --> siehe MovingInterface2PF.init()
     for (size_t i = 0; i < numNewDoFs; ++i)
     {
-        index = DoFIndex(m_numDoFs + i, 0);
+        index = DoFIndex(m_numGridNodes + i, 0);
         double value = DoFRef(vec, index);
         
         verticesValue.push_back(value);
@@ -71,7 +71,7 @@ modify_GlobalSol(vector_type& vecMod, const vector_type& vec, ConstSmartPtr<DoFD
 
 	// call InterfaceHandlerLocal-method:
 	// no not doing it! Done locally in add_def: locU_tri and locU_quad:
-	write_solution(verticesValue);
+	set_interface_values(verticesValue);
 
 }
 
@@ -86,9 +86,9 @@ add_local_mat_to_global(matrix_type& mat, const LocalMatrix& lmat, ConstSmartPtr
 
 	if ( print ) UG_LOG("*** vorher: vec.size(): " << numDoFs << "\n");
 
-	size_t numAllDoFs = m_numDoFs + m_numNewDoFs;
+	size_t numAllDoFs = m_numGridNodes + m_numNewDoFs;
 	if ( m_scaleDoFs )
-		numAllDoFs = m_numDoFs + 2*m_numNewDoFs;
+		numAllDoFs = m_numGridNodes + 2*m_numNewDoFs;
 
 	const int diffDoFs = numAllDoFs - numDoFs;
 
@@ -98,7 +98,7 @@ add_local_mat_to_global(matrix_type& mat, const LocalMatrix& lmat, ConstSmartPtr
 		mat.resize_and_keep_values(numAllDoFs, numAllDoFs);
 		if ( print )
 		{
-			UG_LOG("*** m_numDoFs: " << m_numDoFs << "\n");
+			UG_LOG("*** m_numGridNodes: " << m_numGridNodes << "\n");
 			UG_LOG("*** m_numNewDoFs: " << m_numNewDoFs << "\n");
 			UG_LOG("*** numAllDoFs: " << numAllDoFs << "\n");
 			UG_LOG("*** nachher: mat.num_rows(): " << mat.num_rows() << "\n");
@@ -144,9 +144,9 @@ add_local_vec_to_global(vector_type& vec, const LocalVector& lvec, ConstSmartPtr
 
 	if ( print ) UG_LOG("*** vorher: vec.size(): " << numDoFs << "\n");
 
-	size_t numAllDoFs = m_numDoFs + m_numNewDoFs;
+	size_t numAllDoFs = m_numGridNodes + m_numNewDoFs;
 	if ( m_scaleDoFs )
-		numAllDoFs = m_numDoFs + 2*m_numNewDoFs;
+		numAllDoFs = m_numGridNodes + 2*m_numNewDoFs;
 
 	const int diffDoFs = numAllDoFs - numDoFs;
 
@@ -155,17 +155,10 @@ add_local_vec_to_global(vector_type& vec, const LocalVector& lvec, ConstSmartPtr
 	{
 		vec.resize(numAllDoFs, true);
         vec.set(0.0);
-/*
-        bool bJac = m_spInterfaceHandlerLocal->get_jac_bool();
-        if ( !bJac )
-        {
-           // vec.set(0.0);
-            m_spInterfaceHandlerLocal->set_jac_bool(true);
-        }
-*/
+
 		if ( print )
 		{
-			UG_LOG("*** m_numDoFs: " << m_numDoFs << "\n");
+			UG_LOG("*** m_numGridNodes: " << m_numGridNodes << "\n");
 			UG_LOG("*** m_numNewDoFs: " << m_numNewDoFs << "\n");
 			UG_LOG("*** numAllDoFs: " << numAllDoFs << "\n");
 			UG_LOG("*** nachher: vec.size(): " << vec.size() << "\n");
@@ -220,10 +213,10 @@ add_local_mat_to_global_interface(matrix_type& mat, const LocalMatrix& lmat, Con
 	const LocalMatrix& locJ_tri = get_local_jacobian_tri();
  	const bool shift_global_index_tri = m_spInterfaceHandlerLocal->get_index_shift_tri();
 
- 	size_t numAllDoFs = m_numDoFs;
+ 	size_t numAllDoFs = m_numGridNodes;
 
  	if ( shift_global_index_tri )
- 		numAllDoFs = m_numDoFs + m_numNewDoFs;
+ 		numAllDoFs = m_numGridNodes + m_numNewDoFs;
 
 //	UG_LOG("in InterfaceMapper2PF::add_loc_mat(): locJ_tri = " << locJ_tri << "\n");
 
@@ -266,10 +259,10 @@ add_local_mat_to_global_interface(matrix_type& mat, const LocalMatrix& lmat, Con
   	const bool shift_global_index_quad = m_spInterfaceHandlerLocal->get_index_shift_quad();
 
   	// reset numAllDoFs!
-  	 numAllDoFs = m_numDoFs;
+  	 numAllDoFs = m_numGridNodes;
 
  	if ( shift_global_index_quad )
- 		numAllDoFs = m_numDoFs + m_numNewDoFs;
+ 		numAllDoFs = m_numGridNodes + m_numNewDoFs;
 
 //	UG_LOG("in InterfaceMapper2PF::add_loc_mat(): locJ_quad = " << locJ_quad << "\n");
 
@@ -324,10 +317,10 @@ add_local_vec_to_global_interface(vector_type& vec, const LocalVector& lvec, Con
 	const LocalVector& locD_tri = get_local_defect_tri();
 	const bool shift_global_index_tri = m_spInterfaceHandlerLocal->get_index_shift_tri();
 
- 	size_t numAllDoFs = m_numDoFs;
+ 	size_t numAllDoFs = m_numGridNodes;
 
  	if ( shift_global_index_tri )
- 	{		numAllDoFs = m_numDoFs + m_numNewDoFs;
+ 	{		numAllDoFs = m_numGridNodes + m_numNewDoFs;
  			UG_LOG("it is shifted!\n");
  	}
 //	UG_LOG("in InterfaceMapper2PF::add_loc_vec(): locD_tri = " << locD_tri << "\n");
@@ -356,10 +349,10 @@ add_local_vec_to_global_interface(vector_type& vec, const LocalVector& lvec, Con
 	const bool shift_global_index_quad = m_spInterfaceHandlerLocal->get_index_shift_quad();
 
 // reset numAllDoFs!
-    numAllDoFs = m_numDoFs;
+    numAllDoFs = m_numGridNodes;
     
  	if ( shift_global_index_quad )
- 		numAllDoFs = m_numDoFs + m_numNewDoFs;
+ 		numAllDoFs = m_numGridNodes + m_numNewDoFs;
 
 //	UG_LOG("in InterfaceMapper2PF::add_loc_vec(): locD_quad = " << locD_quad << "\n");
 

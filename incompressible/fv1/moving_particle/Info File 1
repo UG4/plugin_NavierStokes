@@ -1,0 +1,40 @@
+/* Info File for 'MovingParticle' class: */
+
+The 'MovingParticle' class enables the simulation of moving particles in a fluid. Detailed descriptions of the mathematical theory and numerical simulations can be found in [1] and [2].
+The interaction between the fluid and the particles takes place at the interface of the particles, which acts therefore as an immersed interface for the fluid. Consequently, the 'MovingParticle' class implements a derivation of the 'ImmersedInterface' class. It therefore contains all the components of an 'ImmersedInterface' class implemented according to the necessities for moving particles. Those are explained in more detail in the according class types.
+
+
+
+The special requirements for a moving particle immersed interface implementation are the following:
+
+(1) Each particle is described as a rigid motion, i.e. by its two components: the translational and rotational velocity. As a consequence, in the discrete scheme each particle is described by the DoFs for its translational and rotational velocities. Those can be stored in two geometrical nodes of the mesh. Their location within each particle gets defined during an initialisation phase. Most of the nodes within the particles are therefore NO DoFs for the particle, beside the designated nodes (named 'transInd' and 'rotInd' for the associated global indices).
+
+(2) Furthermore, a particle usually covers more than one (local) finite element. Since the solution for the particle velocities is coupled with and need to be known for all surrounding fluid DoFs, the DoFs need to be accessible on a GLOBAL scale as well. The assigned global indices ('transInd' and 'rotInd') for the particle DoFs need to be accessible globally. Furthermore, the initialization of the interfaces of the particles inherits the collection of all cut elements.
+
+
+The two central methods called during the initialisation (called via the 'init()' of the associated 'CutElementHandler') are:
+
+---> update_interface_data(): computes all cut elements
+---> update_global_indices(): defines the nodes and indices within a particle, which act as particle DoFs
+
+
+Further remarks:
+
+- Most of the nodes within the particles are NO DoFs for the particle.
+
+- During the movement of a particle in time, nodes that were part of the particle can get part of the fluid in the next time step. Since they were no designated DoFs within the particle they similarly did not contain the solution. A 'filling' of these so called 'freed' nodes need to be performed during the (geometrical) update of the particle interfaces.
+
+- During the local assembling of the defect, the solution for the translational or rotational components of the particle velocity will be overwritten with the physical particle velocity (a combination of boths). Before and after these computations the particle solution needs to be transfered back and forth between local and global data structures for all later assembling.
+
+
+
+
+[1] Hoellbacher S., Wittum G.:
+    "Rotational test spaces for a fully-implicit FVM and FEM for the DNS of fluid-particle interaction"
+    Journal of Computational Physics, vol. 393, (2019), pp. 186–213
+    open access link: https://authors.elsevier.com/sd/article/S0021999119303298
+    DOI: https://doi.org/10.1016/j.jcp.2019.05.004
+
+[2] Hoellbacher S., Wittum G.:
+    "Gradient-consistent enrichment of finite element spaces for the DNS of fluid-particle interaction."
+    submitted to Jounal of Computational Physics

@@ -28,7 +28,7 @@ class InterfaceHandlerLocal2PF : public InterfaceHandlerLocalDiffusion<TWorldDim
         typedef typename domain_traits<dim>::grid_base_object grid_base_object;
 
   		InterfaceHandlerLocal2PF(SmartPtr<DiffusionInterfaceProvider<dim> > interfaceProvider,
- 									   SmartPtr<CutElementHandlerImmersed<dim> > cutElementHandler,
+ 									   SmartPtr<CutElementHandler_TwoSided<dim> > cutElementHandler,
  									   number fluidDensity, number fluidKinVisc);
 
     	virtual ~InterfaceHandlerLocal2PF()	{}
@@ -95,10 +95,7 @@ class InterfaceHandlerLocal2PF : public InterfaceHandlerLocalDiffusion<TWorldDim
 
 		LocalVector set_jump_values(LocalIndices ind, const size_t size);
 		LocalVector set_jump_grad_values(LocalIndices ind, const size_t size);
-		LocalVector set_source(const std::vector<double> sourceIm, LocalIndices ind, const size_t size, const bool bElementIsCut)
-		{LocalVector dummy; return dummy;}
-		LocalVector set_source(LocalIndices ind, const size_t size, const bool bElementIsCut);
-
+   
 		double get_jump_value_const(const MathVector<dim> position);
 		double get_jump_value(const MathVector<dim> position);
 		double get_jump_value_ex3(const MathVector<dim> position);
@@ -109,7 +106,7 @@ class InterfaceHandlerLocal2PF : public InterfaceHandlerLocalDiffusion<TWorldDim
 		double get_source_kappa(const MathVector<dim> position);
 
 	// writes solution of global vector vec into this->m_verticesValue-array:
-		void write_solution(const std::vector<double > verticesValues);
+		void set_interface_values(const std::vector<double > verticesValues);
 
 
  		void resize_local_data(LocalVector locU)
@@ -144,12 +141,12 @@ class InterfaceHandlerLocal2PF : public InterfaceHandlerLocalDiffusion<TWorldDim
      	number m_fluidDensity;
      	number m_fluidKinVisc;
 
-	/// size of local algebra for flat top element: 'm_numFct' x 'm_numCo'
+	/// size of local algebra for cut element: 'm_numFct' x 'm_numCo'
 		size_t m_numFct;
-	/// number of corners of flat top element
+	/// number of corners ofcut element
 		size_t m_numCo;
 
-	/// new local algebra for resized flat top element
+	/// new local algebra for resized cut element
 		LocalIndices m_ind;
 
 	// local data for assembling:

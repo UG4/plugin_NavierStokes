@@ -1,0 +1,42 @@
+/* Info File for 'ParticleMapper' class: */
+
+The 'ParticleMapper' class handles the mapping from the locally computed data (stiffnes matrix, defect) to the global algebra.
+
+The 2 main components are:
+
+(1) Mapping of the local indices, which are associated to the particle DoFs to their global indices.
+(2) Performing the cross product multiplication for local indices associated to the rotational velocity DoFs.
+
+
+Important methods:
+
+---> the hierarchy
+
+            'add_local_mat_to_global()' ---> 'add_local_mat_to_global_interface()' ---> 'add_local_mat_to_global_FT()'
+
+     forwards the adapted mapping for the cut elements
+
+---> modify_LocalData(): resizes the local data (LocalMatrix or LocalVecor) BEFORE starting the assembling on the element. It is called during the elements discretisation loop (see elem_disc_assemble_util()).
+
+---> modify_GlobalSol(): writes the particle velocities stored in its designated global indices to own data in order to protect it from being overwritting in the following local assembling process and provide global access.
+
+
+
+
+The flat-top ansatz space:
+
+On a cut element, local couplings will be computed for all the intersection points of the interface with the edges of the cut element. The mapping of these couplings to its associated global indices finally defines the property of the underlying finite element space:
+
+Case 1: Each coupling is mapped to its own, designated global index, i.e. DoF. The resulting space will be the usual finite element space w.r.t. the interface adaped grid. It therefore contains additional nodes along the interface and (virtually) consists of cut elements and original elements.
+
+Case 2: The local coupling of an intersection point is mapped onto the global index of the original node, which lies accross the interface, but on the corner of the same element. The resulting finite element space will potentially be smaller than the one of the cut element, since two and more (in 3d) intersection points can share the same node accross the interface. The resulting space is a so called "flat top" space, since it results in piecewise constant solutions along the connecting hyperplane between these intersection points.
+
+
+The 'ParticleMapper' class is of type case 2:
+It maps all couplings of intersection points to the same translational (and in analogy to the rotational) global index. Therefore, the 'ParticleMapper' is a flat-top mapper.
+
+In contrast, the 'DiffusionInterfaceMapper' is of type case 1:
+In particular, it is a tow-sided mapper and the resulting space is an interface adapted space.
+
+
+

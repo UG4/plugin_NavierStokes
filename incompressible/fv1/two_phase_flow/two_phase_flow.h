@@ -26,7 +26,7 @@ namespace NavierStokes{
 
 template <	typename TDomain, typename TAlgebra>
 class MovingInterface2PF
-		: public IMovingInterface<TDomain, TAlgebra>
+		: public IImmersedInterface<TDomain, TAlgebra>
 {
 	public:
 	///	world Dimension
@@ -47,7 +47,7 @@ class MovingInterface2PF
  					   SmartPtr<IAssemble<TAlgebra> > ass,
  					   SmartPtr<NavierStokesFV1<TDomain> > spMaster,
  					   SmartPtr<DiffusionInterfaceProvider<dim> > interfaceProvider,
- 					   SmartPtr<CutElementHandlerImmersed<dim> > cutElementHandler,
+ 					   SmartPtr<CutElementHandler_TwoSided<dim> > cutElementHandler,
  					   number fluidDensity1, number fluidDensity2);
 
 		void set_StdFV_assembling(bool bValue) { m_spInterfaceHandlerLocal->set_StdFV_assembling(bValue);}
@@ -106,24 +106,14 @@ class MovingInterface2PF
 
   		}
 
-		void set_interface_values(vector_type& u, const int numDoFs, const int num_newDoFs)
-		{
-//			double value = 20.0*0.4*0.4*0.4*0.4;
-			DoFIndex index;
-
-			for (size_t i = 0; i < num_newDoFs; ++i)
-			{
-				index = DoFIndex(numDoFs + i,0);
-		//		DoFRef(u, index) = value;
-			}
-		}
+		
 		void set_analytic_solution(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, SmartPtr<MultiGrid> mg, const int topLevel);
 		void adjust_for_error(vector_type& u, vector_type& uCopy, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, SmartPtr<MultiGrid> mg, const int topLevel);
 
 		double compute_solution_value(const MathVector<dim>& vrtPos);
 
-		number get_integral()
-		{ return m_spInterfaceHandlerLocal->get_integral(); }
+		number get_L2Error()
+		{ return m_spInterfaceHandlerLocal->get_L2Error(); }
 
  		void init(vector_type& u, SmartPtr<ApproximationSpace<TDomain> > spApproxSpace, const int baseLevel, const int topLevel, bool bScaleDoFs)
 		{
@@ -154,12 +144,9 @@ class MovingInterface2PF
 			m_spInterfaceMapper->set_bScaleDoFs(bScaleDoFs);
 			m_spInterfaceHandlerLocal->set_bScaleDoFs(bScaleDoFs);
 
-			m_spInterfaceHandlerLocal->init_integral();
+			m_spInterfaceHandlerLocal->L2Error_init();
 
- 		// lieber in jedem Schritt ueber 'modify_GlobalSol()' (mapper!) setzten!
-			//set_interface_values(u, numDoFs, num_newDoFs);
-
-			// not necessary anymore: only local evaluations within diffusion problem!
+		// not necessary anymore: only local evaluations within diffusion problem!
 			//m_spCutElementHandler->template init_marker<TDomain>(dd, baseLevel, topLevel);
 		}
 
@@ -178,25 +165,22 @@ class MovingInterface2PF
 
 		bool is_time_dependent() { return m_spInterfaceHandlerLocal->is_time_dependent();}
 
-		/// helper functions for compute_error_on_circle()
-		void interpolate_point(ConstSmartPtr<DoFDistribution> dd, const vector_type& u,
+ 		void interpolate_point(ConstSmartPtr<DoFDistribution> dd, const vector_type& u,
 							   const MathVector<dim>& evalPos, MathVector<dim+1>& interpolation);
-		void compute_error_on_circle(const vector_type& u, const int topLevel, number radius);
-
+ 
 		void print_deltaP(const vector_type& u, const int topLevel);
 		void print_pressure(const vector_type& u, const int topLevel);
 		void print_pressure_nodal(const vector_type& u, const int topLevel);
 
 	/// writing data to file; called via .lua
 		void print_velocity(const vector_type& u, const int topLevel, number time, const char* filename);
-		void print_velocity_many_particles(const vector_type& u, const int topLevel, number time, const char* filename);
-
+ 
 	private:
 	///	current ApproxSpace
 		SmartPtr<ApproximationSpace<TDomain> > m_spApproxSpace;
 
 		SmartPtr<DiffusionInterfaceProvider<dim> > m_spInterfaceProvider;
-		SmartPtr<CutElementHandlerImmersed<dim> > m_spCutElementHandler;
+		SmartPtr<CutElementHandler_TwoSided<dim> > m_spCutElementHandler;
 		SmartPtr<InterfaceHandlerLocal2PF<dim> > m_spInterfaceHandlerLocal;
 
 		SmartPtr<InterfaceMapper2PF<TDomain, TAlgebra> > m_spInterfaceMapper;
