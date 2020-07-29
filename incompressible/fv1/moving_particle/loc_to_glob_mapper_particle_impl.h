@@ -1198,7 +1198,7 @@ add_mass_part_def(vector_type& vec,std::vector<DoFIndex> transInd, std::vector<D
 	else // compute volume by adding volumes of elements, covered by the prtIndex-th particle
 		volume = compute_volume(levIndex, prtIndex);
 
-	const number mass = Mass(levIndex, prtIndex, volume);
+	const number mass = m_spInterfaceHandlerLocal->get_density(prtIndex)*volume;
 	const number momOfInertia = MomOfInertia(levIndex, prtIndex, volume);
 	MathVector < 2 > vScaleMass;
 	vScaleMass[0] = 1.0;
