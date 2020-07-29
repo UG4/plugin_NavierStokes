@@ -959,22 +959,17 @@ add_minimum_correction_force_rhs(vector_type& vec,std::vector<DoFIndex> transInd
 ////////////////////////////////////////////////////////////////
 // compute repulsive force:
 ////////////////////////////////////////////////////////////////
-    //	if (!m_spCutElementHandler->valid_prt_information(i)) {
-    //		return;
-    //	}
-        
     for (size_t i = 0; i < num_particles(); ++i) {
-        if (!m_bGlowRepulsiveForce && ((int)i != prtIndex)) {
-            // Do not calc force with outdated particle informations
-                
-            if ((int)i == prtIndex) {continue;}
-        // Get particle values
+        if (!m_bGlowRepulsiveForce && (i != prtIndex)) {
+
+            if (i == prtIndex) {continue;}
+            // Get particle values
             MathVector<dim> center_i = m_spCutElementHandler->get_center(i);
             MathVector<dim> center_prtIndex = m_spCutElementHandler->get_center(prtIndex);
             double Mass_i = Mass(levIndex,i);
             double Mass_prtIndex = Mass(levIndex,prtIndex);
-            
-        // Calculate distance vector between center points
+
+            // Calculate distance vector between center points
             double dist = 0;
             for (size_t d = 0; d < dim; ++d){
                 dist += (center_i[d]-center_prtIndex[d])*(center_i[d]-center_prtIndex[d]);
@@ -990,66 +985,41 @@ add_minimum_correction_force_rhs(vector_type& vec,std::vector<DoFIndex> transInd
                     UG_LOG("distanceVec is ("<< distanceVec[0] <<","<< distanceVec[1] <<","<< distanceVec[2] <<").\n");
                 }
             }
-                
-        // Calculate force
-            double force = (Mass_i+Mass_prtIndex)/2*981/(m_epsilon);
+
+            // Calculate force
+            double force = (Mass_i+Mass_prtIndex)/2*m_gravityConst/(m_epsilon);
             double max1 = std::max(0.0,-(dist-m_spCutElementHandler->get_radius(i)-m_spCutElementHandler->get_radius(prtIndex)-m_rho)/(m_rho));
             force *= pow(max1,2);
-                
-        // Scale with time step
+
+            // Scale with time step
             number timeScale = 1.0;
             if (is_time_dependent()) {
                 timeScale = m_dt;
                 force *= timeScale;
             }
-            
-            //			UG_LOG("Max/original force is " << force << ".\n");
+
             if (m_bForceLog) {
                 UG_LOG("Unscaled Max/original repulsive force is "<<force<<".\n");
             }
         }
-            
-        if (m_bMinimumCorrectionForce){
-            if ((int)i == prtIndex) {continue;}
-        // Get particle values
-            MathVector<dim> center_i = m_spCutElementHandler->get_center(i);
-            MathVector<dim> center_prtIndex = m_spCutElementHandler->get_center(prtIndex);
-            double Mass_i = Mass(levIndex,i);
-            double Mass_prtIndex = Mass(levIndex,prtIndex);
-                
-        // Calculate distance vector between center points
-            double dist = 0;
-            for (size_t d = 0; d < dim; ++d){
-                dist += (center_i[d]-center_prtIndex[d])*(center_i[d]-center_prtIndex[d]);
-            }
-            dist = sqrt(dist);
-            MathVector<dim> distanceVec = center_prtIndex;
-            distanceVec -=  center_i;
-            distanceVec /= dist;
-            
-            double Delta_r = m_repulsiveDistance;
-            double force = Mass_i/(Mass_i+Mass_prtIndex)*Delta_r/2 * 1/(m_dt*m_dt);
-            //		double force = Delta_r/2 * 1/(m_rho*m_rho);
-                
-            
-        // Scale with time step
-            number timeScale = 1.0;
-            if (is_time_dependent()) {
-                timeScale = m_dt;
-                force *= timeScale;
-            }
-                
-            DoFRef(vec, transInd[0]) -= Mass_prtIndex*force*distanceVec[0];
-            DoFRef(vec, transInd[1]) -= Mass_prtIndex*force*distanceVec[1];
-            if (dim == 3)
-                DoFRef(vec, transInd[2]) -= Mass_prtIndex*force*distanceVec[2];
-            if (m_bForceLog) {
-                UG_LOG("Unscaled equivalent repulsive force is "<<Mass_prtIndex*force<<".\n");
-            }
+    }
+    if (m_bMinimumCorrectionForce){
+        double Mass_prtIndex = Mass(levIndex,prtIndex);
+        MathVector<dim> Delta_r = m_repulsiveDistance[prtIndex];
+        MathVector<dim> force;
+        VecScale(force, Delta_r, 1/(m_dt*m_dt));
+
+        DoFRef(vec, transInd[0]) -= Mass_prtIndex*force[0];
+        DoFRef(vec, transInd[1]) -= Mass_prtIndex*force[1];
+        if (dim == 3)
+            DoFRef(vec, transInd[2]) -= Mass_prtIndex*force[2];
+        if (m_bForceLog) {
+            UG_LOG("Unscaled equivalent repulsive force is "<<Mass_prtIndex << "*" << force <<".\n");
         }
     }
     m_bForceLog = false;
 }
+
     
 template<typename TDomain, typename TAlgebra>
 void ParticleMapper<TDomain, TAlgebra>::
@@ -1067,7 +1037,6 @@ add_repulsive_force_rhs(vector_type& vec, std::vector<DoFIndex> transInd,
     // Get particle values
         MathVector<dim> center_i = m_spCutElementHandler->get_center(i);
         MathVector<dim> center_prtIndex = m_spCutElementHandler->get_center(prtIndex);
-      //  double Mass_i = Mass(levIndex,i);
         double Mass_prtIndex = Mass(levIndex,prtIndex);
         
     // Calculate distance vector between center points
@@ -1093,7 +1062,9 @@ add_repulsive_force_rhs(vector_type& vec, std::vector<DoFIndex> transInd,
         if (dim == 3)
             DoFRef(vec, transInd[2]) -= Mass_prtIndex*force*distanceVec[2];
             
-        UG_LOG("Unscaled force is set to "<< force << ".\n");
+        if (m_bForceLog) {
+            UG_LOG("Unscaled force is set to "<< force << ".\n");
+        }
     }
         
 }
@@ -1257,18 +1228,20 @@ add_rhs(vector_type& vec, std::vector<DoFIndex> transInd, std::vector<DoFIndex> 
     }
     
 // call assembling of repuslive force acting on prtIndex-th particle
-    if (m_bRepulsiveForce){
+    if (m_bRepulsiveForce && m_bFlagGravity[prtIndex]){
         add_repulsive_force_rhs(vec, transInd, rotInd, levIndex, prtIndex);
     }
     
 // call assembling of glowinski repuslive force acting on prtIndex-th particle
-    if (m_bGlowRepulsiveForce){
+    if (m_bGlowRepulsiveForce && m_bFlagGravity[prtIndex]){
         add_glowinski_repulsive_force_rhs(vec, transInd, rotInd, levIndex, prtIndex);
     }
     
-// no if here because of calculations and a UG_LOG call inside the function that should be printed everytime.
+// no additional if here because of calculations and a UG_LOG call inside the function that should be printed everytime.
 // if clause is inside the function and force is added only if m_bMaxRepulsiveForce
-    add_minimum_correction_force_rhs(vec, transInd, rotInd, levIndex, prtIndex);
+    if (m_bFlagGravity[prtIndex]) {
+        add_minimum_correction_force_rhs(vec, transInd, rotInd, levIndex, prtIndex);
+    }
 
 
 // call this method only ONCE!! (during 'modify_GlobalSol(): m_bFlagGravity := true)

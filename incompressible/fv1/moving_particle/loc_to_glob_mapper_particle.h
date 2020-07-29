@@ -272,7 +272,7 @@ class ParticleMapper : public IInterfaceMapper<TAlgebra>
             {m_bRepulsiveForce = repulsive; m_repulsiveForce = forceValue;}
         void set_glowinski_repulsive_force(bool repulsive, number rho, number epsilon)
             {m_bGlowRepulsiveForce = repulsive; m_rho = rho; m_epsilon = epsilon;}
-        void set_minimum_correction_force(bool repulsive, number equiDist)
+        void set_minimum_correction_force(bool repulsive, std::vector<MathVector<dim> > equiDist)
             {m_bMinimumCorrectionForce = repulsive; m_repulsiveDistance = equiDist;}
 
         void set_bUsualAss(bool UsualAss)               { m_bUsualAss = UsualAss; }
@@ -392,7 +392,7 @@ class ParticleMapper : public IInterfaceMapper<TAlgebra>
         number m_rho;
         number m_epsilon;
         number m_repulsiveForce;
-        number m_repulsiveDistance;
+        std::vector<MathVector<dim> > m_repulsiveDistance;
 
     // used within 'set_gravitational_rhs()' for computation of rhs
         number m_dt;                                // default = 0.0;

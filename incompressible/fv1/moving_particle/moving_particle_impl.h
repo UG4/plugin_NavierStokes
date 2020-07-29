@@ -677,130 +677,209 @@ mark_collision_area(SmartPtr<AdaptiveRegularRefiner_MultiGrid> refiner, int leve
         }
         return elem_is_cut_by_2;
     }
-    
+
 template<typename TDomain, typename TAlgebra>
-double MovingParticle<TDomain, TAlgebra>::
-estimate_repulsive_force_parameters(vector_type& u, int topLevel, double maxElemDiameter, double deltaT)
-{
-    
-    // Get and synchronize velocities
-        const int levIndex = get_Index(GridLevel(topLevel, GridLevel::LEVEL));
-        
-        std::vector<MathVector<dim> > transVel;
-        size_t num_particles = m_spCutElementHandler->num_particles();
-        transVel.resize(num_particles);
-        
-        bool verbose = false;
-        MathVector<dim> transVelP;
+bool MovingParticle<TDomain, TAlgebra>::estimate_repulsive_force_parameters(vector_type& u, int topLevel, double maxElemDiameter, double deltaT){
+	// Get and synchronize velocities
+	const int levIndex = get_Index(GridLevel(topLevel, GridLevel::LEVEL));
+
+	std::vector<MathVector<dim> > transVel;
+	int num_particles = m_spCutElementHandler->num_particles();
+	transVel.resize(num_particles);
+
+	bool verbose = true;
 
 #ifdef UG_PARALLEL
-        pcl::ProcessCommunicator com;
-        
-        for (size_t p = 0; p < num_particles; ++p) {
-            
-            std::vector<grid_base_object*> ElemList =
-            m_spCutElementHandler->m_vvvElemListCut[levIndex][p];
-            if (ElemList.size() == 0) {
-                for (int d = 0; d < dim; ++d) {
-                    transVelP[d] = 0.0;
-                }
-            } else {
-                std::vector < DoFIndex > transInd =
-                m_spCutElementHandler->get_transInd(levIndex, p);
-                
-                for (int d = 0; d < dim; ++d) {
-                    transVelP[d] = DoFRef(u, transInd[d]);
-                }
-                
-            }
-            if (verbose) {
-                UG_LOG(pcl::ProcRank()<< "sends (" << transVelP[0] << "," << transVelP[1] << ")\n");
-            }
-            com.allreduce(&transVelP[0],&transVel[p][0], dim, MPI_DOUBLE, PCL_RO_SUM);
-            if (verbose) {
-                if (dim == 1) {
-                    UG_LOG("transVel[p] = ("<< transVel[p][0] <<")\n");
-                } else{
-                    if (dim == 2) {
-                        UG_LOG("transVel[p] = ("<< transVel[p][0] << "," << transVel[p][1] <<")\n");
-                    } else {
-                        if (dim == 3) {
-                            UG_LOG("transVel[p] = ("<< transVel[p][0] << "," << transVel[p][1] << "," << transVel[p][2] <<")\n");
-                        }
-                    }
-                }
-            }
-        }
+	pcl::ProcessCommunicator com;
+
+	for (size_t p = 0; p < num_particles; ++p) {
+		MathVector<dim> transVelP;
+
+		std::vector<grid_base_object*> ElemList =
+				m_spCutElementHandler->m_vvvElemListCut[levIndex][p];
+		if (ElemList.size() == 0) {
+			for (int d = 0; d < dim; ++d) {
+				transVelP[d] = 0.0;
+			}
+		} else {
+			std::vector < DoFIndex > transInd =
+					m_spCutElementHandler->get_transInd(levIndex, p);
+
+			for (int d = 0; d < dim; ++d) {
+				transVelP[d] = DoFRef(u, transInd[d]);
+			}
+
+		}
+		if (verbose) {
+			UG_LOG(pcl::ProcRank()<< "sends (" << transVelP[0] << "," << transVelP[1] << ")\n");
+		}
+		com.allreduce(&transVelP[0],&transVel[p][0], dim, MPI_DOUBLE, PCL_RO_SUM);
+		if (verbose) {
+			if (dim == 1) {
+				UG_LOG("transVel[p] = ("<< transVel[p][0] <<")\n");
+			} else{
+				if (dim == 2) {
+					UG_LOG("transVel[p] = ("<< transVel[p][0] << "," << transVel[p][1] <<")\n");
+				} else {
+					if (dim == 3) {
+						UG_LOG("transVel[p] = ("<< transVel[p][0] << "," << transVel[p][1] << "," << transVel[p][2] <<")\n");
+					}
+				}
+			}
+		}
+	}
 #else
-        for (size_t p = 0; p < num_particles; ++p) {
-            std::vector < DoFIndex > transInd =
-            m_spCutElementHandler->get_transInd(levIndex, p);
-            
-            for (int d = 0; d < dim; ++d) {
-                transVelP[d] = DoFRef(u, transInd[d]);
-            }
-        }
+	for (size_t p = 0; p < num_particles; ++p) {
+		std::vector < DoFIndex > transInd =
+			m_spCutElementHandler->get_transInd(levIndex, p);
+
+		for (int d = 0; d < dim; ++d) {
+			transVelP[d] = DoFRef(u, transInd[d]);
+		}
+	}
 #endif
-        
-        double eps = 0.0;
-        //const int levIndex = get_Index(GridLevel(13957 /*topLevel*/, GridLevel::LEVEL));
-        
-        for (size_t p = 0; p < num_particles; ++p){
-            // Get values for particle p
-            MathVector<dim> center_p = m_spCutElementHandler->get_center(p);
-            VecScaleAdd(center_p, 1.0, center_p, deltaT, transVel[p]);
-            number radius_p = m_spCutElementHandler->get_radius(p);
-            //double Mass_p = m_spInterfaceMapper->Mass(13957,p);
-            for (size_t q = 0; q < num_particles; ++q){
-                if (p == q) {
-                    continue;
-                }
-                if (verbose)
-                    UG_LOG("p = "<<p<<", q = "<<q<<"\n");
-                // Get values for particle q
-                MathVector<dim> center_q = m_spCutElementHandler->get_center(q);
-                VecScaleAdd(center_q, 1.0, center_q, deltaT, transVel[q]);
-                number radius_q = m_spCutElementHandler->get_radius(q);
-                //double Mass_q = m_spInterfaceMapper->Mass(13957,q);
-                // Calculate force
-                if (verbose) {
-                    if (dim == 1) {
-                        UG_LOG("center_p = ("<< center_p[0] <<")\n");
-                    } else{
-                        if (dim == 2) {
-                            UG_LOG("center_p = ("<< center_p[0] << "," << center_p[1] <<")\n");
-                        } else {
-                            if (dim == 3) {
-                                UG_LOG("center_p = ("<< center_p[0] << "," << center_p[1] << "," << center_p[2] <<")\n");
-                            }
-                        }
-                    }
-                    if (dim == 1) {
-                        UG_LOG("center_q = ("<< center_q[0] <<")\n");
-                    } else{
-                        if (dim == 2) {
-                            UG_LOG("center_q = ("<< center_q[0] << "," << center_q[1] <<")\n");
-                        } else {
-                            if (dim == 3) {
-                                UG_LOG("center_q = ("<< center_q[0] << "," << center_q[1] << "," << center_q[2] <<")\n");
-                            }
-                        }
-                    }
-                }
-                number centerDist = VecDistance(center_q, center_p);
-                if (verbose)
-                    UG_LOG("centerDist = "<< centerDist <<"\n");
-                number s_ij = centerDist - radius_p - radius_q;
-                if (verbose)
-                    UG_LOG("centerDist - radius_p - radius_q = "<< s_ij <<"\n");
-                number dist = maxElemDiameter - s_ij;
-                if (verbose)
-                    UG_LOG("maxElemDiameter - s_ij  = " << dist <<"\n");
-                eps = std::max(eps,dist);
+
+	std::vector<MathVector<dim> > eps;
+	for (size_t i = 0; i < num_particles; ++i) {
+		eps.push_back(MathVector<dim>(0.0));
+	}
+	bool conflict = true;
+	//const int levIndex = get_Index(GridLevel(13957 /*topLevel*/, GridLevel::LEVEL));
+
+	std::vector<MathVector<dim> > centers;
+	for (size_t i = 0; i < num_particles; ++i) {
+		centers.push_back(m_spCutElementHandler->get_center(i));
+		VecScaleAdd(centers[i], 1.0, centers[i], deltaT, transVel[i]);
+	}
+
+	if (num_particles == 1) {
+        	return false;
+	        MathVector<dim> center_p = m_spCutElementHandler->get_center(0);
+	        MathVector<dim> center_q;
+	        center_q = center_p;
+	        if (dim == 3){
+		        center_q[2] = m_spCutElementHandler->get_radius(0);
+	        } else {
+		        return false;
+	        }
+
+        	center_p -= center_q;
+	        UG_LOG("center diff is " << center_p << "\n");
+	        MathVector<dim> force;
+
+        	//VecScale(force, center_p, 1/(m_dt*m_dt));
+	        eps[0] = center_p;
+	        if (center_p[2] < 0){
+	                if (verbose) {
+				UG_LOG("Giving " << eps[0] << " to set_minimum_correction_force\n");
+			}
+			m_spInterfaceMapper->set_minimum_correction_force(true, eps);
+			return true;
+	        }
+	        return false;
+	}
+
+	int iter = 25;
+	while (conflict && iter > 0) {
+		conflict = false;
+		std::vector<MathVector<dim> > new_eps(eps);
+		for (size_t p = 0; p < num_particles; ++p){
+			// Get values for particle p
+			number Mass_p = m_spInterfaceMapper->Mass(topLevel,p);
+			MathVector<dim> center_p;
+			VecAdd(center_p, centers[p], eps[p]);
+			number radius_p = m_spCutElementHandler->get_radius(p);
+			for (size_t q = 0; q < num_particles; ++q){
+				if (p == q) {
+					continue;
+				}
+				if (verbose)
+					UG_LOG("p = "<<p<<", q = "<<q<<"\n");
+				// Get values for particle q
+				number Mass_q = m_spInterfaceMapper->Mass(topLevel,q);
+				MathVector<dim> center_q;
+				VecAdd(center_q, centers[q], eps[q]);
+				number radius_q = m_spCutElementHandler->get_radius(q);
+
+				// Calculate force
+				if (verbose) {
+					if (dim == 1) {
+						UG_LOG("center_p = ("<< center_p[0] <<")\n");
+					} else{
+						if (dim == 2) {
+							UG_LOG("center_p = ("<< center_p[0] << "," << center_p[1] <<")\n");
+						} else {
+							if (dim == 3) {
+								UG_LOG("center_p = ("<< center_p[0] << "," << center_p[1] << "," << center_p[2] <<")\n");
+							}
+						}
+					}
+					if (dim == 1) {
+						UG_LOG("center_q = ("<< center_q[0] <<")\n");
+					} else{
+						if (dim == 2) {
+							UG_LOG("center_q = ("<< center_q[0] << "," << center_q[1] <<")\n");
+						} else {
+							if (dim == 3) {
+								UG_LOG("center_q = ("<< center_q[0] << "," << center_q[1] << "," << center_q[2] <<")\n");
+							}
+						}
+					}
+				}
+
+				number centerDist = VecDistance(center_q, center_p);
+				if (verbose)
+					UG_LOG("centerDist = "<< centerDist <<"\n");
+				number s_ij = centerDist - radius_p - radius_q;
+				if (verbose)
+					UG_LOG("centerDist - radius_p - radius_q = "<< s_ij <<"\n");
+		                        UG_LOG("maxElemDiameter = "<<maxElemDiameter<<"\n");
+				number Delta_r = maxElemDiameter - s_ij;
+				if (verbose)
+					UG_LOG("maxElemDiameter - s_ij  = " << Delta_r <<"\n");
+
+				if (Delta_r > 0.0) {
+					// Calculate distance vector between center points
+					double dist_norm = 0;
+					for (size_t d = 0; d < dim; ++d){
+						dist_norm += (center_q[d]-center_p[d])*(center_q[d]-center_p[d]);
+					}
+					dist_norm = sqrt(dist_norm);
+					MathVector<dim> distanceVec = center_p;
+					distanceVec -=  center_q;
+					distanceVec /= dist_norm;
+
+       					Delta_r *= Mass_q/(Mass_q+Mass_p);
+
+					for (size_t d = 0; d < dim; ++d){
+						new_eps[p][d] += 1.05*Delta_r*distanceVec[d];
+					}
+			                UG_LOG("new_eps[p]: " << new_eps[p] << "\n");
+					conflict = true;
+				}
+			}
+		}
+		eps = new_eps;
+		iter--;
+	}
+	if (verbose) {
+		for (size_t i = 0; i < num_particles; ++i) {
+			if (dim == 2) {
+				UG_LOG("eps "<<i<<" -> (" << eps[i][0] << "," << eps[i][1] << ")\n");
+			}
+            if (dim == 3) {
+				UG_LOG("eps "<<i<<" -> (" << eps[i][0] << "," << eps[i][1] << "," << eps[i][2] << ")\n");
             }
-        }
-    
-    return eps;
+		}
+	}
+	for (size_t i = 0; i < num_particles; ++i) {
+		double vecLen = VecLengthSq(eps[i]);
+		if (vecLen > 1e-14 or vecLen < -1e-14) {
+			m_spInterfaceMapper->set_minimum_correction_force(true, eps);
+			return true;
+		}
+	}
+	return false;
 }
 
 #ifdef UG_PARALLEL

@@ -134,10 +134,10 @@ class MovingParticle
         void set_glowinski_repulsive_force(bool maxRepForce, number rho, number eps)
             { m_spInterfaceMapper->set_glowinski_repulsive_force(maxRepForce, rho, eps); }
         void set_minimum_correction_force(bool EquiRepForce, number repulsiveDistance)
-            { m_spInterfaceMapper->set_minimum_correction_force(EquiRepForce, repulsiveDistance); }
+            { UG_THROW("Function is deprecated. Please use estimate_repulsive_force_parameters to calculate and set this force."); }
     
         bool mark_collision_area(SmartPtr<AdaptiveRegularRefiner_MultiGrid> refiner, int level);
-        double estimate_repulsive_force_parameters(vector_type& u, int topLevel, double MaxElemDiameter, double deltaT);
+        bool estimate_repulsive_force_parameters(vector_type& u, int topLevel, double MaxElemDiameter, double deltaT);
         void set_forceLog(bool val)  { m_spInterfaceMapper->set_forceLog(val); }
         void set_mpi_routine(int val){ m_spCutElementHandler->set_mpi_routine(val); }
     
@@ -283,7 +283,7 @@ class ParticleUnificator : public parmetis::IUnificator<typename GeomObjBaseType
             m_aaPos.access(*m_spMG, m_aPos);
         }
         
-        void update_particles(SmartPtr<ParticleProvider<dim> > provider )
+        void update_particles(SmartPtr<ParticleProviderSphere<dim> > provider )
         {
             m_vParticleCoord.clear();
             
