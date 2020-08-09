@@ -31,8 +31,8 @@
  */
 
 
-#ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1__
-#define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1__
+#ifndef __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1_CUT_ELEM_
+#define __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1_CUT_ELEM_
 
 // other ug4 modules
 #include "common/common.h"
@@ -146,7 +146,7 @@ namespace NavierStokes{
  * \tparam	TAlgebra	Algebra
  */
 template<	typename TDomain>
-class NavierStokesFV1
+class NavierStokesFV1_cutElem
 	: public IncompressibleNavierStokesBase<TDomain>
 {
 	protected:
@@ -154,7 +154,7 @@ class NavierStokesFV1
 		typedef IncompressibleNavierStokesBase<TDomain> base_type;
 
 	///	own type
-		typedef NavierStokesFV1<TDomain> this_type;
+		typedef NavierStokesFV1_cutElem<TDomain> this_type;
 
 	public:
 	///	World dimension
@@ -163,8 +163,8 @@ class NavierStokesFV1
 	public:
 	///	Constructor (setting default values)
 	/// \{
-		NavierStokesFV1(const char* functions, const char* subsets);
-		NavierStokesFV1(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
+		NavierStokesFV1_cutElem(const char* functions, const char* subsets);
+		NavierStokesFV1_cutElem(const std::vector<std::string>& vFct, const std::vector<std::string>& vSubset);
 	/// \}
 
 	///	sets the kinematic viscosity
@@ -226,7 +226,7 @@ class NavierStokesFV1
 				else UG_THROW("Stabilization must be specified previously.\n");
 			}
 		}
-			
+		    
 	protected:
 	///	computes the value of the gradient of the pressure
 		template <typename TElem, typename TFVGeom>
@@ -569,6 +569,9 @@ class NavierStokesFV1
     ///	current shape function set (needed for GeomProvider::get())
         LFEID m_LFEID;
     
+    /// flag for moving particle discretisation
+        bool m_bCutElemGeom;
+    
 	///	register utils
 	///	\{
 		virtual void register_all_funcs(bool bHang);
@@ -581,4 +584,4 @@ class NavierStokesFV1
 } // namespace NavierStokes
 } // end namespace ug
 
-#endif /*__H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1__*/
+#endif /*__H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV1__NAVIER_STOKES_FV1_CUT_ELEM_*/

@@ -126,9 +126,84 @@ compute(const HCRFVGeometry<TElem, dim>* geo,
 		}
 	}
 }
+
+    
+    template <int dim>
+    template <typename TElem>
+void
+NavierStokesNoUpwind<dim>::
+compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+    //	set shapes
+    for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+    {
+        //	get SubControlVolumeFace
+        const typename DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >::SCVF& scvf = geo->scvf(ip);
+
+        for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+        {
+            //	set upwind shape
+            vUpShapeSh[ip][sh] = scvf.shape(sh);
+        }
+        //	compute convection length
+        //  \todo: (optional) A convection length is not really defined for no upwind.
+        //	       but in the computation of a stabilization the term cancels, so
+        //   	   we only have to ensure that the conv_lengh is non-zero
+        vConvLength[ip] = 1.0;
+        
+    }
+    
+}
+    
 /////////////////////////////////////////////////////////////////////////////
 // Full Upwind
 /////////////////////////////////////////////////////////////////////////////
+
+    
+template <int dim>
+template <typename TElem>
+void
+NavierStokesFullUpwind<dim>::
+compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+    //	two help vectors
+    MathVector<dim> dist;
+        
+    // 	get corners of elem
+    const MathVector<dim>* corners = geo->corners();
+        
+    // 	set shapes
+    for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+    {
+        //	get SubControlVolumeFace
+        const typename DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >::SCVF& scvf = geo->scvf(ip);
+        
+        //  reset shapes to zero for all IPs
+        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
+            vUpShapeSh[ip][sh]=0.0;
+        
+        // 	switch upwind
+        const number flux = VecDot(scvf.normal(), vIPVel[ip]);
+        if(flux > 0.0)
+        {
+            vUpShapeSh[ip][scvf.from()] = 1.0;
+            vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.from()]);
+        }
+        else
+        {
+            vUpShapeSh[ip][scvf.to()] = 1.0;
+            vConvLength[ip] = VecDistance(scvf.global_ip(), corners[scvf.to()]);
+        }
+    }
+}
 
 template <int dim>
 template <typename TElem>
@@ -378,6 +453,7 @@ void GetNodeNextToCut(size_t& coOut,
 	}
 }
 
+    
 template <int dim>
 template <typename TElem>
 void
@@ -388,47 +464,47 @@ compute(const FV1Geometry<TElem, dim>* geo,
         number vUpShapeIp[maxNumSCVF][maxNumSCVF],
         number vConvLength[maxNumSCVF])
 {
-// 	corners of geometry
-	const MathVector<dim>* vCornerCoords = geo->corners();
-
-//	loop all scvf
-	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
-	{
-    //	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
-	// 	reset shapes to zero
- 		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
- 			vUpShapeSh[ip][sh] = 0.0;
-
- 	//	if the velocity is zero, there will be no possibility to find the
- 	//	cutted side. In this case we have no velocity and therefore there is
- 	//	no convection. We set all upwind shapes to zero.
- 		if(VecTwoNorm(vIPVel[ip]) < 1e-14) {
- 			//  \todo: (optional) A convection length is not really defined.
- 			//	       but in the computation of a stabilization the term cancels, so
- 			//   	   we only have to ensure that the conv_lengh is non-zero
-			vConvLength[ip] = 1.0;
-			continue;
- 		}
-
-	// 	upwind corner
-		size_t sh = 0;
-
-	// 	find upwind node
-		try{
-			GetNodeNextToCut<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
-					(sh, scvf.global_ip(), vIPVel[ip], vCornerCoords);
-		}UG_CATCH_THROW("GetSkewedUpwindShapes: Cannot find upwind node.");
-
-	// 	set upwind corner
-		vUpShapeSh[ip][sh] = 1.0;
-
-	//	compute convection length
-	    vConvLength[ip] = VecDistance(scvf.global_ip(), vCornerCoords[sh]);
-	}
+    // 	corners of geometry
+    const MathVector<dim>* vCornerCoords = geo->corners();
+    
+    //	loop all scvf
+    for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+    {
+        //	get SubControlVolumeFace
+        const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+        
+        // 	reset shapes to zero
+        for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+            vUpShapeSh[ip][sh] = 0.0;
+        
+        //	if the velocity is zero, there will be no possibility to find the
+        //	cutted side. In this case we have no velocity and therefore there is
+        //	no convection. We set all upwind shapes to zero.
+        if(VecTwoNorm(vIPVel[ip]) < 1e-14) {
+            //  \todo: (optional) A convection length is not really defined.
+            //	       but in the computation of a stabilization the term cancels, so
+            //   	   we only have to ensure that the conv_lengh is non-zero
+            vConvLength[ip] = 1.0;
+            continue;
+        }
+            
+        // 	upwind corner
+        size_t sh = 0;
+            
+        // 	find upwind node
+        try{
+            GetNodeNextToCut<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
+            (sh, scvf.global_ip(), vIPVel[ip], vCornerCoords);
+        }UG_CATCH_THROW("GetSkewedUpwindShapes: Cannot find upwind node.");
+            
+        // 	set upwind corner
+        vUpShapeSh[ip][sh] = 1.0;
+        
+        //	compute convection length
+        vConvLength[ip] = VecDistance(scvf.global_ip(), vCornerCoords[sh]);
+    }
 }
-
+    
 template <int dim>
 template <typename TElem>
 void
@@ -501,12 +577,182 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 /////////////////////////////////////////////////////////////////////////////
 // Linear Profile Skewed Upwind
 /////////////////////////////////////////////////////////////////////////////
-
 template <int dim>
 template <typename TElem>
 void
 NavierStokesLinearProfileSkewedUpwind<dim>::
 compute(const FV1Geometry<TElem, dim>* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+        // 	corners of geometry
+        const MathVector<dim>* vCornerCoords = geo->corners();
+        
+        //	loop all scvf
+        for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+        {
+            //	get SubControlVolumeFace
+            const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
+            
+            // 	reset shapes to zero
+            for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+                vUpShapeSh[ip][sh] = 0.0;
+            
+            //	if the velocity is zero, there will be no possibility to find the
+            //	cutted side. In this case we have no velocity and therefore there is
+            //	no convection. We set all upwind shapes to zero.
+            if(VecTwoNorm(vIPVel[ip]) < 1e-14) {
+                //  \todo: (optional) A convection length is not really defined.
+                //	       but in the computation of a stabilization the term cancels, so
+                //   	   we only have to ensure that the conv_lengh is non-zero
+                vConvLength[ip] = 1.0;
+                continue;
+            }
+            
+            // 	side and intersection vectors
+            static const int refDim = FV1Geometry<TElem, dim>::dim;
+            size_t side = 0;
+            MathVector<dim> globalIntersection;
+            MathVector<refDim> localIntersection;
+            
+            // 	find local intersection and side
+            try{
+                ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
+                (	side, globalIntersection, localIntersection,
+                 scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
+            }UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
+            
+            // 	get linear trial space
+            static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
+            const LocalShapeFunctionSet<refDim>& TrialSpace =
+            LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
+            
+            // 	get Reference Element
+            typedef typename FV1Geometry<TElem, dim>::ref_elem_type ref_elem_type;
+            static const ref_elem_type& rRefElem
+            = Provider<ref_elem_type>::get();
+            
+            // 	loop corners of side
+            for(size_t j = 0; j < rRefElem.num(dim-1, side, 0); ++j)
+            {
+                // 	get corner
+                const size_t co = rRefElem.id(dim-1, side, 0, j);
+                
+                //	evaluate trial space
+                vUpShapeSh[ip][co] = TrialSpace.shape(co, localIntersection);
+            }
+            
+            //	compute conv length
+            vConvLength[ip] = VecDistance(scvf.global_ip(), globalIntersection);
+        }
+}
+    
+//////////////////////////////////////////////////////////////////////////////////
+//
+//  DimWrapper_ElementSideRayIntersection():
+//
+//  Wrapper functions in order to call the method 'ElementSideRayIntersection'
+//  for different dimensions and reference element types.
+//  For the 'DimFV1FTGeometry' the reference element type can change, therefore
+//  a different call of the method 'ElementSideRayIntersection' is necessary
+//  for call within 'NavierStokesLinearProfileSkewedUpwind()'
+//
+//////////////////////////////////////////////////////////////////////////////////
+    
+    
+template <int dim>
+inline void DimWrapper_ElementSideRayIntersection(const ReferenceObjectID roid, size_t& sideOut,
+                   MathVector<dim>& GlobalIntersectionPointOut,
+                   MathVector<dim>& LocalIntersectionPoint,
+                   const MathVector<dim>& From, const MathVector<dim>& Direction,
+                   bool bPositiv, const MathVector<dim>* vCornerCoords);
+
+template <>
+inline void DimWrapper_ElementSideRayIntersection<1>(const ReferenceObjectID roid, size_t& sideOut,
+                                             MathVector<1>& GlobalIntersectionPointOut,
+                                             MathVector<1>& LocalIntersectionPoint,
+                                             const MathVector<1>& From, const MathVector<1>& Direction,
+                                             bool bPositiv, const MathVector<1>* vCornerCoords)
+{
+    UG_THROW("in DimWrapper_ElementSideRayIntersection<1>: not implemented for 1d!\n")
+}
+    
+template <>
+inline void DimWrapper_ElementSideRayIntersection<2>(const ReferenceObjectID roid, size_t& sideOut,
+                       MathVector<2>& GlobalIntersectionPointOut,
+                       MathVector<2>& LocalIntersectionPoint,
+                       const MathVector<2>& From, const MathVector<2>& Direction,
+                       bool bPositiv, const MathVector<2>* vCornerCoords)
+{
+    switch(roid)
+    {
+        case ROID_TRIANGLE:     try{
+            ElementSideRayIntersectionWrapper<reference_element_traits<Triangle>::reference_element_type, 2, 2>::
+            apply(sideOut, GlobalIntersectionPointOut, LocalIntersectionPoint, From, Direction,
+                      bPositiv, vCornerCoords);
+            }UG_CATCH_THROW("DimWrapper_ElementSideRayIntersection<2>: Cannot find cut side.");
+            break;
+        case ROID_QUADRILATERAL: try{
+                ElementSideRayIntersectionWrapper<reference_element_traits<Quadrilateral>::reference_element_type, 2, 2>::
+                apply(sideOut, GlobalIntersectionPointOut, LocalIntersectionPoint, From, Direction,
+                      bPositiv, vCornerCoords);
+            }UG_CATCH_THROW("DimWrapper_ElementSideRayIntersection<2>: Cannot find cut side.");
+            break;
+        default: UG_THROW("Reference Element type for roid "<<roid<<" not found in dim 2.");
+    }
+}
+    
+template <>
+inline void DimWrapper_ElementSideRayIntersection<3>(const ReferenceObjectID roid, size_t& sideOut,
+                          MathVector<3>& GlobalIntersectionPointOut,
+                          MathVector<3>& LocalIntersectionPoint,
+                          const MathVector<3>& From, const MathVector<3>& Direction,
+                          bool bPositiv, const MathVector<3>* vCornerCoords)
+{
+    switch(roid)
+    {
+        case ROID_TETRAHEDRON: try{
+            ElementSideRayIntersectionWrapper<reference_element_traits<Tetrahedron>::reference_element_type, 3, 3>::
+            apply(sideOut, GlobalIntersectionPointOut, LocalIntersectionPoint, From, Direction,
+                  bPositiv, vCornerCoords);
+        }UG_CATCH_THROW("DimWrapper_ElementSideRayIntersection<3> - ROID_TETRAHEDRON: Cannot find cut side.");
+            break;
+        case ROID_PYRAMID:     try{
+            ElementSideRayIntersectionWrapper<reference_element_traits<Pyramid>::reference_element_type, 3, 3>::
+            apply(sideOut, GlobalIntersectionPointOut, LocalIntersectionPoint, From, Direction,
+                  bPositiv, vCornerCoords);
+        }UG_CATCH_THROW("DimWrapper_ElementSideRayIntersection<3> - ROID_PYRAMID: Cannot find cut side.");
+            break;
+        case ROID_PRISM:        try{
+            ElementSideRayIntersectionWrapper<reference_element_traits<Prism>::reference_element_type, 3, 3>::
+            apply(sideOut, GlobalIntersectionPointOut, LocalIntersectionPoint, From, Direction,
+                  bPositiv, vCornerCoords);
+        }UG_CATCH_THROW("DimWrapper_ElementSideRayIntersection<3> - ROID_PRISM: Cannot find cut side.");
+            break;
+        case ROID_HEXAHEDRON:   try{
+            ElementSideRayIntersectionWrapper<reference_element_traits<Hexahedron>::reference_element_type, 3, 3>::
+            apply(sideOut, GlobalIntersectionPointOut, LocalIntersectionPoint, From, Direction,
+                  bPositiv, vCornerCoords);
+        }UG_CATCH_THROW("DimWrapper_ElementSideRayIntersection<3> - ROID_HEXAHEDRON: Cannot find cut side.");
+            break;
+        case ROID_OCTAHEDRON:   try{
+            ElementSideRayIntersectionWrapper<reference_element_traits<Octahedron>::reference_element_type, 3, 3>::
+            apply(sideOut, GlobalIntersectionPointOut, LocalIntersectionPoint, From, Direction,
+                  bPositiv, vCornerCoords);
+        }UG_CATCH_THROW("DimWrapper_ElementSideRayIntersection<3> - ROID_OCTAHEDRON: Cannot find cut side.");
+            break;
+        default: UG_THROW("Reference Element type for roid "<<roid<<" not found in dim 3.");
+    }
+}
+
+    
+template <int dim>
+template <typename TElem>
+void
+NavierStokesLinearProfileSkewedUpwind<dim>::
+compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
         const MathVector<dim> vIPVel[maxNumSCVF],
         number vUpShapeSh[maxNumSCVF][maxNumSH],
         number vUpShapeIp[maxNumSCVF][maxNumSCVF],
@@ -519,8 +765,9 @@ compute(const FV1Geometry<TElem, dim>* geo,
 	for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
 	{
     //	get SubControlVolumeFace
-		const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
-
+        typedef DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > TFVGeom;
+        const typename TFVGeom::SCVF& scvf = geo->scvf(ip);
+ 
 	// 	reset shapes to zero
  		for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
  			vUpShapeSh[ip][sh] = 0.0;
@@ -536,29 +783,36 @@ compute(const FV1Geometry<TElem, dim>* geo,
 			continue;
  		}
 
+        if ((vIPVel[ip][0] != vIPVel[ip][0]) || (vIPVel[ip][1] != vIPVel[ip][1]) || (vIPVel[ip][2] != vIPVel[ip][2])) {
+                vConvLength[ip] = 1.0;
+                continue;
+        }
+
  	// 	side and intersection vectors
- 		static const int refDim = FV1Geometry<TElem, dim>::dim;
+        static const int refDim = TFVGeom::dim;
  		size_t side = 0;
  		MathVector<dim> globalIntersection;
- 		MathVector<refDim> localIntersection;
+//		MathVector<refDim> localIntersection;
+        MathVector<dim> localIntersection;
 
+    // get reference object ID
+        const ReferenceObjectID roid = geo->get_roid();
+        
  	// 	find local intersection and side
  		try{
- 			ElementSideRayIntersection<typename FV1Geometry<TElem, dim>::ref_elem_type, dim>
- 			(	side, globalIntersection, localIntersection,
- 				scvf.global_ip(), vIPVel[ip], false /* search upwind */, vCornerCoords);
- 		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
+            DimWrapper_ElementSideRayIntersection<dim>
+ 			(	roid, side, globalIntersection, localIntersection,
+ 				scvf.global_ip(), vIPVel[ip], false , vCornerCoords);
+		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
 
  	// 	get linear trial space
- 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
- 		const LocalShapeFunctionSet<refDim>& TrialSpace =
+  		const LocalShapeFunctionSet<refDim>& TrialSpace =
  				LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
  	// 	get Reference Element
- 		typedef typename FV1Geometry<TElem, dim>::ref_elem_type ref_elem_type;
- 		static const ref_elem_type& rRefElem
- 			= Provider<ref_elem_type>::get();
+        const DimReferenceElement<dim>& rRefElem = ReferenceElementProvider::get<dim>(roid);
 
+        
  	// 	loop corners of side
  		for(size_t j = 0; j < rRefElem.num(dim-1, side, 0); ++j)
  		{
@@ -639,6 +893,154 @@ compute(const CRFVGeometry<TElem, dim>* geo,
 /////////////////////////////////////////////////////////////////////////////
 // Positive Upwind
 /////////////////////////////////////////////////////////////////////////////
+    
+template <int dim>
+template <typename TElem>
+void
+NavierStokesPositiveUpwind<dim>::
+compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+        const MathVector<dim> vIPVel[maxNumSCVF],
+        number vUpShapeSh[maxNumSCVF][maxNumSH],
+        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+        number vConvLength[maxNumSCVF])
+{
+    
+    //	1. Reset values and compute ip velocities and Compute mass fluxes at ip's
+        
+    //	vector for flux values
+    std::vector<number> vMassFlux(geo->num_scvf(), 0.0);
+    std::vector<bool> vHasFlux(geo->num_scvf(), true);
+    
+    typedef DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> > TFVGeom;
+
+    //	loop all scvf
+    const number eps = std::numeric_limits<number>::epsilon() * 10;
+    size_t bNumNoFlux = 0;
+    for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+    {
+        //	get SubControlVolumeFace
+        const typename TFVGeom::SCVF& scvf = geo->scvf(ip);
+        
+        // 	reset shapes w.r.t corner value to zero
+        for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+            vUpShapeSh[ip][sh] = 0.0;
+        
+        // 	reset shapes w.r.t. ip value to zero and extract ip vel
+        for(size_t j = 0; j < geo->num_scvf(); ++j)
+            vUpShapeIp[ip][j] = 0.0;
+        
+        const number normSq = VecTwoNormSq(vIPVel[ip]);
+        if(fabs(normSq) <= eps)
+        {
+            vUpShapeSh[ip][scvf.from()] = 0.5;
+            vUpShapeSh[ip][scvf.to()] = 0.5;
+            vHasFlux[ip] = false;
+            bNumNoFlux++;
+            continue;
+        }
+        
+        vMassFlux[ip] = VecProd(vIPVel[ip], scvf.normal());
+        const number vel = std::sqrt(normSq);
+        const number len = VecTwoNorm(scvf.normal());
+        if(fabs(vMassFlux[ip] / std::sqrt(vel*len))  <= eps)
+        {
+            vUpShapeSh[ip][scvf.from()] = 0.5;
+            vUpShapeSh[ip][scvf.to()] = 0.5;
+            vHasFlux[ip] = false;
+            bNumNoFlux++;
+            continue;
+        }
+    }
+    
+        
+    //	2. Handle each SCV separately
+    if(bNumNoFlux != geo->num_scvf())
+    {
+        for(size_t sh = 0; sh < geo->num_sh(); ++sh)
+        {
+            //	reset inflow, outflow
+            number m_in = 0, m_out = 0;
+            std::vector<size_t> vSCVIP;
+            std::vector<number> vFlux;
+            
+            //	loop subcontrol volume faces
+            for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+            {
+                //	if no flux skip
+                if(!vHasFlux[ip]) continue;
+                
+                //	get SubControlVolumeFace
+                const typename TFVGeom::SCVF& scvf = geo->scvf(ip);
+                
+                //	if scvf is part of the scv, add fluxes
+                if(scvf.from() == sh)
+                {
+                    //	normal directed outwards
+                    vSCVIP.push_back(ip);
+                    vFlux.push_back( vMassFlux[ip] );
+                    m_in += -1.0 * std::min(vMassFlux[ip], 0.0);
+                    m_out += std::max(vMassFlux[ip], 0.0);
+                }
+                else if (scvf.to() == sh)
+                {
+                    //	normal directed inwards
+                    vSCVIP.push_back(ip);
+                    vFlux.push_back( -1.0 * vMassFlux[ip] );
+                    m_in += -1.0 * std::min(-1.0 *  vMassFlux[ip], 0.0);
+                    m_out += std::max(-1.0 * vMassFlux[ip], 0.0);
+                }
+            }
+            
+            //	compute F
+            number F = std::max(m_in, m_out);
+            
+            //	set shapes
+            for(size_t i = 0; i < vSCVIP.size(); ++i)
+            {
+                if(vFlux[i] > 0)
+                {
+                    number sum = 0.0;
+                    for(size_t j = 0; j < vSCVIP.size(); ++j)
+                    {
+                        if(vFlux[j] < 0)
+                        {
+                            //	set ip shapes
+                            sum += vUpShapeIp[vSCVIP[i]][vSCVIP[j]] = -1.0 * vFlux[j] / F;
+                        }
+                    }
+                    //	set nodal shapes
+                    vUpShapeSh[vSCVIP[i]][sh] = 1.0 - sum;
+                }
+            }
+        }
+    }
+    
+    //	3. compute convection length
+    
+    // 	corners of geometry
+    const MathVector<dim>* vCornerCoords = geo->corners();
+        
+    //	compute upwind point
+    MathVector<dim> upPos;
+    for(size_t ip = 0; ip < geo->num_scvf(); ++ip)
+    {
+        //	get SubControlVolumeFace
+        const typename TFVGeom::SCVF& scvf = geo->scvf(ip);
+        
+        //	reset upwind point
+        VecSet(upPos, 0.0);
+        
+        //	sum up contributions
+        for (size_t sh = 0; sh < scvf.num_sh(); ++sh)
+            VecScaleAppend(upPos, vUpShapeSh[ip][sh], vCornerCoords[sh]);
+        for (size_t j = 0; j < geo->num_scvf(); ++j)
+            VecScaleAppend(upPos, vUpShapeIp[ip][j], geo->scvf(j).global_ip());
+        
+        //	save convection length
+        vConvLength[ip] = VecDistance(scvf.global_ip(), upPos);
+    }
+}
+    
 
 template <int dim>
 template <typename TElem>

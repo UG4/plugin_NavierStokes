@@ -1,0 +1,6 @@
+/* Info File for 'ParticleBndCond' class: */
+
+Assemlbes the stresses on the particle interface. For that, the common forces will be assembled as for usual boundary faces, BUT on the according boundary faces which were computed for the cut element during the local update of the element.
+
+The boundary faces of the cut elements got stored into the 'm_vBF' member of the 'InterfaceHandlerLocalParticle' class.
+
