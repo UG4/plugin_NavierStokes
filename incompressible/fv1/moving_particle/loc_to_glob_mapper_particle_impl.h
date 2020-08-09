@@ -826,7 +826,7 @@ add_mass_part_jac(matrix_type& mat,	std::vector<DoFIndex> transInd, std::vector<
 
 // add mass term to global matrix (instead of using IConstraint::adjust_jacobian() )
 	for (int d = 0; d < dim; ++d) {
-		DoFRef(mat, transInd[d], transInd[d]) += Mass(levIndex, prtIndex, volume);
+		DoFRef(mat, transInd[d], transInd[d]) += m_spInterfaceHandlerLocal->get_density(prtIndex)*volume;
     // for dim = 2: the second DoF of rotInd is unused!
 		if (dim == 3 || d == 0)
 			DoFRef(mat, rotInd[d], rotInd[d]) += MomOfInertia(levIndex, prtIndex, volume);

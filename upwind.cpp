@@ -783,6 +783,11 @@ compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* g
 			continue;
  		}
 
+        if ((vIPVel[ip][0] != vIPVel[ip][0]) || (vIPVel[ip][1] != vIPVel[ip][1]) || (vIPVel[ip][2] != vIPVel[ip][2])) {
+                vConvLength[ip] = 1.0;
+                continue;
+        }
+
  	// 	side and intersection vectors
         static const int refDim = TFVGeom::dim;
  		size_t side = 0;
