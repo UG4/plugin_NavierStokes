@@ -225,19 +225,8 @@ class NavierStokesFV1
 		}
 			
 	protected:
-	///	computes the value of the gradient of the pressure
-		template <typename TElem, typename TFVGeom>
-		void ex_velocity_grad(MathMatrix<dim,dim> vValue[],
-							  const MathVector<dim> vGlobIP[],
-							  number time, int si,
-							  const LocalVector& u,
-							  GridObject* elem,
-							  const MathVector<dim> vCornerCoords[],
-							  const MathVector<TFVGeom::dim> vLocIP[],
-							  const size_t nip,
-							  bool bDeriv,
-							  std::vector<std::vector<MathMatrix<dim,dim> > > vvvDeriv[]);
 
+	using base_type::m_exVelocity;
 	using base_type::m_exVelocityGrad;
 
 	public:
@@ -530,6 +519,32 @@ class NavierStokesFV1
 		inline number peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 		                           const MathVector<dim>& StdVel, number kinVisco);
 
+	///	export value of the velocity
+		template <typename TElem, typename TFVGeom>
+		void ex_nodal_velocity(MathVector<dim> vValue[],
+							  const MathVector<dim> vGlobIP[],
+							  number time, int si,
+							  const LocalVector& u,
+							  GridObject* elem,
+							  const MathVector<dim> vCornerCoords[],
+							  const MathVector<TFVGeom::dim> vLocIP[],
+							  const size_t nip,
+							  bool bDeriv,
+							  std::vector<std::vector<MathVector<dim> > > vvvDeriv[]);
+
+	///	computes the value of the gradient of the velocity
+		template <typename TElem, typename TFVGeom>
+		void ex_velocity_grad(MathMatrix<dim,dim> vValue[],
+							  const MathVector<dim> vGlobIP[],
+							  number time, int si,
+							  const LocalVector& u,
+							  GridObject* elem,
+							  const MathVector<dim> vCornerCoords[],
+							  const MathVector<TFVGeom::dim> vLocIP[],
+							  const size_t nip,
+							  bool bDeriv,
+							  std::vector<std::vector<MathMatrix<dim,dim> > > vvvDeriv[]);
+		
 	protected:
 	///	Data import for source
 		DataImport<MathVector<dim>, dim> m_imSourceSCV;
