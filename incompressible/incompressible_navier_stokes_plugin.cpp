@@ -256,6 +256,7 @@ static void Domain(Registry& reg, string grp)
 			.add_method("set_grad_div", static_cast<void (T::*)(number)>(&T::set_grad_div), "", "GradDivFactor")
 			.add_method("set_laplace", &T::set_laplace)
 			.add_method("set_stokes", &T::set_stokes)
+			.add_method("velocity", &T::velocity)
 			.add_method("velocity_grad", &T::velocity_grad);
 		reg.add_class_to_group(name, "IncompressibleNavierStokesBase", tag);
 	}

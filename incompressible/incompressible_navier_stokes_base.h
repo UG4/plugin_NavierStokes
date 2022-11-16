@@ -233,6 +233,9 @@ class IncompressibleNavierStokesBase
 	///	returns string identifying disc type
 		virtual std::string disc_type() const = 0;
 
+	///	returns the export of the velocity
+		SmartPtr<CplUserData<MathVector<dim>, dim> > velocity() {return m_exVelocity;}
+
 	///	returns the export of the velocity gradient
 		SmartPtr<CplUserData<MathMatrix<dim, dim>, dim> > velocity_grad() {return m_exVelocityGrad;}
 
@@ -252,10 +255,10 @@ class IncompressibleNavierStokesBase
 	///	flag if using only laplace term
 		bool m_bLaplace;
 
-	/// flag if using bingham behaviour
-		bool m_bBingham;
+	///	Export for the velocity
+		SmartPtr<DataExport<MathVector<dim>,dim> > m_exVelocity;
 
-	///	Export for the gradient of the velocity gradient
+	///	Export for the velocity gradient
 		SmartPtr<DataExport<MathMatrix<dim, dim>,dim> > m_exVelocityGrad;
 };
 

@@ -141,20 +141,6 @@ set_source(SmartPtr<CplUserData<MathVector<dim>, dim> > data)
 	m_imSource.set_data(data);
 }
 
-template<typename TDomain>
-void NavierStokesFV<TDomain>::
-set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
-{
-	m_imBinghamViscosity.set_data(data);
-}
-
-template<typename TDomain>
-void NavierStokesFV<TDomain>::
-set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
-{
-	m_imYieldStress.set_data(data);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 //	assembling functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -175,11 +161,6 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 //	check, that Density has been set
 	if(!m_imDensitySCV.data_given())
 		UG_THROW("NavierStokes: Density has not been set, but is required.");
-
-//	check, that bingham behavious is not chosen
-	if(m_bBingham)
-		UG_THROW("NavierStokes::prep_elem_loop:"
-							" Bingham only available for FV1 and FE.");
 
 	VGeom& vgeo = GeomProvider<VGeom>::get(m_vLFEID, m_quadOrder);
 	PGeom& pgeo = GeomProvider<PGeom>::get(m_pLFEID, m_quadOrder);

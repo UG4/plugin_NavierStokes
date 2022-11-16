@@ -94,14 +94,6 @@ class NavierStokesNoNormalStressOutflowFV
 		virtual void set_density(SmartPtr<CplUserData<number, dim> > data)
 			{m_imDensity.set_data(data); m_imDensityP.set_data(data);}
 
-	///	sets the bingham viscosity
-		virtual void set_bingham_viscosity(SmartPtr<CplUserData<number, dim> > data)
-			{m_imBinghamViscosity.set_data(data);}
-
-	///	sets the density
-		virtual void set_yield_stress(SmartPtr<CplUserData<number, dim> > data)
-			{m_imYieldStress.set_data(data);}
-
 	public:
 	///	type of trial space for each function used
 		virtual void prepare_setting(const std::vector<LFEID>& vLfeID, bool bNonRegularGrid);
@@ -193,12 +185,6 @@ class NavierStokesNoNormalStressOutflowFV
 	/// Data import for density
 		DataImport<number, dim> m_imDensity;
 		DataImport<number, dim> m_imDensityP;
-
-	/// Data import for bingham viscosity
-		DataImport<number, dim> m_imBinghamViscosity;
-
-	/// Data import for yield stress
-		DataImport<number, dim> m_imYieldStress;
 
 	/// Boundary integration points of the viscosity and the density
 		std::vector<MathVector<dim> > m_vLocIPv;

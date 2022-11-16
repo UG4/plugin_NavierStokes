@@ -891,7 +891,106 @@ peclet_blend(MathVector<dim>& UpwindVel, const TFVGeom& geo, size_t ip,
 	return w;
 }
 
-//	computes the linearized defect w.r.t to the velocity
+//	prepares the nodal velocities for the export parameter
+template<typename TDomain>
+template <typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+ex_nodal_velocity(MathVector<dim> vValue[],
+        const MathVector<dim> vGlobIP[],
+        number time, int si,
+        const LocalVector& u,
+        GridObject* elem,
+        const MathVector<dim> vCornerCoords[],
+        const MathVector<TFVGeom::dim> vLocIP[],
+        const size_t nip,
+        bool bDeriv,
+        std::vector<std::vector<MathVector<dim> > > vvvDeriv[])
+{
+// 	Get finite volume geometry
+	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+
+//	reference element
+	typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
+
+//  reference dimension
+	static const int refDim = ref_elem_type::dim;
+
+//  number of shape functions
+	static const size_t numSH = ref_elem_type::numCorners;	
+
+//	FV1 SCVF ip
+	if(vLocIP == geo.scvf_local_ips())
+	{
+	//	Loop Sub Control Volume Faces (SCVF)
+		for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+		{
+		// 	Get current SCVF
+			const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+
+		//  Loop dimensions
+			for(int d = 0; d < dim; ++d)
+			{
+			//	Loop the shape functions
+				for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+				{
+				//	Inerpolate the value
+					vValue[ip][d] += u(d, sh) * scvf.shape(sh);
+					if(bDeriv)
+						vvvDeriv[ip][d][sh] = scvf.shape(sh);
+				}
+			}
+			if(bDeriv)
+			{
+				for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+				{
+					VecSet(vvvDeriv[ip][_P_][sh],0.0);
+				}
+			}
+		}
+	}
+// 	general case
+	else
+	{
+	//	get trial space
+		LagrangeP1<ref_elem_type>& rTrialSpace = Provider<LagrangeP1<ref_elem_type> >::get();
+
+	//	storage for shape function at ip
+		number vLocShape[numSH];
+
+	//	Reference Mapping
+		MathMatrix<dim, refDim> JTInv;
+		ReferenceMapping<ref_elem_type, dim> mapping(vCornerCoords);
+
+	//	loop ips
+		for(size_t ip = 0; ip < nip; ++ip)
+		{
+		//	evaluate at shapes at ip
+			rTrialSpace.shapes(vLocShape, vLocIP[ip]);
+
+		//  Loop dimensions
+			for(int d = 0; d < dim; ++d)
+			{
+			//	Loop the shape functions
+				for(size_t sh = 0; sh < numSH; ++sh)
+				{
+				//	Inerpolate the value
+					vValue[ip][d] += u(d, sh) * vLocShape[sh];
+					if(bDeriv)
+						vvvDeriv[ip][d][sh] = vLocShape[sh];
+				}
+			}
+			if(bDeriv)
+			{
+				for(size_t sh = 0; sh < numSH; ++sh)
+				{
+					VecSet(vvvDeriv[ip][_P_][sh],0.0);
+				}
+			}		
+		}
+	}
+};
+
+//	computes the gradient of the velocity for the export parameter
 template<typename TDomain>
 template <typename TElem, typename TFVGeom>
 void NavierStokesFV1<TDomain>::
@@ -1078,8 +1177,8 @@ register_func()
 	this->set_add_def_M_elem_fct(	id, &T::template add_def_M_elem<TElem, TFVGeom>);
 	this->set_add_rhs_elem_fct(	id, &T::template add_rhs_elem<TElem, TFVGeom>);
 
+	m_exVelocity->template set_fct<T,refDim>(id, this, &T::template ex_nodal_velocity<TElem, TFVGeom>);
 	m_exVelocityGrad->template set_fct<T,refDim>(id, this, &T::template ex_velocity_grad<TElem, TFVGeom>);
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
