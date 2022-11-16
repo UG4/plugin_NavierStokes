@@ -56,8 +56,7 @@ IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const ch
 : NavierStokesBase<TDomain>(functions, subsets),
   m_bPecletBlend(false),
   m_bStokes(false),
-  m_bLaplace(false),
-  m_bBingham(false)
+  m_bLaplace(false)
 {
   m_exVelocity = make_sp(new DataExport<MathVector<dim>, dim>(functions));
   m_exVelocityGrad = make_sp(new DataExport<MathMatrix<dim, dim>, dim>(functions));
@@ -69,8 +68,7 @@ IncompressibleNavierStokesBase<TDomain>::IncompressibleNavierStokesBase(const st
 : NavierStokesBase<TDomain>(vFct, vSubset),
   m_bPecletBlend(false),
   m_bStokes(false),
-  m_bLaplace(false),
-  m_bBingham(false)
+  m_bLaplace(false)
 {
   std::string functions;
   for(size_t i = 0; i < vFct.size(); ++i){
