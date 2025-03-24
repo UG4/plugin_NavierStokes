@@ -228,6 +228,10 @@ class NavierStokesFV1
 
 	using base_type::m_exVelocity;
 	using base_type::m_exVelocityGrad;
+    using base_type::m_exVelocity_div;
+    using base_type::m_exPressure;
+    using base_type::m_exPressureGrad;
+
 
 	public:
 	///	type of trial space for each function used
@@ -544,6 +548,45 @@ class NavierStokesFV1
 							  const size_t nip,
 							  bool bDeriv,
 							  std::vector<std::vector<MathMatrix<dim,dim> > > vvvDeriv[]);
+    ///    export value of the velocity at ips
+        template <typename TElem, typename TFVGeom>
+        void ex_div_velocity(MathVector<dim> vValue[],
+                              const MathVector<dim> vGlobIP[],
+                              number time, int si,
+                              const LocalVector& u,
+                              GridObject* elem,
+                              const MathVector<dim> vCornerCoords[],
+                              const MathVector<TFVGeom::dim> vLocIP[],
+                              const size_t nip,
+                              bool bDeriv,
+                              std::vector<std::vector<MathVector<dim> > > vvvDeriv[]);
+    
+    ///    export value of the pressure
+        template <typename TElem, typename TFVGeom>
+        void ex_nodal_pressure(number vValue[],
+                              const MathVector<dim> vGlobIP[],
+                              number time, int si,
+                              const LocalVector& u,
+                              GridObject* elem,
+                              const MathVector<dim> vCornerCoords[],
+                              const MathVector<TFVGeom::dim> vLocIP[],
+                              const size_t nip,
+                              bool bDeriv,
+                              std::vector<std::vector<number > > vvvDeriv[]);
+    
+    ///    export value of the pressure gradient
+        template <typename TElem, typename TFVGeom>
+        void ex_pressure_grad(MathVector<dim> vValue[],
+                              const MathVector<dim> vGlobIP[],
+                              number time, int si,
+                              const LocalVector& u,
+                              GridObject* elem,
+                              const MathVector<dim> vCornerCoords[],
+                              const MathVector<TFVGeom::dim> vLocIP[],
+                              const size_t nip,
+                              bool bDeriv,
+                              std::vector<std::vector<MathVector<dim> > > vvvDeriv[]);
+
 		
 	protected:
 	///	Data import for source
