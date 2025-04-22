@@ -1098,6 +1098,399 @@ ex_velocity_grad(MathMatrix<dim, dim> vValue[],
 	}
 };
 
+//    computes the velocities at scvf ips for the export parameter
+template<typename TDomain>
+template <typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+ex_div_velocity(MathVector<dim> vValue[],
+        const MathVector<dim> vGlobIP[],
+        number time, int si,
+        const LocalVector& u,
+        GridObject* elem,
+        const MathVector<dim> vCornerCoords[],
+        const MathVector<TFVGeom::dim> vLocIP[],
+        const size_t nip,
+        bool bDeriv,
+        std::vector<std::vector<MathVector<dim> > > vvvDeriv[])
+{
+    if(bDeriv)
+    {
+        for(size_t ip = 0; ip < nip; ++ip)
+            for(size_t c = 0; c < vvvDeriv[ip].size(); ++c)
+                for(size_t sh = 0; sh < vvvDeriv[ip][c].size(); ++sh)
+                    for(size_t d = 0; d < vvvDeriv[ip][c][sh].size(); ++d)
+                        vvvDeriv[ip][c][sh][d] = 0.0;
+
+    }
+
+    
+
+//     get finite volume geometry
+    static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+//    reference element
+    typedef typename reference_element_traits<TElem>::reference_element_type ref_elem_type;
+//  reference dimension
+    static const int refDim = ref_elem_type::dim;
+    static const size_t numSCVF = TFVGeom::numSCVF;
+    static const size_t numSh = reference_element_traits<TElem>::reference_element_type::numCorners;
+   
+    if(vLocIP == geo.scvf_local_ips())
+    {
+    //    check for source term to pass to the stabilization
+        const DataImport<MathVector<dim>, dim>* pSource = NULL;
+        if(m_imSourceSCVF.data_given())    pSource = &m_imSourceSCVF;
+        
+
+
+    //    check for solutions to pass to stabilization in time-dependent case
+        const LocalVector *pSol = &u, *pOldSol = NULL;
+        number dt = 0.0;
+        if(this->is_time_dependent())
+        {
+        //    get and check current and old solution
+            const LocalVectorTimeSeries* vLocSol = this->local_time_solutions();
+            if(vLocSol->size() != 2)
+                UG_THROW("NavierStokes::add_def_A_elem: "
+                                " Stabilization needs exactly two time points.");
+
+        //    remember local solutions
+            pSol = &vLocSol->solution(0);
+            pOldSol = &vLocSol->solution(1);
+            dt = vLocSol->time(0) - vLocSol->time(1);
+        }
+
+    //    interpolate velocity at ip with standard lagrange interpolation
+        
+        MathVector<dim> StdVel[numSCVF];
+        MathVector<dim> Vel_ip[numSCVF];
+       
+        
+        for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
+        {
+            const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+            VecSet(StdVel[ip], 0.0);
+
+            for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+                for(int d1 = 0; d1 < dim; ++d1)
+                    StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
+        }
+
+        m_spStab->update(&geo, *pSol, StdVel, m_bStokes, m_imKinViscosity, m_imDensitySCVF, pSource, pOldSol, dt);
+        
+        if (! m_bStokes) // no convective terms in the Stokes eq. => no upwinding
+        {
+            //    compute stabilized velocities and shapes for convection upwind
+            if(m_spConvStab.valid())
+                if(m_spConvStab != m_spStab)
+                    m_spConvStab->update(&geo, *pSol, StdVel, false, m_imKinViscosity, m_imDensitySCVF, pSource, pOldSol, dt);
+        }
+        
+        //    get a const (!!) reference to the stabilization
+        const INavierStokesFV1Stabilization<dim>& stab = *m_spStab;
+
+
+
+        
+    //    Loop Sub Control Volume Faces (SCVF)
+        for (size_t ip = 0; ip < geo.num_scvf(); ++ip)
+        {
+        //     Get current SCVF
+            const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+
+            vValue[ip] = stab.stab_vel(ip);
+
+            if(false)
+            {
+                //    Loop the shape functions
+                for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+                {
+                    
+                    //    Add derivative of stabilized flux w.r.t velocity comp to local matrix
+                    
+                    for(int d1 = 0; d1 < dim; ++d1)
+                    {
+                        if(stab.vel_comp_connected())
+                        {
+                            for(int d2 = 0; d2 < dim; ++d2)
+                            {
+                                vvvDeriv[ip][d2][sh][d1] =  stab.stab_shape_vel(ip, d1, d2, sh);
+                                
+                            }
+                            
+
+                        }
+                        else
+                        {
+                            vvvDeriv[ip][d1][sh][d1] =  stab.stab_shape_vel(ip, d1, d1, sh);
+                        }
+                        
+                        //    Add derivative of stabilized flux w.r.t pressure to local matrix
+                        vvvDeriv[ip][_P_][sh][d1] =  stab.stab_shape_p(ip, d1, sh);
+                        
+                    }
+
+                    
+                }
+            }
+            
+        }
+    }
+//     general case
+    else
+    {
+    //    get trial space
+        LagrangeP1<ref_elem_type>& rTrialSpace = Provider<LagrangeP1<ref_elem_type> >::get();
+
+    //    storage for shape function at ip
+        number vLocShape[numSh];
+
+    //    Reference Mapping
+        MathMatrix<dim, refDim> JTInv;
+        ReferenceMapping<ref_elem_type, dim> mapping(vCornerCoords);
+
+    //    loop ips
+        for(size_t ip = 0; ip < nip; ++ip)
+        {
+        //    evaluate at shapes at ip
+            rTrialSpace.shapes(vLocShape, vLocIP[ip]);
+
+        //  Loop dimensions
+            for(int d = 0; d < dim; ++d)
+            {
+            //    Loop the shape functions
+                vValue[ip][d] = 0.0;
+                for(size_t sh = 0; sh < numSh; ++sh)
+                {
+                //    Inerpolate the value
+                    vValue[ip][d] += u(d, sh) * vLocShape[sh];
+        
+                    if(bDeriv)
+                        vvvDeriv[ip][d][sh] = vLocShape[sh];
+                }
+            }
+            if(bDeriv)
+            {
+                for(size_t sh = 0; sh < numSh; ++sh)
+                {
+                    VecSet(vvvDeriv[ip][_P_][sh],0.0);
+                }
+            }
+        }
+    }
+};
+//    computes the nodal pressure for the export parameter
+template<typename TDomain>
+template <typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+ex_nodal_pressure(number vValue[],
+         const MathVector<dim> vGlobIP[],
+         number time, int si,
+         const LocalVector& u,
+         GridObject* elem,
+         const MathVector<dim> vCornerCoords[],
+         const MathVector<TFVGeom::dim> vLocIP[],
+         const size_t nip,
+         bool bDeriv,
+         std::vector<std::vector<number> > vvvDeriv[])
+{
+//  get finite volume geometry
+    static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+
+//    reference element
+    typedef typename reference_element_traits<TElem>::reference_element_type
+            ref_elem_type;
+
+//    number of shape functions
+    static const size_t numSH =    ref_elem_type::numCorners;
+
+
+//    FV1 SCVF ip
+    if(vLocIP == geo.scvf_local_ips())
+    {
+    //    Loop Sub Control Volume Faces (SCVF)
+        for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
+        {
+        //     Get current SCVF
+            const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+
+        //    compute pressure at ip
+            vValue[ip] = 0.0;
+            for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+                vValue[ip] += u(_P_, sh) * scvf.shape(sh);
+
+        //    compute derivative w.r.t. to unknowns iff needed
+            if(bDeriv)
+            {
+                for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+                    vvvDeriv[ip][_P_][sh] = scvf.shape(sh);
+
+                // do not forget that number of DoFs (== vvvDeriv[ip][_P_])
+                // might be > scvf.num_sh() in case of hanging nodes!
+                size_t ndof = vvvDeriv[ip][_P_].size();
+                for (size_t sh = scvf.num_sh(); sh < ndof; ++sh)
+                    vvvDeriv[ip][_P_][sh] = 0.0;
+            }
+        }
+    }
+//    FV1 SCV ip
+    else if(vLocIP == geo.scv_local_ips())
+    {
+    //    Loop Sub Control Volumes (SCV)
+        for(size_t ip = 0; ip < geo.num_scv(); ++ip)
+        {
+        //     Get current SCV
+            const typename TFVGeom::SCV& scv = geo.scv(ip);
+
+        //    get corner of SCV
+            const size_t co = scv.node_id();
+
+        //    solution at ip
+            vValue[ip] = u(_P_, co);
+
+        //    set derivatives if needed
+            if(bDeriv)
+            {
+                size_t ndof = vvvDeriv[ip][_P_].size();
+                for(size_t sh = 0; sh < ndof; ++sh)
+                    vvvDeriv[ip][_P_][sh] = (sh==co) ? 1.0 : 0.0;
+            }
+        }
+    }
+//     general case
+    else
+    {
+    //    get trial space
+        LagrangeP1<ref_elem_type>& rTrialSpace = Provider<LagrangeP1<ref_elem_type> >::get();
+
+    //    storage for shape function at ip
+        number vShape[numSH];
+
+    //    loop ips
+        for(size_t ip = 0; ip < nip; ++ip)
+        {
+        //    evaluate at shapes at ip
+            rTrialSpace.shapes(vShape, vLocIP[ip]);
+
+        //    compute concentration at ip
+            vValue[ip] = 0.0;
+            for(size_t sh = 0; sh < numSH; ++sh)
+                vValue[ip] += u(_P_, sh) * vShape[sh];
+
+        //    compute derivative w.r.t. to unknowns iff needed
+        //    \todo: maybe store shapes directly in vvvDeriv
+            if(bDeriv)
+            {
+                for(size_t sh = 0; sh < numSH; ++sh)
+                    vvvDeriv[ip][_P_][sh] = vShape[sh];
+
+                // beware of hanging nodes!
+                size_t ndof = vvvDeriv[ip][_P_].size();
+                for (size_t sh = numSH; sh < ndof; ++sh)
+                    vvvDeriv[ip][_P_][sh] = 0.0;
+            }
+        }
+    }
+};
+
+//    computes the gradient of the pressure for the export parameter
+template<typename TDomain>
+template <typename TElem, typename TFVGeom>
+void NavierStokesFV1<TDomain>::
+ex_pressure_grad(MathVector<dim> vValue[],
+        const MathVector<dim> vGlobIP[],
+        number time, int si,
+        const LocalVector& u,
+        GridObject* elem,
+        const MathVector<dim> vCornerCoords[],
+        const MathVector<TFVGeom::dim> vLocIP[],
+        const size_t nip,
+        bool bDeriv,
+        std::vector<std::vector<MathVector<dim> > > vvvDeriv[])
+{
+//     Get finite volume geometry
+    static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
+
+//    reference element
+    typedef typename reference_element_traits<TElem>::reference_element_type
+            ref_elem_type;
+
+//    reference dimension
+    static const int refDim = ref_elem_type::dim;
+
+//    number of shape functions
+    static const size_t numSH =    ref_elem_type::numCorners;
+
+//    FV1 SCVF ip
+    if(vLocIP == geo.scvf_local_ips())
+    {
+    //    Loop Sub Control Volume Faces (SCVF)
+        for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
+        {
+        //     Get current SCVF
+            const typename TFVGeom::SCVF& scvf = geo.scvf(ip);
+
+            VecSet(vValue[ip], 0.0);
+
+            for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+                VecScaleAppend(vValue[ip], u(_P_, sh), scvf.global_grad(sh));
+
+            if(bDeriv)
+            {
+                for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
+                    vvvDeriv[ip][_P_][sh] = scvf.global_grad(sh);
+
+                // beware of hanging nodes!
+                size_t ndof = vvvDeriv[ip][_P_].size();
+                for (size_t sh = scvf.num_sh(); sh < ndof; ++sh)
+                    vvvDeriv[ip][_P_][sh] = 0.0;
+            }
+        }
+    }
+//     general case
+    else
+    {
+    //    get trial space
+        LagrangeP1<ref_elem_type>& rTrialSpace = Provider<LagrangeP1<ref_elem_type> >::get();
+
+    //    storage for shape function at ip
+        MathVector<refDim> vLocGrad[numSH];
+        MathVector<refDim> locGrad;
+
+    //    Reference Mapping
+        MathMatrix<dim, refDim> JTInv;
+        ReferenceMapping<ref_elem_type, dim> mapping(vCornerCoords);
+
+    //    loop ips
+        for(size_t ip = 0; ip < nip; ++ip)
+        {
+        //    evaluate at shapes at ip
+            rTrialSpace.grads(vLocGrad, vLocIP[ip]);
+
+        //    compute grad at ip
+            VecSet(locGrad, 0.0);
+            for(size_t sh = 0; sh < numSH; ++sh)
+                VecScaleAppend(locGrad, u(_P_, sh), vLocGrad[sh]);
+
+        //    compute global grad
+            mapping.jacobian_transposed_inverse(JTInv, vLocIP[ip]);
+            MatVecMult(vValue[ip], JTInv, locGrad);
+
+        //    compute derivative w.r.t. to unknowns iff needed
+            if(bDeriv)
+            {
+                for(size_t sh = 0; sh < numSH; ++sh)
+                    MatVecMult(vvvDeriv[ip][_P_][sh], JTInv, vLocGrad[sh]);
+
+                // beware of hanging nodes!
+                size_t ndof = vvvDeriv[ip][_P_].size();
+                for (size_t sh = numSH; sh < ndof; ++sh)
+                    vvvDeriv[ip][_P_][sh] = 0.0;
+            }
+        }
+    }
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //	register assemble functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -1179,6 +1572,10 @@ register_func()
 
 	m_exVelocity->template set_fct<T,refDim>(id, this, &T::template ex_nodal_velocity<TElem, TFVGeom>);
 	m_exVelocityGrad->template set_fct<T,refDim>(id, this, &T::template ex_velocity_grad<TElem, TFVGeom>);
+    m_exVelocity_div->template set_fct<T,refDim>(id, this, &T::template ex_div_velocity<TElem, TFVGeom>);
+    m_exPressure->    template set_fct<T,refDim>(id, this, &T::template ex_nodal_pressure<TElem, TFVGeom>);
+    m_exPressureGrad->template set_fct<T,refDim>(id, this, &T::template ex_pressure_grad<TElem, TFVGeom>);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
