@@ -44,6 +44,7 @@
 #include "lib_disc/spatial_disc/disc_util/fv1_geom.h"
 #include "lib_disc/spatial_disc/disc_util/fvcr_geom.h"
 #include "lib_disc/spatial_disc/disc_util/hfvcr_geom.h"
+#include "lib_disc/spatial_disc/disc_util/fv1FT_geom.h"
 
 namespace ug{
 namespace NavierStokes{
@@ -57,7 +58,8 @@ class NavierStokesNoUpwind
 : public INavierStokesUpwind<dim>,
   public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesNoUpwind<dim> >,
   public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesNoUpwind<dim> >,
-  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesNoUpwind<dim> >
+  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesNoUpwind<dim> >,
+  public NavierStokesUpwindRegisterDim<DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >, dim, NavierStokesNoUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
@@ -91,6 +93,14 @@ class NavierStokesNoUpwind
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 					 number vConvLength[maxNumSCVF]);
+    
+    ///	update of values for DimFV1FTGeometry
+        template <typename TElem>
+        static void compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+                            const MathVector<dim> vIPVel[maxNumSCVF],
+                            number vUpShapeSh[maxNumSCVF][maxNumSH],
+                            number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+                            number vConvLength[maxNumSCVF]);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -102,7 +112,8 @@ class NavierStokesFullUpwind
 : public INavierStokesUpwind<dim>,
   public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesFullUpwind<dim> >,
   public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesFullUpwind<dim> >,
-  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesFullUpwind<dim> >
+  public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesFullUpwind<dim> >,
+  public NavierStokesUpwindRegisterDim<DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >, dim, NavierStokesFullUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
@@ -136,6 +147,15 @@ class NavierStokesFullUpwind
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 					 number vConvLength[maxNumSCVF]);
+    
+    ///	update of values for DimFV1FTGeometry
+    template <typename TElem>
+    static void compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+                        const MathVector<dim> vIPVel[maxNumSCVF],
+                        number vUpShapeSh[maxNumSCVF][maxNumSH],
+                        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+                        number vConvLength[maxNumSCVF]);
+    
 };
 
 
@@ -220,7 +240,8 @@ template <int dim>
 class NavierStokesLinearProfileSkewedUpwind
 : public INavierStokesUpwind<dim>,
   public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesLinearProfileSkewedUpwind<dim> >,
-  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesLinearProfileSkewedUpwind<dim> >
+  public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesLinearProfileSkewedUpwind<dim> >,
+  public NavierStokesUpwindRegisterDim<DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >, dim, NavierStokesLinearProfileSkewedUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
@@ -246,6 +267,15 @@ class NavierStokesLinearProfileSkewedUpwind
 					 number vUpShapeSh[maxNumSCVF][maxNumSH],
 					 number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 					 number vConvLength[maxNumSCVF]);
+    
+    ///	update of values for DimFV1FTGeometry
+    template <typename TElem>
+    static void compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+                        const MathVector<dim> vIPVel[maxNumSCVF],
+                        number vUpShapeSh[maxNumSCVF][maxNumSH],
+                        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+                        number vConvLength[maxNumSCVF]);
+    
 };
 
 
@@ -256,7 +286,8 @@ class NavierStokesLinearProfileSkewedUpwind
 template <int dim>
 class NavierStokesPositiveUpwind
 : public INavierStokesUpwind<dim>,
-  public NavierStokesUpwindRegister<FV1Geometry,dim, NavierStokesPositiveUpwind<dim> >
+  public NavierStokesUpwindRegister<FV1Geometry,dim, NavierStokesPositiveUpwind<dim> >,
+  public NavierStokesUpwindRegisterDim<DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >,dim, NavierStokesPositiveUpwind<dim> >
 {
 	public:
 		typedef INavierStokesUpwind<dim> base_type;
@@ -274,6 +305,16 @@ class NavierStokesPositiveUpwind
 		             number vUpShapeSh[maxNumSCVF][maxNumSH],
 		             number vUpShapeIp[maxNumSCVF][maxNumSCVF],
 		             number vConvLength[maxNumSCVF]);
+
+    ///	update of values for DimFV1FTGeometry
+    template <typename TElem>
+    static void compute(const DimFV1FTGeometry<dim, dim, InterfaceHandlerLocalParticle<dim> >* geo,
+                        const MathVector<dim> vIPVel[maxNumSCVF],
+                        number vUpShapeSh[maxNumSCVF][maxNumSH],
+                        number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+                        number vConvLength[maxNumSCVF]);
+    
+    
 };
 
 /////////////////////////////////////////////////////////////////////////////
