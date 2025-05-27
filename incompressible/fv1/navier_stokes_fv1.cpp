@@ -1199,7 +1199,7 @@ ex_velocity_ip(MathVector<dim> vValue[],
 
             vValue[ip] = stab.stab_vel(ip);
 
-            if(false)
+            if(bDeriv)
             {
                 //    Loop the shape functions
                 for(size_t sh = 0; sh < scvf.num_sh(); ++sh)
