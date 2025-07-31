@@ -50,8 +50,7 @@
 #include "fv/register_fv.h"
 #include "fvcr/register_fvcr.h"
 #include "fe/register_fe.h"
-
-
+#include "particle_laden_flow_plugin.h"
 
 
 using namespace std;
@@ -328,6 +327,8 @@ void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 		Init___NavierStokes___FVCR(reg, grp);
 		Init___NavierStokes___FV(reg, grp);
 		Init___NavierStokes___FE(reg, grp);
+        
+        Init___ParticleLadenFlow(reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }

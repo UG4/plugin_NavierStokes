@@ -88,14 +88,14 @@ class INavierStokesUpwind
 	///	Convection Length
 		number upwind_conv_length(size_t scvf) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+ //                UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vUpConvLength[scvf];
 		}
 
 	///	Convection Length
 		number downwind_conv_length(size_t scvf) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+ //                UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vDownConvLength[scvf];
 		}
 
@@ -107,16 +107,18 @@ class INavierStokesUpwind
 	///	upwind shape for corner vel
 		number upwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			// UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			// UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
-			return m_vvUpShapeSh[scvf][sh];
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+            
+            return m_vvUpShapeSh[scvf][sh];
 		}
 
 	///	upwind shape for corner vel
 		number downwind_shape_sh(size_t scvf, size_t sh) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+            
 			return m_vvDownShapeSh[scvf][sh];
 		}
 
@@ -126,16 +128,18 @@ class INavierStokesUpwind
 	///	upwind shapes for ip vel
 		number upwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index: " << scvf);
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index2: " << scvf2);
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index: " << scvf);
+            //UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index2: " << scvf2);
+            
 			return m_vvUpShapeIp[scvf][scvf2];
 		}
 
 	///	upwind shapes for ip vel
 		number downwind_shape_ip(size_t scvf, size_t scvf2) const
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+            
 			return m_vvDownShapeIp[scvf][scvf2];
 		}
 
@@ -175,46 +179,50 @@ class INavierStokesUpwind
 	///	non-const access to upwind shapes for corner vel
 		number& upwind_shape_sh(size_t scvf, size_t sh)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+            
 			return m_vvUpShapeSh[scvf][sh];
 		}
 
 	///	non-const access to upwind shapes for corner vel
 		number& downwind_shape_sh(size_t scvf, size_t sh)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
-			return m_vvDownShapeSh[scvf][sh];
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(sh < m_numSh, "Invalid index");
+            
+            return m_vvDownShapeSh[scvf][sh];
 		}
 
 	///	non-const access to upwind shapes for ip vel
 		number& upwind_shape_ip(size_t scvf, size_t scvf2)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
-			return m_vvUpShapeIp[scvf][scvf2];
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+            
+            return m_vvUpShapeIp[scvf][scvf2];
 		}
 
 	///	non-const access to upwind shapes for ip vel
 		number& downwind_shape_ip(size_t scvf, size_t scvf2)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
-			UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
-			return m_vvDownShapeIp[scvf][scvf2];
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf2 < m_numScvf, "Invalid index");
+            
+            return m_vvDownShapeIp[scvf][scvf2];
 		}
 
 	///	non-const access to Convection Length
 		number& upwind_conv_length(size_t scvf)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vUpConvLength[scvf];
 		}
 
 	///	non-const access to Convection Length
 		number& down_upwind_conv_length(size_t scvf)
 		{
-			UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
+            //UG_NSUPWIND_ASSERT(scvf < m_numScvf, "Invalid index");
 			return m_vDownConvLength[scvf];
 		}
 
@@ -321,9 +329,19 @@ set_geometry_type()
 	m_id = id;
 
 //	set sizes
-	static TFVGeom& geo = GeomProvider<TFVGeom>::get();
-	m_numScvf = geo.num_scvf();
-	m_numSh = geo.num_sh();
+    if (TFVGeom::staticLocalData)
+    {
+        TFVGeom& geo = GeomProvider<TFVGeom>::get();
+        m_numScvf = geo.num_scvf();
+        m_numSh = geo.num_sh();
+    }
+    else // setting data later!
+    {
+      // hard code number != maxNumSCVF, since in compute_vel() if not: num_sh() = 4 > 3!!
+        m_numScvf = dim+2; // maxNumSCVF;
+        m_numSh = dim+2;   // maxNumSH;
+    }
+    
 	UG_NSUPWIND_ASSERT(m_numScvf <= maxNumSCVF, "Invalid index");
 	UG_NSUPWIND_ASSERT(m_numSh <= maxNumSH, "Invalid index");
 
@@ -412,6 +430,62 @@ class NavierStokesUpwindRegister
 		TImpl& getImpl() {return static_cast<TImpl&>(*this);}
 };
 
+template <class TFVGeom, int dim, typename TImpl>
+class NavierStokesUpwindRegisterDim
+{
+public:
+    ///	Base class
+    typedef INavierStokesUpwind<dim> base_type;
+        
+protected:
+    static const size_t maxNumSCVF = base_type::maxNumSCVF;
+    static const size_t maxNumSH = base_type::maxNumSH;
+        
+public:
+    ///	constructor
+    NavierStokesUpwindRegisterDim() {register_func(Int2Type<dim>());}
+        
+private:
+    void register_func(Int2Type<1>)
+    {
+        register_func<RegularEdge>();
+    }
+        
+    void register_func(Int2Type<2>)
+    {
+        register_func<Triangle>();
+        register_func<Quadrilateral>();
+    }
+    
+    void register_func(Int2Type<3>)
+    {
+        register_func<Tetrahedron>();
+        register_func<Pyramid>();
+        register_func<Prism>();
+        register_func<Hexahedron>();
+    }
+    
+    template <typename TElem>
+    void register_func()
+    {
+        typedef TFVGeom TGeom;
+        //			typedef void (TImpl::*TFunc)(
+        typedef void (*TFunc)(
+                                const TGeom* obj,
+                                const MathVector<dim> vIPVel[maxNumSCVF],
+                                number vUpShapeSh[maxNumSCVF][maxNumSH],
+                                number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+                                number vConvLength[maxNumSCVF]);
+        
+        getImpl().template register_update_func<TGeom, TFunc>(&TImpl::template compute<TElem>);
+    }
+        
+protected:
+    ///	access to implementation
+    TImpl& getImpl() {return static_cast<TImpl&>(*this);}
+};
+
+    
 /// creates upwind based on a string identifier
 template <int dim>
 SmartPtr<INavierStokesUpwind<dim> > CreateNavierStokesUpwind(const std::string& name);
