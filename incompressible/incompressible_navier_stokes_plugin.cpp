@@ -74,22 +74,22 @@ struct FunctionalityIncomp
  * available Domain and Algebra types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TDomain, typename TAlgebra>
 static void DomainAlgebra(Registry& reg, string grp)
 {
-	static const int dim = TDomain::dim;
+	static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
 
-	typedef ApproximationSpace<TDomain> approximation_space_type;
-	typedef GridFunction<TDomain, TAlgebra> function_type;
+	using approximation_space_type = ApproximationSpace<TDomain>;
+	using function_type = GridFunction<TDomain, TAlgebra>;
 
 	//	NavierStokesInflowBase
 	{
-		typedef NavierStokesInflowBase<TDomain, TAlgebra> T;
-		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
+		using T = NavierStokesInflowBase<TDomain, TAlgebra>;
+		using TBase = IDiscretizationItem<TDomain, TAlgebra>;
 		string name = string("NavierStokesInflowBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 #ifdef UG_FOR_LUA
@@ -102,8 +102,8 @@ static void DomainAlgebra(Registry& reg, string grp)
 
 //	NavierStokesWall bnd condition
 	{
-		typedef NavierStokesWall<TDomain, TAlgebra> T;
-		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
+		using T = NavierStokesWall<TDomain, TAlgebra>;
+		using TBase = IDiscretizationItem<TDomain, TAlgebra>;
 		string name = string("NavierStokesWall").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterElemDisc")
@@ -115,7 +115,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 //  Wall object
 	{
 		string name = string("WallObject").append(suffix);
-		typedef WallObject<function_type> T;
+		using T = WallObject<function_type>;
 		reg.add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>,size_t,number,char*)>("grid function,direction,coord,subset");
 		reg.add_class_to_group(name, "WallObject", tag);
@@ -124,7 +124,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 //  ConstantBoxFilter
 	{
 		string name = string("ConstantBoxFilter").append(suffix);
-		typedef ConstantBoxFilter<function_type> T;
+		using T = ConstantBoxFilter<function_type>;
 		reg.add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.template add_constructor<void (*)(SmartPtr<function_type>,number)>("grid function,filter width")
@@ -136,7 +136,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 //  VariableBoxFilter
 	{
 		string name = string("VariableBoxFilter").append(suffix);
-		typedef VariableBoxFilter<function_type> T;
+		using T = VariableBoxFilter<function_type>;
 		reg.add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>,SmartPtr<function_type>,bool)>("grid function,filter width function,initialize filter width")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
@@ -147,7 +147,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 //  FV1BoxFilter
 	{
 		string name = string("FV1BoxFilter").append(suffix);
-		typedef FV1BoxFilter<function_type> T;
+		using T = FV1BoxFilter<function_type>;
 		reg.add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
@@ -158,7 +158,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 //  FVCRBoxFilter
 	{
 		string name = string("FVCRBoxFilter").append(suffix);
-		typedef FVCRBoxFilter<function_type> T;
+		using T = FVCRBoxFilter<function_type>;
 		reg.add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
@@ -169,7 +169,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 //  ElementBoxFilter
 	{
 		string name = string("ElementBoxFilter").append(suffix);
-		typedef ElementBoxFilter<function_type> T;
+		using T = ElementBoxFilter<function_type>;
 		reg.add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
@@ -243,8 +243,8 @@ static void Domain(Registry& reg, string grp)
 
 //	Incompressible Navier-Stokes Base
 	{
-		typedef IncompressibleNavierStokesBase<TDomain> T;
-		typedef NavierStokesBase<TDomain> TBase;
+		using T = IncompressibleNavierStokesBase<TDomain>;
+		using TBase = NavierStokesBase<TDomain>;
 		string name = string("IncompressibleNavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_method("set_density", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_density), "", "Density")
@@ -267,8 +267,8 @@ static void Domain(Registry& reg, string grp)
 
 	//	NavierStokesNoNormalStressOutflowBase
 	{
-		typedef NavierStokesNoNormalStressOutflowBase<TDomain> T;
-		typedef IElemDisc<TDomain> TBase;
+		using T = NavierStokesNoNormalStressOutflowBase<TDomain>;
+		using TBase = IElemDisc<TDomain>;
 		string name = string("NavierStokesNoNormalStressOutflowBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_method("add", &T::add, "", "Subset(s)");
@@ -315,7 +315,7 @@ static void Common(Registry& reg, string grp)
 void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::FunctionalityIncomp Functionality;
+	using Functionality = NavierStokes::FunctionalityIncomp;
 
 	try{
 		RegisterDomain2d3dDependent<Functionality>(*reg,grp);

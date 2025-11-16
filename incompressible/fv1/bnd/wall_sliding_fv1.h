@@ -54,20 +54,20 @@ class NavierStokesWSBCFV1
 {
 	private:
 	///	Base class type
-		typedef IElemDisc<TDomain> base_type;
+		using base_type = IElemDisc<TDomain>;
 
 	///	own type
-		typedef NavierStokesWSBCFV1<TDomain> this_type;
+		using this_type = NavierStokesWSBCFV1<TDomain>;
 
 	public:
 	///	Domain type
-		typedef typename base_type::domain_type domain_type;
+		using domain_type = typename base_type::domain_type;
 
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	///	Position type
-		typedef typename base_type::position_type position_type;
+		using position_type = typename base_type::position_type;
 
 	public:
 	///	Constructor (setting default values)
@@ -177,7 +177,7 @@ class NavierStokesWSBCFV1
 		DataImport<MathVector<dim>, dim> m_imSourceSCVF;
 
 	/// abbreviation for pressure
-		static const size_t _P_ = dim;
+		static constexpr size_t _P_ = dim;
 
 	protected:
 		void register_all_funcs(bool bHang);

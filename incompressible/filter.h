@@ -70,9 +70,9 @@ private:
 template <int dim,typename elem_type,typename TGridFunction>
 void copyAttachmentToGridFunction(SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<elem_type,Attachment<MathVector<dim> > >& aaU){
 	/// element iterator
-	typedef typename TGridFunction::template traits<elem_type>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template traits<elem_type>::const_iterator;
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	//	get domain
 	domain_type& domain = *u->domain().get();
 	//	create Multiindex
@@ -94,9 +94,9 @@ void copyAttachmentToGridFunction(SmartPtr<TGridFunction> u,PeriodicAttachmentAc
 template <int dim,typename elem_type,typename TGridFunction>
 void copyGridFunctionToAttachment(PeriodicAttachmentAccessor<elem_type,Attachment<MathVector<dim> > >& aaU,SmartPtr<TGridFunction> u){
 	/// element iterator
-	typedef typename TGridFunction::template traits<elem_type>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template traits<elem_type>::const_iterator;
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	//	get domain
 	domain_type& domain = *u->domain().get();
 	//	create Multiindex
@@ -128,27 +128,27 @@ template <typename TGridFunction>
 class FilterBaseClass{
 public:
 	/// dimension
-	static const size_t dim = TGridFunction::dim;
+	static constexpr size_t dim = TGridFunction::dim;
 
     /// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	// vertex type
-	typedef Vertex vertex_type;
+	using vertex_type = Vertex;
 
 	// data types used in attachments
-	typedef MathVector<dim> type0;
-	typedef number type1;
-	typedef MathSymmetricMatrix<dim> type2;
+	using type0 = MathVector<dim>;
+	using type1 = number;
+	using type2 = MathSymmetricMatrix<dim>;
 
 	// filter for side attachment
 	virtual void apply(PeriodicAttachmentAccessor<side_type,Attachment<type0> >& aaUHat,
@@ -198,42 +198,42 @@ class FilterImplBaseClass
 {
 	public:
 	/// dimension
-	static const size_t dim = TGridFunction::dim;
+	static constexpr size_t dim = TGridFunction::dim;
 	
     /// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 	
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 	
 	// vertex type
-	typedef Vertex vertex_type;
+	using vertex_type = Vertex;
 	
 	// data types
-	typedef typename FilterBaseClass<TGridFunction>::type0 type0;
-	typedef typename FilterBaseClass<TGridFunction>::type1 type1;
-	typedef typename FilterBaseClass<TGridFunction>::type2 type2;
+	using type0 = typename FilterBaseClass<TGridFunction>::type0;
+	using type1 = typename FilterBaseClass<TGridFunction>::type1;
+	using type2 = typename FilterBaseClass<TGridFunction>::type2;
 	
 	// filter for side attachment
 	void apply(PeriodicAttachmentAccessor<side_type,Attachment<type0> >& aaUHat,
 			   PeriodicAttachmentAccessor<side_type,Attachment<type0> >& aaU){
-		getImpl().apply_filter(aaUHat,SPNULL,aaU);
+		getImpl().apply_filter(aaUHat,nullptr,aaU);
 	}
 	
 	void apply(PeriodicAttachmentAccessor<side_type,Attachment<type1> >& aaUHat,
 			   PeriodicAttachmentAccessor<side_type,Attachment<type1> >& aaU){
-		getImpl().apply_filter(aaUHat,SPNULL,aaU);
+		getImpl().apply_filter(aaUHat,nullptr,aaU);
 	}
 	
 	void apply(PeriodicAttachmentAccessor<side_type,Attachment<type2> >& aaUHat,
 			   PeriodicAttachmentAccessor<side_type,Attachment<type2> >& aaU){
-		getImpl().apply_filter(aaUHat,SPNULL,aaU);
+		getImpl().apply_filter(aaUHat,nullptr,aaU);
 	}
 	
 	// filter for crouzeix-raviart type grid function
@@ -246,17 +246,17 @@ class FilterImplBaseClass
 	// filter for vertex attachment
 	void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<type0> >& aaUHat,
 			   PeriodicAttachmentAccessor<vertex_type,Attachment<type0> >& aaU){
-		getImpl().apply_filter(aaUHat,SPNULL,aaU);
+		getImpl().apply_filter(aaUHat,nullptr,aaU);
 	}
 	
 	void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<type1> >& aaUHat,
 			   PeriodicAttachmentAccessor<vertex_type,Attachment<type1> >& aaU){
-		getImpl().apply_filter(aaUHat,SPNULL,aaU);
+		getImpl().apply_filter(aaUHat,nullptr,aaU);
 	}
 	
 	void apply(PeriodicAttachmentAccessor<vertex_type,Attachment<type2> >& aaUHat,
 			   PeriodicAttachmentAccessor<vertex_type,Attachment<type2> >& aaU){
-		getImpl().apply_filter(aaUHat,SPNULL,aaU);
+		getImpl().apply_filter(aaUHat,nullptr,aaU);
 	}
 	
 	// filter for general grid function, result stored in nodes
@@ -297,10 +297,10 @@ class FilterImplBaseClass
 	
 	template<typename VType,typename TElem>
 	void copyWallData(PeriodicAttachmentAccessor<TElem,Attachment<VType> >& acUHat,SmartPtr<TGridFunction> u,std::vector<WallObject<TGridFunction> > walls){
-		typedef typename TGridFunction::domain_type TDomain;
-		typedef typename TDomain::grid_type TGrid;
+		using TDomain = typename TGridFunction::domain_type;
+		using TGrid = typename TDomain::grid_type;
 		TDomain domain = *u->domain().get();
-		typedef typename TGridFunction::template traits<TElem>::const_iterator ElemIterator;
+		using ElemIterator = typename TGridFunction::template traits<TElem>::const_iterator;
 		PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 		std::vector<DoFIndex> dofInd;
 		for (int j=0;j<(int)walls.size();j++){
@@ -324,10 +324,10 @@ class FilterImplBaseClass
 	template<typename VType,typename TElem>
 	void copyWallData(PeriodicAttachmentAccessor<TElem,Attachment<VType> >& acUHat,PeriodicAttachmentAccessor<TElem,Attachment<VType> >&  acU,
 				  SmartPtr<TGridFunction> u,std::vector<WallObject<TGridFunction> > walls){
-		typedef typename TGridFunction::domain_type TDomain;
-		typedef typename TDomain::grid_type TGrid;
+		using TDomain = typename TGridFunction::domain_type;
+		using TGrid = typename TDomain::grid_type;
 		TDomain domain = *u->domain().get();
-		typedef typename TGridFunction::template traits<TElem>::const_iterator ElemIterator;
+		using ElemIterator = typename TGridFunction::template traits<TElem>::const_iterator;
 		PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 		std::vector<DoFIndex> dofInd;
 		for (int j=0;j<(int)walls.size();j++){
@@ -384,41 +384,41 @@ class ConstantBoxFilter
 {
 public:
 	// base type
-	typedef FilterImplBaseClass<ConstantBoxFilter<TGridFunction>,TGridFunction> base_type;
+	using base_type = FilterImplBaseClass<ConstantBoxFilter<TGridFunction>,TGridFunction>;
 	
 	// dimension
-	static const size_t dim = TGridFunction::dim;
+	static constexpr size_t dim = TGridFunction::dim;
 	
     // element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 	
 	//	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	
 	// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 	
 	// vertex type
-	typedef Vertex vertex_type;
+	using vertex_type = Vertex;
 	
 	//	grid type
-	typedef typename domain_type::grid_type grid_type;	
+	using grid_type = typename domain_type::grid_type;
 	
 	//	position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<vertex_type>::const_iterator VertexIterator;
+	using VertexIterator = typename TGridFunction::template traits<vertex_type>::const_iterator;
 
 	// accessor types
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<vertex_type,ANumber > aVertexNumber;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aVertexNumber = PeriodicAttachmentAccessor<vertex_type,ANumber >;
 
 	// filter for crouzeix-raviart type data
 	template <typename VType>
@@ -519,41 +519,41 @@ class VariableBoxFilter
 {
 public:
 	// base type
-	typedef FilterImplBaseClass<VariableBoxFilter<TGridFunction>,TGridFunction> base_type;
+	using base_type = FilterImplBaseClass<VariableBoxFilter<TGridFunction>,TGridFunction>;
 	
 	// dimension
-	static const size_t dim = TGridFunction::dim;
+	static constexpr size_t dim = TGridFunction::dim;
 		
 	// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 		
 	//	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 		
 	// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 		
 	// vertex type
-	typedef Vertex vertex_type;
+	using vertex_type = Vertex;
 		
 	//	grid type
-	typedef typename domain_type::grid_type grid_type;	
+	using grid_type = typename domain_type::grid_type;
 		
 	//	position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 		
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 		
 	/// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 		
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<vertex_type>::const_iterator VertexIterator;
+	using VertexIterator = typename TGridFunction::template traits<vertex_type>::const_iterator;
 		
 	// accessor types
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<vertex_type,ANumber > aVertexNumber;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aVertexNumber = PeriodicAttachmentAccessor<vertex_type,ANumber >;
 		
 	// filter for crouzeix-raviart type data
 	template <typename VType>
@@ -714,40 +714,40 @@ class FV1BoxFilter
 {
 public:
 	// base type
-	typedef FilterImplBaseClass<FV1BoxFilter<TGridFunction>,TGridFunction> base_type;
+	using base_type = FilterImplBaseClass<FV1BoxFilter<TGridFunction>,TGridFunction>;
 
 	// dimension
-	static const size_t dim = TGridFunction::dim;
+	static constexpr size_t dim = TGridFunction::dim;
 
 	// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	//	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	// vertex type
-	typedef Vertex vertex_type;
+	using vertex_type = Vertex;
 
 	//	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	//	position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
 	// vertex iterator
-	typedef typename TGridFunction::template traits<vertex_type>::const_iterator VertexIterator;
+	using VertexIterator = typename TGridFunction::template traits<vertex_type>::const_iterator;
 
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<vertex_type,ANumber > aVertexNumber;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aVertexNumber = PeriodicAttachmentAccessor<vertex_type,ANumber >;
 
 	// filter for crouzeix-raviart type data
 	template <typename VType>
@@ -832,40 +832,40 @@ class FVCRBoxFilter
 {
 public:
 	// base type
-	typedef FilterImplBaseClass<FVCRBoxFilter<TGridFunction>,TGridFunction> base_type;
+	using base_type = FilterImplBaseClass<FVCRBoxFilter<TGridFunction>,TGridFunction>;
 	
 	// dimension
-	static const size_t dim = TGridFunction::dim;
+	static constexpr size_t dim = TGridFunction::dim;
 
 	// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	//	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	// vertex type
-	typedef Vertex vertex_type;
+	using vertex_type = Vertex;
 
 	//	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	//	position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
 	// vertex iterator
-	typedef typename TGridFunction::template traits<vertex_type>::const_iterator VertexIterator;
+	using VertexIterator = typename TGridFunction::template traits<vertex_type>::const_iterator;
 
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<vertex_type,ANumber > aVertexNumber;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aVertexNumber = PeriodicAttachmentAccessor<vertex_type,ANumber >;
 
 	// filter for crouzeix-raviart type data
 	template <typename VType>
@@ -949,40 +949,40 @@ class ElementBoxFilter
 {
 public:
 	// base type
-	typedef FilterImplBaseClass<ElementBoxFilter<TGridFunction>,TGridFunction> base_type;
+	using base_type = FilterImplBaseClass<ElementBoxFilter<TGridFunction>,TGridFunction>;
 	
 	// dimension
-	static const size_t dim = TGridFunction::dim;
+	static constexpr size_t dim = TGridFunction::dim;
 		
 	// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 		
 	//	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 		
 	// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 		
 	// vertex type
-	typedef Vertex vertex_type;
+	using vertex_type = Vertex;
 		
 	//	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 		
 	//	position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 		
 	// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 		
 	// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 		
 	// vertex iterator
-	typedef typename TGridFunction::template traits<vertex_type>::const_iterator VertexIterator;
-		
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<vertex_type,ANumber > aVertexNumber;
+	using VertexIterator = typename TGridFunction::template traits<vertex_type>::const_iterator;
+
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aVertexNumber = PeriodicAttachmentAccessor<vertex_type,ANumber >;
 		
 	// filter for crouzeix-raviart type data
 	template <typename VType>

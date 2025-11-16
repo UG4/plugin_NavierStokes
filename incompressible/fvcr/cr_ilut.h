@@ -54,7 +54,7 @@ namespace ug{
 	char* matname){ // matrix name
 		FILE* datafile;
 		datafile = fopen(fmatname,"w");
-		if (datafile==NULL){
+		if (datafile==nullptr){
 			UG_LOG("cannot open datafile\n");
 			return false;
 		}
@@ -88,19 +88,19 @@ class CRILUTPreconditioner : public IPreconditioner<TAlgebra>
 {
 	public:
 	//	Algebra type
-		typedef TAlgebra algebra_type;
+		using algebra_type = TAlgebra;
 
 	//	Vector type
-		typedef typename TAlgebra::vector_type vector_type;
+		using vector_type = typename TAlgebra::vector_type;
 
 	//	Matrix type
-		typedef typename TAlgebra::matrix_type matrix_type;
+		using matrix_type = typename TAlgebra::matrix_type;
 
 	///	Matrix Operator type
-		typedef typename IPreconditioner<TAlgebra>::matrix_operator_type matrix_operator_type;
+		using matrix_operator_type = typename IPreconditioner<TAlgebra>::matrix_operator_type;
 
 	private:
-		typedef typename matrix_type::value_type block_type;
+		using block_type = typename matrix_type::value_type;
 		using IPreconditioner<TAlgebra>::debug_writer;
 		using IPreconditioner<TAlgebra>::set_debug;
 
@@ -209,7 +209,7 @@ protected:
 		
 		//	Prepare Inverse Matrix
 		matrix_type* A = &mat;
-		typedef typename matrix_type::connection connection;
+		using connection = typename matrix_type::connection;
 		m_L.resize_and_clear(A->num_rows(), A->num_cols());
 		m_U.resize_and_clear(A->num_rows(), A->num_cols());
 		
@@ -218,8 +218,8 @@ protected:
 		con.reserve(300);
 		con.resize(0);
 		
-		static const size_t velocity=0;
-		static const size_t pressure=1; 
+		static constexpr size_t velocity=0;
+		static constexpr size_t pressure=1;
 		
 		// init row 0 of U
 		for(typename matrix_type::row_iterator i_it = A->begin_row(0); i_it != A->end_row(0); ++i_it)

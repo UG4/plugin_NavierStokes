@@ -193,8 +193,8 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 						" Cannot update Finite Volume Geometry.");
 
 //	find and set the local and the global positions of the IPs for imports
-	typedef typename TFVGeom<TElem, dim>::BF BF;
-	typename std::vector<int>::const_iterator subsetIter;
+	using BF = typename TFVGeom<TElem, dim>::BF;
+	std::vector<int>::const_iterator subsetIter;
 
 	m_vLocIP.clear(); m_vGloIP.clear();
 	for(subsetIter = m_vBndSubSetIndex.begin();
@@ -233,11 +233,11 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 		static const TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
 
 	//	check for source term to pass to the stabilization
-//		const DataImport<MathVector<dim>, dim>* pSource = NULL;
+//		const DataImport<MathVector<dim>, dim>* pSource = nullptr;
 //		if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
 
 	//	check for solutions to pass to stabilization in time-dependent case
-/*		const LocalVector *pSol = &u, *pOldSol = NULL;
+/*		const LocalVector *pSol = &u, *pOldSol = nullptr;
 		number dt = 0.0;
 		if(this->is_time_dependent())
 		{
@@ -254,7 +254,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 		}
 */
 	//	interpolate velocity at ip with standard lagrange interpolation
-		static const size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
+		static constexpr size_t numSCVF = TFVGeom<TElem, dim>::numSCVF;
 		MathVector<dim> StdVel[numSCVF];
 		for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 		{
@@ -266,7 +266,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 					StdVel[ip][d1] += u(d1, sh) * scvf.shape(sh);
 		}
 
-	typedef typename TFVGeom<TElem, dim>::BF BF;
+	using BF = typename TFVGeom<TElem, dim>::BF;
 
 // 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
@@ -333,10 +333,10 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
 // 	get finite volume geometry
 	static const TFVGeom<TElem, dim>& geo = GeomProvider<TFVGeom<TElem,dim> >::get();
-	typedef typename TFVGeom<TElem, dim>::BF BF;
+	using BF = typename TFVGeom<TElem, dim>::BF;
 
 // 	loop registered boundary segments
-	typename std::vector<int>::const_iterator subsetIter;
+	std::vector<int>::const_iterator subsetIter;
 
 	size_t ip = 0;
 
@@ -436,7 +436,7 @@ NavierStokesSymBCFV1<TDomain>::
 register_all_funcs(bool bHang)
 {
 //	get all grid element types in this dimension and below
-	typedef typename domain_traits<dim>::DimElemList ElemList;
+	using ElemList = typename domain_traits<dim>::DimElemList;
 	// REMARK: Note that we register this boundary condition only
 	// for the full-dimensional elements (DimElemList instead of AllElemList).
 
@@ -452,7 +452,7 @@ NavierStokesSymBCFV1<TDomain>::
 register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
-	typedef this_type T;
+	using T = this_type;
 
 	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);

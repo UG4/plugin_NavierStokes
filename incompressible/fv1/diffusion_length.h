@@ -49,7 +49,7 @@ template <typename TFVGeometry>
 void NSDiffLengthFivePoint(number DiffLengthSqInv[], const TFVGeometry& geo)
 {
     //	dimension of element
-	static const size_t dim = TFVGeometry::dim;
+	static constexpr size_t dim = TFVGeometry::dim;
 
     // Check the SCVF - number of IPs (order of elements)
     UG_ASSERT(geo.scvf(0).num_ip() == 1, "Only implemented for first order.");
@@ -92,7 +92,7 @@ template <typename TFVGeometry>
 void NSDiffLengthRaw(number DiffLengthSqInv[], const TFVGeometry& geo)
 {
     //	dimension of element
-	static const size_t dim = TFVGeometry::dim;
+	static constexpr size_t dim = TFVGeometry::dim;
 
     // Check the SCVF - number of IPs (order of elements)
     UG_ASSERT(geo.scvf(0).num_ip() == 1, "Only implemented for first order.");
@@ -136,7 +136,7 @@ template <typename TFVGeometry>
 void NSDiffLengthCor(number DiffLengthSqInv[], const TFVGeometry& geo)
 {
     //	dimension of element
-	static const size_t dim = TFVGeometry::dim;
+	static constexpr size_t dim = TFVGeometry::dim;
 
     // Check the SCVF - number of IPs (order of elements)
     UG_ASSERT(geo.scvf(0).num_ip() == 1, "Only implemented for first order.");

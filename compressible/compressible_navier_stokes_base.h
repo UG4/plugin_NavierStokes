@@ -118,7 +118,6 @@ namespace NavierStokes{
  * </ul>
  *
  * \tparam	TDomain		Domain
- * \tparam	TAlgebra	Algebra
  */
 template<	typename TDomain>
 class CompressibleNavierStokesBase
@@ -126,14 +125,14 @@ class CompressibleNavierStokesBase
 {
 	protected:
 	///	Base class type
-		typedef NavierStokesBase<TDomain> base_type;
+		using base_type = NavierStokesBase<TDomain>;
 
 	///	own type
-		typedef CompressibleNavierStokesBase<TDomain> this_type;
+		using this_type = CompressibleNavierStokesBase<TDomain>;
 
 	public:
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	public:
 	///	Constructor (setting default values)

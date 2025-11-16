@@ -46,14 +46,14 @@ class NavierStokesInflowFVCR
 	: public NavierStokesInflowBase<TDomain, TAlgebra>
 {
 	private:
-		static const int dim = TDomain::dim;
+		static constexpr int dim = TDomain::dim;
 
 	public:
 	///	returns the number of element discs
 		virtual size_t num_elem_disc() const {return 0;}
 
 	///	returns the element disc
-		virtual SmartPtr<IElemDisc<TDomain> > elem_disc(size_t i) {return SPNULL;}
+		virtual SmartPtr<IElemDisc<TDomain> > elem_disc(size_t i) {return nullptr;}
 
 	///	returns the number of constraints
 		virtual size_t num_constraint() const {return 1;}

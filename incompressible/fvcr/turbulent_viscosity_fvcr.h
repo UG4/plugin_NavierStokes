@@ -62,39 +62,39 @@ class StdTurbulentViscosityData
 : 	public StdUserData<StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>, TData,dim>
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	algebra type
-	typedef typename TGridFunction::algebra_type algebra_type;
+	using algebra_type = typename TGridFunction::algebra_type;
 
 	/// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
 	/// attachment accessor types
-	typedef MathSymmetricMatrix<dim> dimMat;
-	typedef Attachment<dimMat> ATensor;
+	using dimMat = MathSymmetricMatrix<dim>;
+	using ATensor = Attachment<dimMat>;
 
-	typedef MathVector<dim> vecDim;
-	typedef Attachment<vecDim> AMathVectorDim;
+	using vecDim = MathVector<dim>;
+	using AMathVectorDim = Attachment<vecDim>;
 
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
-	typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aSideTensor = PeriodicAttachmentAccessor<side_type,ATensor >;
+	using aSideDimVector = PeriodicAttachmentAccessor<side_type,AMathVectorDim >;
 	
 	public:
 	
@@ -126,7 +126,7 @@ class StdTurbulentViscosityData
 	aSideTensor m_acDeformation;
 	ATensor m_aDeformation;
 	
-	static const size_t max_number_of_ips = 20;
+	static constexpr size_t max_number_of_ips = 20;
 
 	template <int refDim>
 	inline void evaluate(number vValue[],
@@ -137,14 +137,14 @@ class StdTurbulentViscosityData
 	                     const MathVector<refDim> vLocIP[],
 	                     const size_t nip,
 	                     LocalVector* u,
-	                     const MathMatrix<refDim, dim>* vJT = NULL) const
+	                     const MathMatrix<refDim, dim>* vJT = nullptr) const
 	{
 		//	reference object id
 		ReferenceObjectID roid = elem->reference_object_id();
 		
 		typename grid_type::template traits<side_type>::secure_container sides;
 		
-		UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
+		UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Unsupported element type");
 		
 		m_grid->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 		
@@ -198,7 +198,7 @@ class StdTurbulentViscosityData
 		const int si = this->subset();
 		for(size_t s = 0; s < this->num_series(); ++s)
 			getImpl().template evaluate<dim>(this->values(s), this->ips(s), this->time(s), si,
-			                                 elem, NULL, this->template local_ips<dim>(s),
+			                                 elem, nullptr, this->template local_ips<dim>(s),
 			                                 this->num_ip(s), u);
 	}
 
@@ -208,7 +208,7 @@ class StdTurbulentViscosityData
 		const int si = this->subset();
 		for(size_t s = 0; s < this->num_series(); ++s)
 			getImpl().template evaluate<dim>(this->values(s), this->ips(s), this->time(s), si,
-			                                 elem, NULL, this->template local_ips<dim>(s),
+			                                 elem, nullptr, this->template local_ips<dim>(s),
 			                                 this->num_ip(s), &(u->solution(this->time_point(s))));
 	}
 
@@ -292,44 +292,44 @@ class CRSmagorinskyTurbViscData
   CRSmagorinskyTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
   {
 	///	own type
-	typedef CRSmagorinskyTurbViscData<TGridFunction> this_type;
+	using this_type = CRSmagorinskyTurbViscData<TGridFunction>;
 	  
 	/// base class type
-	typedef StdTurbulentViscosityData<number,TGridFunction::dim,this_type,TGridFunction> base_type;
+	using base_type = StdTurbulentViscosityData<number,TGridFunction::dim,this_type,TGridFunction>;
 	  
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	algebra type
-	typedef typename TGridFunction::algebra_type algebra_type;
+	using algebra_type = typename TGridFunction::algebra_type;
 
 	/// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
 	/// attachment accessor types
-	typedef MathSymmetricMatrix<dim> dimMat;
-	typedef Attachment<dimMat> ATensor;
+	using dimMat = MathSymmetricMatrix<dim>;
+	using ATensor = Attachment<dimMat>;
 
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aSideTensor = PeriodicAttachmentAccessor<side_type,ATensor >;
 
 	  private:
 	// grid function
@@ -409,48 +409,48 @@ class CRDynamicTurbViscData
   CRDynamicTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
   {
 	///	own type
-	typedef CRDynamicTurbViscData<TGridFunction> this_type;
+	using this_type = CRDynamicTurbViscData<TGridFunction>;
 	  
 	/// base class type
-	typedef StdTurbulentViscosityData<number,TGridFunction::dim,this_type,TGridFunction> base_type;
+	using base_type = StdTurbulentViscosityData<number,TGridFunction::dim,this_type,TGridFunction>;
 	  
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	algebra type
-	typedef typename TGridFunction::algebra_type algebra_type;
+	using algebra_type = typename TGridFunction::algebra_type;
 
 	/// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
 	/// attachment accessor types
-	typedef MathSymmetricMatrix<dim> dimMat;
-	typedef Attachment<dimMat> ATensor;
+	using dimMat = MathSymmetricMatrix<dim>;
+	using ATensor = Attachment<dimMat>;
 
-	typedef MathVector<dim> vecDim;
-	typedef Attachment<vecDim> AMathVectorDim;
+	using vecDim = MathVector<dim>;
+	using AMathVectorDim = Attachment<vecDim>;
 
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	typedef PeriodicAttachmentAccessor<side_type,ATensor > aSideTensor;
-	typedef PeriodicAttachmentAccessor<side_type,AMathVectorDim > aSideDimVector;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+	using aSideTensor = PeriodicAttachmentAccessor<side_type,ATensor >;
+	using aSideDimVector = PeriodicAttachmentAccessor<side_type,AMathVectorDim >;
 
 	  private:
 

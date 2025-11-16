@@ -41,8 +41,8 @@ namespace NavierStokes{
 template<typename VType,typename TElem,typename TDomain,typename TGridFunction>
 void averageByVolume(PeriodicAttachmentAccessor<TElem,Attachment<VType> >& acUHat,
 					 PeriodicAttachmentAccessor<TElem,Attachment<number> >& acVolume,TDomain& domain,SmartPtr<TGridFunction> uInfo,std::vector<WallObject<TGridFunction> > walls){
-	typedef typename TDomain::grid_type TGrid;
-	typedef typename TGridFunction::template traits<TElem>::const_iterator ElemIterator;
+	using TGrid = typename TDomain::grid_type;
+	using ElemIterator = typename TGridFunction::template traits<TElem>::const_iterator;
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
@@ -64,7 +64,7 @@ typename vector_t::value_type
 VecDistanceMaxNorm(const vector_t& v1, const vector_t& v2)
 {
 	typename vector_t::value_type m = std::abs(v1[0]-v2[0]);
-	typedef typename vector_t::size_type size_type;
+	using size_type = typename vector_t::size_type;
 
 	for(size_type i = 1; i < v1.size(); ++i)
 	{
@@ -76,8 +76,8 @@ VecDistanceMaxNorm(const vector_t& v1, const vector_t& v2)
 // compute average element size of grid
 template<typename TGridFunction>
 number ConstantBoxFilter<TGridFunction>::compute_average_element_size(SmartPtr<TGridFunction> u){
-	typedef typename TGridFunction::const_element_iterator const_iterator;
-	typedef typename TGridFunction::element_type element_type;
+	using const_iterator = typename TGridFunction::const_element_iterator;
+	using element_type = typename TGridFunction::element_type;
 	typename TGridFunction::domain_type::position_accessor_type& aaPos
 					= u->domain()->position_accessor();
 	number averageElemSize = 0;
@@ -107,9 +107,9 @@ void ConstantBoxFilter<TGridFunction>::collectSides(PeriodicAttachmentAccessor<s
 														){
 	domain_type& domain = *m_uInfo->domain().get();
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	side_secure_container assoSides;
 	size_t startIndex = sides.size()-1;
@@ -183,7 +183,7 @@ template <typename VType>
 void ConstantBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acUHat,
 					  SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acU){
 		bool useGridFunction;
-		if (u==SPNULL) useGridFunction = false; else useGridFunction = true;
+		if (u==nullptr) useGridFunction = false; else useGridFunction = true;
 		// set attachments to zero
 		domain_type& domain = *m_uInfo->domain().get();
 		SetAttachmentValues(m_acSideVolume, domain.grid()->template begin<side_type>(), domain.grid()->template end<side_type>(), 0);
@@ -194,10 +194,10 @@ void ConstantBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<s
 		MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 
 		//	get position accessor
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
-		typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+		using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 		side_secure_container elemsides;
 
 		DimFV1Geometry<dim> geo;
@@ -353,8 +353,8 @@ void ConstantBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<s
 // compute average element size of grid
 template<typename TGridFunction>
 number VariableBoxFilter<TGridFunction>::compute_average_element_size(SmartPtr<TGridFunction> u){
-	typedef typename TGridFunction::const_element_iterator const_iterator;
-	typedef typename TGridFunction::element_type element_type;
+	using const_iterator = typename TGridFunction::const_element_iterator;
+	using element_type = typename TGridFunction::element_type;
 	typename TGridFunction::domain_type::position_accessor_type& aaPos
 	= u->domain()->position_accessor();
 	number averageElemSize = 0;
@@ -384,10 +384,10 @@ void VariableBoxFilter<TGridFunction>::collectSides(PeriodicAttachmentAccessor<s
 														){
 	domain_type& domain = *m_uInfo->domain().get();
 	PeriodicBoundaryManager* pbm = (domain.grid())->periodic_boundary_manager();
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	//	get position accessor
-	std::vector<DoFIndex> multInd; 
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	std::vector<DoFIndex> multInd;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	side_secure_container assoSides;
 	size_t startIndex = sides.size()-1;
@@ -463,7 +463,7 @@ template <typename VType>
 void VariableBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acUHat,
 													SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acU){
 	bool useGridFunction;
-	if (u==SPNULL) useGridFunction = false; else useGridFunction = true;
+	if (u==nullptr) useGridFunction = false; else useGridFunction = true;
 	// set attachments to zero
 	domain_type& domain = *m_uInfo->domain().get();
 	SetAttachmentValues(m_acSideVolume, domain.grid()->template begin<side_type>(), domain.grid()->template end<side_type>(), 0);
@@ -474,10 +474,10 @@ void VariableBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<s
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 		
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
-		
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	side_secure_container elemsides;
 		
 	DimFV1Geometry<dim> geo;
@@ -636,7 +636,7 @@ template <typename VType>
 void FV1BoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& acUHat,
 			   SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& acU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 	
 	// set attachments to zero
 	domain_type& domain = *m_uInfo->domain().get();
@@ -648,7 +648,7 @@ void FV1BoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<vertex
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	DimFV1Geometry<dim> geo;
@@ -726,7 +726,7 @@ void FV1BoxFilter<TGridFunction>::compute_filterwidth_fv1()
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 		
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 		
 	DimFV1Geometry<dim> geo;
@@ -768,10 +768,10 @@ void FV1BoxFilter<TGridFunction>::compute_filterwidth_fvcr()
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 		
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
-		
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	side_secure_container sides;
 		
 	DimFV1Geometry<dim> geo;
@@ -822,7 +822,7 @@ template <typename VType>
 void FV1BoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acUHat,
 			   SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 	
 	// set attachments to zero
 	domain_type& domain = *m_uInfo->domain().get();
@@ -834,10 +834,10 @@ void FV1BoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<side_t
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	side_secure_container sides;
 
 	DimFV1Geometry<dim> geo;
@@ -930,7 +930,7 @@ template <typename VType>
 void FVCRBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acUHat,
 			   SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 	
 	// set attachments to zero
 	domain_type& domain = *m_uInfo->domain().get();
@@ -942,10 +942,10 @@ void FVCRBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<side_
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	side_secure_container sides;
 
 	DimCRFVGeometry<dim> geo;
@@ -1033,10 +1033,10 @@ void FVCRBoxFilter<TGridFunction>::compute_filterwidth_fvcr()
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 		
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
-		
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	side_secure_container sides;
 		
 	DimCRFVGeometry<dim> geo;
@@ -1080,7 +1080,7 @@ void ElementBoxFilter<TGridFunction>::compute_filterwidth_fv1(){
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 		
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 		
 	DimFV1Geometry<dim> geo;
@@ -1120,7 +1120,7 @@ template <typename VType>
 void ElementBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& acUHat,
 												   SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<vertex_type,Attachment<VType> >& acU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 	
 	// set attachments to zero
 	domain_type& domain = *m_uInfo->domain().get();
@@ -1132,7 +1132,7 @@ void ElementBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<ve
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 		
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 		
 	DimFV1Geometry<dim> geo;
@@ -1210,10 +1210,10 @@ void ElementBoxFilter<TGridFunction>::compute_filterwidth_fvcr(){
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 		
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
-		
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	side_secure_container sides;
 		
 	DimCRFVGeometry<dim> geo;
@@ -1258,7 +1258,7 @@ template <typename VType>
 void ElementBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acUHat,
 													SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >& acU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 	
 	// set attachments to zero
 	domain_type& domain = *m_uInfo->domain().get();
@@ -1270,10 +1270,10 @@ void ElementBoxFilter<TGridFunction>::apply_filter(PeriodicAttachmentAccessor<si
 	MathVector<dim> coCoord[domain_traits<dim>::MaxNumVerticesOfElem];
 	
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
-		
-	typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+
+	using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 	side_secure_container sides;
 		
 	DimCRFVGeometry<dim> geo;

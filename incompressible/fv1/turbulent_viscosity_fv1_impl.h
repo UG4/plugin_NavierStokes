@@ -46,10 +46,10 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::transferToLowe
 		for (size_t lev=approximationSpace.num_levels()-2; ;lev--){
 			const DoFDistribution& lDD = *approximationSpace.dof_distribution(GridLevel(lev, GridLevel::LEVEL));
 			const MultiGrid& grid = *lDD.multi_grid();
-			typedef typename DoFDistribution::traits<Vertex>::const_iterator coarseLevelVertexIter;
+			using coarseLevelVertexIter = DoFDistribution::traits<Vertex>::const_iterator;
 			coarseLevelVertexIter clvIter, clvIterEnd;
-			clvIter = lDD.template begin<Vertex>(si);
-			clvIterEnd = lDD.template end<Vertex>(si);
+			clvIter = lDD.begin<Vertex>(si);
+			clvIterEnd = lDD.end<Vertex>(si);
 			for (;clvIter != clvIterEnd;clvIter++){
 				Vertex* vertex = *clvIter;
 				aaData[vertex] += aaData[grid.get_child<Vertex>(vertex, 0)];
@@ -96,7 +96,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
@@ -134,7 +134,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 
 			map.global_to_local(localBary,bary);
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 			//	memory for shapes
 			std::vector<number> vShape;
@@ -199,7 +199,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::elementFilter(
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
@@ -303,7 +303,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(Peri
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	// assemble deformation tensor fluxes
@@ -403,7 +403,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	//	create Multiindex
@@ -449,9 +449,9 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::scvFilter(aVer
 
 			size_t noc = elem->num_vertices();
 
-			static const size_t MaxNumVerticesOfElem = 10;
+			static constexpr size_t MaxNumVerticesOfElem = 10;
 
-			typedef MathVector<dim> MVD;
+			using MVD = MathVector<dim>;
 			std::vector<MVD> uValue(MaxNumVerticesOfElem);
 
 			for (size_t co=0;co<noc;co++){
@@ -526,7 +526,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
@@ -549,9 +549,9 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 				//	evaluate finite volume geometry
 				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
 
-				static const size_t MaxNumVerticesOfElem = 10;
+				static constexpr size_t MaxNumVerticesOfElem = 10;
 
-				typedef MathVector<dim> MVD;
+				using MVD = MathVector<dim>;
 				std::vector<MVD> uValue(MaxNumVerticesOfElem);
 				MVD ipVelocity;
 
@@ -658,7 +658,7 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
@@ -684,13 +684,13 @@ void StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>::assembleDeform
 				//	evaluate finite volume geometry
 				geo.update(elem, &(coCoord[0]), domain.subset_handler().get());
 
-				static const size_t MaxNumVerticesOfElem = 10;
+				static constexpr size_t MaxNumVerticesOfElem = 10;
 
-				typedef MathVector<dim> MVD;
+				using MVD = MathVector<dim>;
 				std::vector<MVD> uValue(MaxNumVerticesOfElem);
 				MVD ipVelocity;
 
-				UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+				UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 				size_t noc = elem->num_vertices();
 
@@ -857,7 +857,7 @@ void FV1DynamicTurbViscData<TGridFunction>::update(){
 	domain_type& domain = *m_u->domain().get();
 
 	//	get position accessor
-	// for debug typedef typename domain_type::position_accessor_type position_accessor_type;
+	// for debug using position_accessor_type = typename domain_type::position_accessor_type;
 	// for debug const position_accessor_type& posAcc = domain.position_accessor();
 
 	// initialize attachment values with 0

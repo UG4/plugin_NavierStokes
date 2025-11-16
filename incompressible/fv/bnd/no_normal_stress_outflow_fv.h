@@ -72,14 +72,14 @@ class NavierStokesNoNormalStressOutflowFV
 {
 	private:
 	///	Base class type
-		typedef NavierStokesNoNormalStressOutflowBase<TDomain> base_type;
+		using base_type = NavierStokesNoNormalStressOutflowBase<TDomain>;
 
 	///	own type
-		typedef NavierStokesNoNormalStressOutflowFV<TDomain> this_type;
+		using this_type = NavierStokesNoNormalStressOutflowFV<TDomain>;
 
 	public:
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	public:
 	///	Constructor (setting default values)
@@ -174,7 +174,7 @@ class NavierStokesNoNormalStressOutflowFV
 
 	protected:
 	/// abbreviation for pressure
-		static const size_t _P_ = dim;
+		static constexpr size_t _P_ = dim;
 
 		using base_type::m_spMaster;
 		using base_type::m_vBndSubSetIndex;

@@ -67,8 +67,8 @@ static void DomainAlgebra(Registry& reg, string grp)
 
 	//	NavierStokesInflow FE
 	{
-		typedef NavierStokesInflowFE<TDomain, TAlgebra> T;
-		typedef NavierStokesInflowBase<TDomain, TAlgebra> TBase;
+		using T = NavierStokesInflowFE<TDomain, TAlgebra>;
+		using TBase = NavierStokesInflowBase<TDomain, TAlgebra>;
 		string name = string("NavierStokesInflowFE").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesFE<TDomain> >)>("MasterElemDisc")
@@ -101,19 +101,19 @@ static void Algebra(Registry& reg, string grp)
  * available Domain types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
-	//static const int dim = TDomain::dim;
+	//static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
 	//	Navier-Stokes FE
 	{
-		typedef NavierStokesFE<TDomain> T;
-		typedef IncompressibleNavierStokesBase<TDomain> TBase;
+		using T = NavierStokesFE<TDomain>;
+		using TBase = IncompressibleNavierStokesBase<TDomain>;
 		string name = string("NavierStokesFE").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
@@ -153,7 +153,7 @@ static void Dimension(Registry& reg, string grp)
 void Init___NavierStokes___FE(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::FunctionalityFE Functionality;
+	using Functionality = NavierStokes::FunctionalityFE;
 
 	try{
 //		RegisterDimensionDependent<Functionality>(*reg,grp);

@@ -138,22 +138,21 @@ namespace NavierStokes{
  * \f}
  *
  * \tparam	TDomain		Domain
- * \tparam	TAlgebra	Algebra
  */
-template<	typename TDomain>
+template<typename TDomain>
 class IncompressibleNavierStokesBase
 	: public NavierStokesBase<TDomain>
 {
 	protected:
 	///	Base class type
-		typedef NavierStokesBase<TDomain> base_type;
+		using base_type = NavierStokesBase<TDomain>;
 
 	///	own type
-		typedef IncompressibleNavierStokesBase<TDomain> this_type;
+		using this_type = IncompressibleNavierStokesBase<TDomain>;
 
 	public:
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	public:
 	///	Constructor (setting default values)

@@ -60,9 +60,9 @@ class NavierStokesNoUpwind
   public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesNoUpwind<dim> >
 {
 	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		using base_type = INavierStokesUpwind<dim>;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
@@ -105,9 +105,9 @@ class NavierStokesFullUpwind
   public NavierStokesUpwindRegister<HCRFVGeometry, dim, NavierStokesFullUpwind<dim> >
 {
 	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		using base_type = INavierStokesUpwind<dim>;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
@@ -151,9 +151,9 @@ class NavierStokesWeightedUpwind
   public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesWeightedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		using base_type = INavierStokesUpwind<dim>;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
@@ -187,9 +187,9 @@ class NavierStokesSkewedUpwind
   public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesSkewedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		using base_type = INavierStokesUpwind<dim>;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
@@ -223,9 +223,9 @@ class NavierStokesLinearProfileSkewedUpwind
   public NavierStokesUpwindRegister<CRFVGeometry, dim, NavierStokesLinearProfileSkewedUpwind<dim> >
 {
 	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		using base_type = INavierStokesUpwind<dim>;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
@@ -259,9 +259,9 @@ class NavierStokesPositiveUpwind
   public NavierStokesUpwindRegister<FV1Geometry,dim, NavierStokesPositiveUpwind<dim> >
 {
 	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		using base_type = INavierStokesUpwind<dim>;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
@@ -286,9 +286,9 @@ class NavierStokesRegularUpwind
   public NavierStokesUpwindRegister<FV1Geometry, dim, NavierStokesRegularUpwind<dim> >
 {
 	public:
-		typedef INavierStokesUpwind<dim> base_type;
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		using base_type = INavierStokesUpwind<dim>;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor

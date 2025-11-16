@@ -67,10 +67,10 @@ void computeDegree(std::vector<size_t>& degree,std::vector<std::vector<size_t> >
 template <typename TElem, typename TGridFunction>
 void cr_get_connections(std::vector<std::vector<size_t> >& vvConnection,size_t& minpind, DoFDistribution& dd,TGridFunction& u){
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	typename DoFDistribution::traits<TElem>::const_iterator iter, iterBegin, iterEnd;
 	LocalIndices ind;
@@ -169,13 +169,13 @@ void CROrderCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
                        bool bReverse,bool bseparate,bool orderp,bool orderv)
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -216,13 +216,13 @@ void CROrderSloan(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
                        bool bseparate,bool orderp,bool orderv)
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -261,13 +261,13 @@ void CROrderKing(ApproximationSpace<TDomain>& approxSpace,TGridFunction& u,
                        bool bReverse,bool bseparate,bool orderp,bool orderv)
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -306,13 +306,13 @@ void CROrderMinimumDegree(ApproximationSpace<TDomain>& approxSpace,TGridFunction
                        bool bseparate,bool orderp,bool orderv)
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 	
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 	
 	std::vector<std::vector<size_t> > vvConnection;
 	size_t minpind;
@@ -354,13 +354,13 @@ void OrderCRCuthillMcKee(ApproximationSpace<TDomain>& approxSpace,TGridFunction&
                        bool bReverse)
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	for (int si=0;si<u.num_subsets();++si){
 		if (u.num_fct(si)<2){

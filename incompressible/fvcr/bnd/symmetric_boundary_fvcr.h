@@ -55,20 +55,20 @@ class CRNavierStokesSymBC
 {
 	private:
 	///	Base class type
-		typedef IElemDisc<TDomain> base_type;
+		using base_type = IElemDisc<TDomain>;
 
 	///	own type
-		typedef CRNavierStokesSymBC<TDomain> this_type;
+		using this_type = CRNavierStokesSymBC<TDomain>;
 
 	public:
 	///	Domain type
-		typedef typename base_type::domain_type domain_type;
+		using domain_type = typename base_type::domain_type;
 
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	///	Position type
-		typedef typename base_type::position_type position_type;
+		using position_type = typename base_type::position_type;
 
 	public:
 	///	Constructor (setting default values)
@@ -149,7 +149,7 @@ class CRNavierStokesSymBC
 		std::vector<MathVector<dim> > m_vGloIP;
 
 	/// abbreviation for pressure
-		static const size_t _P_ = dim;
+		static constexpr size_t _P_ = dim;
 
 	private:
 		void register_all_funcs(bool bHang);

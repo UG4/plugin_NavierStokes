@@ -144,14 +144,14 @@ class NavierStokesBase
 {
 	protected:
 	///	Base class type
-		typedef IElemDisc<TDomain> base_type;
+		using base_type = IElemDisc<TDomain>;
 
 	///	own type
-		typedef NavierStokesBase<TDomain> this_type;
+		using this_type = NavierStokesBase<TDomain>;
 
 	public:
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	public:
 	///	Constructor (setting default values)

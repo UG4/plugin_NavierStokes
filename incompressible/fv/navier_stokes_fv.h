@@ -56,14 +56,14 @@ class NavierStokesFV
 {
 	private:
 	///	Base class type
-		typedef IncompressibleNavierStokesBase<TDomain> base_type;
+		using base_type = IncompressibleNavierStokesBase<TDomain>;
 
 	///	own type
-		typedef NavierStokesFV<TDomain> this_type;
+		using this_type = NavierStokesFV<TDomain>;
 
 	public:
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	public:
 	///	Constructor (setting default values)
@@ -124,7 +124,7 @@ class NavierStokesFV
 		DataImport<number, dim> m_imDensitySCV;
 
 	/// abbreviation for pressure
-		static const size_t _P_ = dim;
+		static constexpr size_t _P_ = dim;
 
 		using base_type::m_bPecletBlend;
 		using base_type::m_bFullNewtonFactor;

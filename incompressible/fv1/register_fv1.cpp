@@ -70,31 +70,31 @@ struct FunctionalityFV1
 template <typename TDomain, typename TAlgebra>
 static void DomainAlgebra(Registry& reg, string grp)
 {
-	//static const int dim = TDomain::dim;
+	//static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
 
 	//	NavierStokesInflow FV1
 	{
-		typedef NavierStokesInflowFV1<TDomain, TAlgebra> T;
-		typedef NavierStokesInflowBase<TDomain, TAlgebra> TBase;
+		using T = NavierStokesInflowFV1<TDomain, TAlgebra>;
+		using TBase = NavierStokesInflowBase<TDomain, TAlgebra>;
 		string name = string("NavierStokesInflowFV1").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesFV1<TDomain> >)>("MasterElemDisc")
  			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflowFV1", tag);
 	}
-	
-	typedef ug::GridFunction<TDomain, TAlgebra> TFct;
-	static const int dim = TDomain::dim;
+
+	using TFct = GridFunction<TDomain, TAlgebra>;
+	static constexpr int dim = TDomain::dim;
 
 	// Turbulent viscosity data
 	// Smagorinsky model
 	{
 		string name = string("FV1SmagorinskyTurbViscData").append(suffix);
-		typedef FV1SmagorinskyTurbViscData<TFct> T;
-		typedef CplUserData<number, dim> TBase;
-		typedef INewtonUpdate TBase2;
+		using T = FV1SmagorinskyTurbViscData<TFct>;
+		using TBase = CplUserData<number, dim>;
+		using TBase2 = INewtonUpdate;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>,number)>("Approximation space, grid function, model parameter")
 			.add_method("set_model_parameter", &T::set_model_parameter)
@@ -111,9 +111,9 @@ static void DomainAlgebra(Registry& reg, string grp)
 	// Dynamic model
 	{
 		string name = string("FV1DynamicTurbViscData").append(suffix);
-		typedef FV1DynamicTurbViscData<TFct> T;
-		typedef CplUserData<number, dim> TBase;
-		typedef INewtonUpdate TBase2;
+		using T = FV1DynamicTurbViscData<TFct>;
+		using TBase = CplUserData<number, dim>;
+		using TBase2 = INewtonUpdate;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -155,19 +155,19 @@ static void Algebra(Registry& reg, string grp)
  * available Domain types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
-	static const int dim = TDomain::dim;
+	static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
 	//	Navier-Stokes FV1
 	{
-		typedef NavierStokesFV1<TDomain> T;
-		typedef IncompressibleNavierStokesBase<TDomain> TBase;
+		using T = NavierStokesFV1<TDomain>;
+		using TBase = IncompressibleNavierStokesBase<TDomain>;
 		string name = string("NavierStokesFV1").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
@@ -186,8 +186,8 @@ static void Domain(Registry& reg, string grp)
 
 	//	NavierStokesNoNormalStressOutflow FV1
 	{
-		typedef NavierStokesNoNormalStressOutflowFV1<TDomain> T;
-		typedef NavierStokesNoNormalStressOutflowBase<TDomain> TBase;
+		using T = NavierStokesNoNormalStressOutflowFV1<TDomain>;
+		using TBase = NavierStokesNoNormalStressOutflowBase<TDomain>;
 		string name = string("NavierStokesNoNormalStressOutflowFV1").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
@@ -197,8 +197,8 @@ static void Domain(Registry& reg, string grp)
 
 	//	NavierStokesSymBCFV1
 	{
-		typedef NavierStokesSymBCFV1<TDomain> T;
-		typedef IElemDisc<TDomain> TBase;
+		using T = NavierStokesSymBCFV1<TDomain>;
+		using TBase = IElemDisc<TDomain>;
 		string name = string("NavierStokesSymBCFV1").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
@@ -209,8 +209,8 @@ static void Domain(Registry& reg, string grp)
 
 	//	NavierStokesWSBCFV1
 	{
-		typedef NavierStokesWSBCFV1<TDomain> T;
-		typedef IElemDisc<TDomain> TBase;
+		using T = NavierStokesWSBCFV1<TDomain>;
+		using TBase = IElemDisc<TDomain>;
 		string name = string("NavierStokesWSBCFV1").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
@@ -243,7 +243,7 @@ static void Dimension(Registry& reg, string grp)
 
 //	INavierStokesFV1Stabilization
 	{
-		typedef INavierStokesFV1Stabilization<dim> T;
+		using T = INavierStokesFV1Stabilization<dim>;
 		string name = string("INavierStokesFV1Stabilization").append(suffix);
 		reg.add_class_<T>(name, grp)
 			.add_method("set_upwind", &T::set_upwind);
@@ -252,8 +252,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	INavierStokesSRFV1Stabilization
 	{
-		typedef INavierStokesSRFV1Stabilization<dim> T;
-		typedef INavierStokesFV1Stabilization<dim> TBase;
+		using T = INavierStokesSRFV1Stabilization<dim>;
+		using TBase = INavierStokesFV1Stabilization<dim>;
 		string name = string("INavierStokesSRFV1Stabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_method("set_diffusion_length", &T::set_diffusion_length);
@@ -262,8 +262,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesFIELDSStabilization
 	{
-		typedef NavierStokesFIELDSStabilization<dim> T;
-		typedef INavierStokesSRFV1Stabilization<dim> TBase;
+		using T = NavierStokesFIELDSStabilization<dim>;
+		using TBase = INavierStokesSRFV1Stabilization<dim>;
 		string name = string("NavierStokesFIELDSStabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -273,8 +273,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesFLOWStabilization
 	{
-		typedef NavierStokesFLOWStabilization<dim> T;
-		typedef INavierStokesSRFV1Stabilization<dim> TBase;
+		using T = NavierStokesFLOWStabilization<dim>;
+		using TBase = INavierStokesSRFV1Stabilization<dim>;
 		string name = string("NavierStokesFLOWStabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -284,8 +284,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesFV1WithoutStabilization
 	{
-		typedef NavierStokesFV1WithoutStabilization<dim> T;
-		typedef INavierStokesFV1Stabilization<dim> TBase;
+		using T = NavierStokesFV1WithoutStabilization<dim>;
+		using TBase = INavierStokesFV1Stabilization<dim>;
 		string name = string("NavierStokesFV1WithoutStabilization").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -304,7 +304,7 @@ static void Dimension(Registry& reg, string grp)
 void Init___NavierStokes___FV1(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::FunctionalityFV1 Functionality;
+	using Functionality = NavierStokes::FunctionalityFV1;
 
 	try{
 		RegisterDimension2d3dDependent<Functionality>(*reg,grp);

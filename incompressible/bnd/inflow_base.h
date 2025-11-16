@@ -43,7 +43,7 @@ class NavierStokesInflowBase
 	: public IDiscretizationItem<TDomain, TAlgebra>
 {
 	private:
-		static const int dim = TDomain::dim;
+		static constexpr int dim = TDomain::dim;
 
 	public:
 	///	returns the number of element discs

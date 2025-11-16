@@ -63,17 +63,17 @@ struct FunctionalityFV
 template <typename TDomain, typename TAlgebra>
 static void DomainAlgebra(Registry& reg, string grp)
 {
-	//static const int dim = TDomain::dim;
+	//static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
 
-	typedef ApproximationSpace<TDomain> approximation_space_type;
-	typedef GridFunction<TDomain, TAlgebra> function_type;
+	using approximation_space_type = ApproximationSpace<TDomain>;
+	using function_type = GridFunction<TDomain, TAlgebra>;
 
 	//	NavierStokesInflow FV
 	{
-		typedef NavierStokesInflowFV<TDomain, TAlgebra> T;
-		typedef NavierStokesInflowBase<TDomain, TAlgebra> TBase;
+		using T = NavierStokesInflowFV<TDomain, TAlgebra>;
+		using TBase = NavierStokesInflowBase<TDomain, TAlgebra>;
 		string name = string("NavierStokesInflowFV").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesFV<TDomain> >)>("MasterElemDisc")
@@ -89,7 +89,7 @@ static void DomainAlgebra(Registry& reg, string grp)
  * available Algebra types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TAlgebra>
 static void Algebra(Registry& reg, string grp)
@@ -106,19 +106,19 @@ static void Algebra(Registry& reg, string grp)
  * available Domain types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
-	//static const int dim = TDomain::dim;
+	//static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
 	//	Navier-Stokes FV
 	{
-		typedef NavierStokesFV<TDomain> T;
-		typedef IncompressibleNavierStokesBase<TDomain> TBase;
+		using T = NavierStokesFV<TDomain>;
+		using TBase = IncompressibleNavierStokesBase<TDomain>;
 		string name = string("NavierStokesFV").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
@@ -130,8 +130,8 @@ static void Domain(Registry& reg, string grp)
 
 	//	NavierStokesNoNormalStressOutflow FV
 	{
-		typedef NavierStokesNoNormalStressOutflowFV<TDomain> T;
-		typedef NavierStokesNoNormalStressOutflowBase<TDomain> TBase;
+		using T = NavierStokesNoNormalStressOutflowFV<TDomain>;
+		using TBase = NavierStokesNoNormalStressOutflowBase<TDomain>;
 		string name = string("NavierStokesNoNormalStressOutflowFV").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
@@ -148,7 +148,7 @@ static void Domain(Registry& reg, string grp)
  * available Dimension types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <int dim>
 static void Dimension(Registry& reg, string grp)
@@ -167,7 +167,7 @@ static void Dimension(Registry& reg, string grp)
 void Init___NavierStokes___FV(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::FunctionalityFV Functionality;
+	using Functionality = NavierStokes::FunctionalityFV;
 
 	try{
 //		RegisterDimensionDependent<Functionality>(*reg,grp);

@@ -201,7 +201,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 //	set local positions for imports
 	if(!TFVGeom::usesHangingNodes)
 	{
-		static const int refDim = TElem::dim;
+		static constexpr int refDim = TElem::dim;
 		TFVGeom& geo = GeomProvider<TFVGeom>::get();
 		const MathVector<refDim>* vSCVFip = geo.scvf_local_ips();
 		const size_t numSCVFip = geo.num_scvf_ips();
@@ -251,7 +251,7 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	if(TFVGeom::usesHangingNodes)
 	{
 	//	request ip series
-		static const int refDim = TElem::dim;
+		static constexpr int refDim = TElem::dim;
 		const MathVector<refDim>* vSCVFip = geo.scvf_local_ips();
 		const size_t numSCVFip = geo.num_scvf_ips();
 		const MathVector<refDim>* vSCVip = geo.scv_local_ips();
@@ -289,11 +289,11 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
-	const DataImport<MathVector<dim>, dim>* pSource = NULL;
+	const DataImport<MathVector<dim>, dim>* pSource = nullptr;
 	if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
 
 //	check for solutions to pass to stabilization in time-dependent case
-	const LocalVector *pSol = &u, *pOldSol = NULL;
+	const LocalVector *pSol = &u, *pOldSol = nullptr;
 	number dt = 0.0;
 	if(this->is_time_dependent())
 	{
@@ -310,7 +310,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 	}
 
 //	interpolate velocity at ip with standard lagrange interpolation
-	static const size_t numSCVF = TFVGeom::numSCVF;
+	static constexpr size_t numSCVF = TFVGeom::numSCVF;
 	MathVector<dim> StdVel[numSCVF];
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
@@ -558,11 +558,11 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
 
 //	check for source term to pass to the stabilization
-	//const DataImport<MathVector<dim>, dim>* pSource = NULL;
+	//const DataImport<MathVector<dim>, dim>* pSource = nullptr;
 	//if(m_imSourceSCVF.data_given())	pSource = &m_imSourceSCVF;
 
 //	interpolate velocity at ip with standard lagrange interpolation
-	static const size_t numSCVF = TFVGeom::numSCVF;
+	static constexpr size_t numSCVF = TFVGeom::numSCVF;
 	MathVector<dim> StdVel[numSCVF];
 	for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
 	{
@@ -955,7 +955,7 @@ CompressibleNavierStokesFV1<TDomain>::
 register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
-	typedef this_type T;
+	using T = this_type;
 
 	this->clear_add_fct(id);
 	this->set_prep_timestep_elem_fct(id, &T::template prep_timestep_elem<TElem, TFVGeom>);

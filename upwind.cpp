@@ -460,7 +460,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  		if(VecTwoNorm(vIPVel[ip]) < 1e-14) continue;
 
  	// 	side and intersection vectors
- 		static const int refDim = CRFVGeometry<TElem, dim>::dim;
+ 		static constexprv int refDim = CRFVGeometry<TElem, dim>::dim;
  		size_t side = 0;
  		MathVector<dim> globalIntersection;
  		MathVector<refDim> localIntersection;
@@ -473,12 +473,12 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  		}UG_CATCH_THROW("GetSkewedUpwindShapes: Cannot find cut side.");
 
  	// 	get linear trial space
- 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
+ 		static constexpr ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
  		const LocalShapeFunctionSet<refDim>& TrialSpace =
  				LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
  	// 	get Reference Element
- 		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
+		using ref_elem_type = typename CRFVGeometry<TElem, dim>::ref_elem_type;
 
  		number max = -1000;
  		size_t maxind=0;
@@ -537,7 +537,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
  		}
 
  	// 	side and intersection vectors
- 		static const int refDim = FV1Geometry<TElem, dim>::dim;
+ 		static constexpr int refDim = FV1Geometry<TElem, dim>::dim;
  		size_t side = 0;
  		MathVector<dim> globalIntersection;
  		MathVector<refDim> localIntersection;
@@ -550,14 +550,13 @@ compute(const FV1Geometry<TElem, dim>* geo,
  		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
 
  	// 	get linear trial space
- 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
+ 		static constexpr ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
  		const LocalShapeFunctionSet<refDim>& TrialSpace =
  				LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::LAGRANGE, dim, 1));
 
  	// 	get Reference Element
- 		typedef typename FV1Geometry<TElem, dim>::ref_elem_type ref_elem_type;
- 		static const ref_elem_type& rRefElem
- 			= Provider<ref_elem_type>::get();
+		using ref_elem_type = typename FV1Geometry<TElem, dim>::ref_elem_type;
+ 		static const ref_elem_type& rRefElem = Provider<ref_elem_type>::get();
 
  	// 	loop corners of side
  		for(size_t j = 0; j < rRefElem.num(dim-1, side, 0); ++j)
@@ -605,7 +604,7 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  		if(VecTwoNorm(vIPVel[ip]) == 0.0) continue;
 
  	// 	side and intersection vectors
- 		static const int refDim = CRFVGeometry<TElem, dim>::dim;
+ 		static constexpr int refDim = CRFVGeometry<TElem, dim>::dim;
  		size_t side = 0;
  		MathVector<dim> globalIntersection;
  		MathVector<refDim> localIntersection;
@@ -618,12 +617,12 @@ compute(const CRFVGeometry<TElem, dim>* geo,
  		}UG_CATCH_THROW("GetLinearProfileSkewedUpwindShapes: Cannot find cut side.");
 
  	// 	get linear trial space
- 		static const ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
+ 		static constexpr ReferenceObjectID roid = reference_element_traits<TElem>::reference_element_type::REFERENCE_OBJECT_ID;
  		const LocalShapeFunctionSet<refDim>& TrialSpace =
  				LocalFiniteElementProvider::get<refDim>(roid, LFEID(LFEID::CROUZEIX_RAVIART, dim, 1));
 
  	// 	get Reference Element
- 		typedef typename CRFVGeometry<TElem, dim>::ref_elem_type ref_elem_type;
+		using ref_elem_type = typename CRFVGeometry<TElem, dim>::ref_elem_type;
 
   	// 	loop shape functions
  		for(size_t sh=0;sh < num_sh;sh++){
@@ -858,7 +857,7 @@ compute(const FV1Geometry<TElem, dim>* geo,
 		const typename FV1Geometry<TElem, dim>::SCV& scv = geo->scv(upwindSCV);
 
 	// 	side and intersection vectors
-		static const int refDim = FV1Geometry<TElem, dim>::dim;
+		static constexpr int refDim = FV1Geometry<TElem, dim>::dim;
 		size_t side = 0;
 		number lambda = 0.0;
 		MathVector<dim> globalIntersection;

@@ -61,36 +61,36 @@ class StdTurbulentViscosityDataFV1
 	: 	public StdUserData<StdTurbulentViscosityDataFV1<TData,dim,TImpl,TGridFunction>, TData,dim>
 {
 		///	domain type
-		typedef typename TGridFunction::domain_type domain_type;
+		using domain_type = typename TGridFunction::domain_type;
 
 		///	algebra type
-		typedef typename TGridFunction::algebra_type algebra_type;
+		using algebra_type = typename TGridFunction::algebra_type;
 
 		/// position accessor type
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 
 		///	grid type
-		typedef typename domain_type::grid_type grid_type;
+		using grid_type = typename domain_type::grid_type;
 
 		/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+		using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 		/// element iterator
-		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+		using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 		/// vertex iterator
-		typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
+		using VertexIterator = typename TGridFunction::template traits<Vertex>::const_iterator;
 
 		/// attachment accessor types
-		typedef MathMatrix<dim,dim> dimMat;
-		typedef Attachment<dimMat> ATensor;
+		using dimMat = MathMatrix<dim,dim>;
+		using ATensor = Attachment<dimMat>;
 
-		typedef MathVector<dim> vecDim;
-		typedef Attachment<vecDim> AMathVectorDim;
+		using vecDim = MathVector<dim>;
+		using AMathVectorDim = Attachment<vecDim>;
 
-		typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
-		typedef PeriodicAttachmentAccessor<Vertex,ATensor > aVertexTensor;
-		typedef PeriodicAttachmentAccessor<Vertex,AMathVectorDim > aVertexDimVector;
+		using aVertexNumber = PeriodicAttachmentAccessor<Vertex,ANumber >;
+		using aVertexTensor = PeriodicAttachmentAccessor<Vertex,ATensor >;
+		using aVertexDimVector = PeriodicAttachmentAccessor<Vertex,AMathVectorDim >;
 	public:
 		////////////////
 		// one value
@@ -118,7 +118,7 @@ class StdTurbulentViscosityDataFV1
 						const MathVector<refDim> vLocIP[],
 						const size_t nip,
 						LocalVector* u,
-						const MathMatrix<refDim, dim>* vJT = NULL) const
+						const MathMatrix<refDim, dim>* vJT = nullptr) const
 		{
 			getImpl().template evaluate<refDim>(vValue,vGlobIP,time,si,elem,
 			                                    vCornerCoords,vLocIP,nip,u,vJT);
@@ -202,35 +202,35 @@ class FV1SmagorinskyTurbViscData
 	  	  	  FV1SmagorinskyTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
 {
 	///	domain type
-		typedef typename TGridFunction::domain_type domain_type;
+		using domain_type = typename TGridFunction::domain_type;
 
 	///	algebra type
-		typedef typename TGridFunction::algebra_type algebra_type;
+		using algebra_type = typename TGridFunction::algebra_type;
 
 	/// position accessor type
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 
 	///	world dimension
-		static const int dim = domain_type::dim;
+		static constexpr int dim = domain_type::dim;
 
 	///	grid type
-		typedef typename domain_type::grid_type grid_type;
+		using grid_type = typename domain_type::grid_type;
 
 	/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+		using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// element iterator
-		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+		using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// vertex iterator
-		typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
+		using VertexIterator = typename TGridFunction::template traits<Vertex>::const_iterator;
 
 	/// attachment accessor types
-		typedef MathMatrix<dim,dim> dimMat;
-		typedef Attachment<dimMat> ATensor;
+		using dimMat = MathMatrix<dim,dim>;
+		using ATensor = Attachment<dimMat>;
 
-		typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
-		typedef PeriodicAttachmentAccessor<Vertex,ATensor > aVertexTensor;
+		using aVertexNumber = PeriodicAttachmentAccessor<Vertex,ANumber >;
+		using aVertexTensor = PeriodicAttachmentAccessor<Vertex,ATensor >;
 
 	public:
 		/**
@@ -326,13 +326,13 @@ class FV1SmagorinskyTurbViscData
 		                     const MathVector<refDim> vLocIP[],
 		                     const size_t nip,
 		                     LocalVector* u,
-		                     const MathMatrix<refDim, dim>* vJT = NULL) const
+		                     const MathMatrix<refDim, dim>* vJT = nullptr) const
 		{
 		//	reference object id
 			ReferenceObjectID roid = elem->reference_object_id();
 			elem_type* element = static_cast<elem_type*>(elem);
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Unsupported element type");
 
 			size_t noc=element->num_vertices();
 
@@ -378,7 +378,7 @@ class FV1SmagorinskyTurbViscData
 			}
 		}
 		
-		static const size_t max_number_of_ips = 20;
+		static constexpr size_t max_number_of_ips = 20;
 
 		void update();
 
@@ -390,39 +390,39 @@ class FV1DynamicTurbViscData
 	  	  	  FV1DynamicTurbViscData<TGridFunction>,TGridFunction >, virtual public INewtonUpdate
 {
 	///	domain type
-		typedef typename TGridFunction::domain_type domain_type;
+		using domain_type = typename TGridFunction::domain_type;
 
 	///	algebra type
-		typedef typename TGridFunction::algebra_type algebra_type;
+		using algebra_type = typename TGridFunction::algebra_type;
 
 	/// position accessor type
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 
 	///	world dimension
-		static const int dim = domain_type::dim;
+		static constexpr int dim = domain_type::dim;
 
 	///	grid type
-		typedef typename domain_type::grid_type grid_type;
+		using grid_type = typename domain_type::grid_type;
 
 	/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+		using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// element iterator
-		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+		using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// vertex iterator
-		typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
+		using VertexIterator = typename TGridFunction::template traits<Vertex>::const_iterator;
 
 	/// attachment accessor types
-		typedef MathMatrix<dim,dim> dimMat;
-		typedef Attachment<dimMat> ATensor;
+		using dimMat = MathMatrix<dim,dim>;
+		using ATensor = Attachment<dimMat>;
 
-		typedef MathVector<dim> vecDim;
-		typedef Attachment<vecDim> AMathVectorDim;
+		using vecDim = MathVector<dim>;
+		using AMathVectorDim = Attachment<vecDim>;
 
-		typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
-		typedef PeriodicAttachmentAccessor<Vertex,ATensor > aVertexTensor;
-		typedef PeriodicAttachmentAccessor<Vertex,AMathVectorDim > aVertexDimVector;
+		using aVertexNumber = PeriodicAttachmentAccessor<Vertex,ANumber >;
+		using aVertexTensor = PeriodicAttachmentAccessor<Vertex,ATensor >;
+		using aVertexDimVector = PeriodicAttachmentAccessor<Vertex,AMathVectorDim >;
 
 	public:
 		/**
@@ -560,12 +560,12 @@ class FV1DynamicTurbViscData
 				                     const MathVector<refDim> vLocIP[],
 				                     const size_t nip,
 				                     LocalVector* u,
-				                     const MathMatrix<refDim, dim>* vJT = NULL) const
+				                     const MathMatrix<refDim, dim>* vJT = nullptr) const
 		{
 			//	reference object id
 			ReferenceObjectID roid = elem->reference_object_id();
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Unsupported element type");
 			elem_type* element = static_cast<elem_type*>(elem);
 
 			size_t noc=element->num_vertices();
@@ -612,7 +612,7 @@ class FV1DynamicTurbViscData
 			}
 		}
 		
-		static const size_t max_number_of_ips = 20;
+		static constexpr size_t max_number_of_ips = 20;
 
 		bool m_spaceFilter;
 		bool m_timeFilter;

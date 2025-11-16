@@ -200,11 +200,10 @@ void CRCuthillMcKee(std::vector<size_t>& newIndex,std::vector<std::vector<size_t
 	size_t n = vvConnection.size();
 	size_t pnr = n-minpind;
 	size_t vnr = boost::math::iround((number)minpind/2.0);
-		
-	typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
-	boost::property<boost::vertex_color_t, boost::default_color_type,
-	boost::property<boost::vertex_degree_t,int> > >
-	Graph;
+
+	using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
+		boost::property<boost::vertex_color_t, boost::default_color_type,
+			boost::property<boost::vertex_degree_t,int> > >;
 	std::vector<int> inv_permP(0);
 	std::vector<int> inv_permV(0);
 	newIndex.clear();
@@ -263,23 +262,23 @@ void CRSloan(std::vector<size_t>& newIndex,std::vector<std::vector<size_t> >& vv
 	newIndex.clear();
 	newIndex.resize(n);
 
-	typedef boost::adjacency_list<
+	using Graph = boost::adjacency_list<
 		boost::setS,
 		boost::vecS,
 		boost::undirectedS,
 		boost::property<
-		boost::vertex_color_t,
-		boost::default_color_type,
-		boost::property<
-		boost::vertex_degree_t,
-		int,
-		boost::property<
-		boost::vertex_priority_t,
-		double > > > > Graph;
+			boost::vertex_color_t,
+			boost::default_color_type,
+			boost::property<
+				boost::vertex_degree_t,
+				int,
+				boost::property<
+					boost::vertex_priority_t,
+					double > > > >;
 
-	typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-	typedef boost::property_map<Graph,boost::vertex_degree_t>::type deg_type;
-	typedef boost::property_map<Graph, boost::vertex_index_t>::type map_type;
+	using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
+	using deg_type = boost::property_map<Graph,boost::vertex_degree_t>::type;
+	using map_type = boost::property_map<Graph, boost::vertex_index_t>::type;
 
 	std::vector<int> inv_permP(0);
 	std::vector<int> inv_permV(0);
@@ -371,10 +370,9 @@ void CRKing(std::vector<size_t>& newIndex,std::vector<std::vector<size_t> >& vvC
 	newIndex.clear();
 	newIndex.resize(n);
 
-	typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
+	using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
 		boost::property<boost::vertex_color_t, boost::default_color_type,
-		boost::property<boost::vertex_degree_t,int> > >
-	Graph;
+			boost::property<boost::vertex_degree_t,int> > >;
 
 	std::vector<int> inv_permP(0);
 	std::vector<int> inv_permV(0);
@@ -431,10 +429,10 @@ void CRMinimumDegree(std::vector<size_t>& newIndex,std::vector<std::vector<size_
 	newIndex.clear();
 	newIndex.resize(n);
 
-	typedef boost::adjacency_list<boost::setS, boost::vecS, boost::directedS>  Graph;
+	using Graph = boost::adjacency_list<boost::setS, boost::vecS, boost::directedS>;
 
-	typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-	typedef boost::property_map<Graph, boost::vertex_index_t>::type map_type;
+	using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
+	using map_type = boost::property_map<Graph, boost::vertex_index_t>::type;
 
 	std::vector<int> inv_permP(0);
 	std::vector<int> inv_permV(0);

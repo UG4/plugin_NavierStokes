@@ -181,7 +181,7 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	{
 		const int bndSubset = *subsetIter;
 		if(vgeo.num_bf(bndSubset) == 0) continue;
-		typedef typename VGeom::BF BF;
+		using BF = typename VGeom::BF;
 		const std::vector<BF>& vBF = vgeo.bf(bndSubset);
 		for(size_t i = 0; i < vBF.size(); ++i)
 			for(size_t ip = 0; ip < vBF[i].num_ip(); ++ip){
@@ -196,7 +196,7 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	{
 		const int bndSubset = *subsetIter;
 		if(vgeo.num_bf(bndSubset) == 0) continue;
-		typedef typename PGeom::BF BF;
+		using BF = typename PGeom::BF;
 		const std::vector<BF>& vBF = pgeo.bf(bndSubset);
 		for(size_t i = 0; i < vBF.size(); ++i)
 			for(size_t ip = 0; ip < vBF[i].num_ip(); ++ip){
@@ -414,7 +414,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 		
 	//	A. The momentum equation:
 		{
-			typedef typename VGeom::BF BF;
+			using BF = typename VGeom::BF;
 			const std::vector<BF>& vBF = vgeo.bf(bndSubset);
 			typename std::vector<BF>::const_iterator bf;
 			for(bf = vBF.begin(); bf != vBF.end(); ++bf){
@@ -428,7 +428,7 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
 		//	B. The continuity equation
 		{
-			typedef typename PGeom::BF BF;
+			using BF = typename PGeom::BF;
 			const std::vector<BF>& vBF = pgeo.bf(bndSubset);
 			typename std::vector<BF>::const_iterator bf;
 			for(bf = vBF.begin(); bf != vBF.end(); ++bf){
@@ -463,7 +463,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 		
 	//	A. The momentum equation:
 		{
-			typedef typename VGeom::BF BF;
+			using BF = typename VGeom::BF;
 			const std::vector<BF>& vBF = vgeo.bf(bndSubset);
 			typename std::vector<BF>::const_iterator bf;
 			for(bf = vBF.begin(); bf != vBF.end(); ++bf){
@@ -477,7 +477,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
 	//	B. The continuity equation
 		{
-			typedef typename PGeom::BF BF;
+			using BF = typename PGeom::BF;
 			const std::vector<BF>& vBF = pgeo.bf(bndSubset);
 			typename std::vector<BF>::const_iterator bf;
 			for(bf = vBF.begin(); bf != vBF.end(); ++bf){
@@ -516,7 +516,7 @@ template<>
 void NavierStokesNoNormalStressOutflowFV<Domain2d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<dim> FVGeom;
+	using FVGeom = DimFVGeometry<dim>;
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
@@ -527,7 +527,7 @@ template<>
 void NavierStokesNoNormalStressOutflowFV<Domain3d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<dim> FVGeom;
+	using FVGeom = DimFVGeometry<dim>;
 	register_func<Tetrahedron, FVGeom, FVGeom >();
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
@@ -541,7 +541,7 @@ NavierStokesNoNormalStressOutflowFV<TDomain>::
 register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
-	typedef this_type T;
+	using T = this_type;
 
 	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, VGeom, PGeom>);

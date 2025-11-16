@@ -268,36 +268,36 @@ class SeparatedPressureSource
   	virtual public INewtonUpdate
   	{
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	algebra type
-	typedef typename TGridFunction::algebra_type algebra_type;
+	using algebra_type = typename TGridFunction::algebra_type;
 
 	/// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// MathVector<dim> attachment
-	//		typedef MathVector<dim> vecDim;
-	//		typedef Attachment<vecDim> AMathVectorDim;
+	// using vecDim = MathVector<dim>;
+	// using AMathVectorDim = Attachment<vecDim>;
 
 	/// attachment accessor
-	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
-	typedef Grid::AttachmentAccessor<elem_type,ANumber > aElementNumber;
+	using aVertexNumber = PeriodicAttachmentAccessor<Vertex,ANumber >;
+	using aElementNumber = Grid::AttachmentAccessor<elem_type,ANumber >;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
+	using VertexIterator = typename TGridFunction::template traits<Vertex>::const_iterator;
 
   		private:
 	// old pressure attachment accessor
@@ -322,7 +322,7 @@ class SeparatedPressureSource
 	grid_type* m_grid;
 
 	//  pressure index
-	static const size_t _P_ = dim;
+	static constexpr size_t _P_ = dim;
 
   		private:
 
@@ -415,9 +415,9 @@ class SeparatedPressureSource
 	                     const MathVector<refDim> vLocIP[],
 	                     const size_t nip,
 	                     LocalVector* u,
-	                     const MathMatrix<refDim, dim>* vJT = NULL) const
+	                     const MathMatrix<refDim, dim>* vJT = nullptr) const
 	{
-		UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
+		UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Unsupported element type");
 		elem_type* element = static_cast<elem_type*>(elem);
 
 		//	reference object id
@@ -428,7 +428,7 @@ class SeparatedPressureSource
 		const domain_type& domain = *m_u->domain().get();
 
 		//    get position accessor
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
 //		position_accessor_type aaPos = m_u->domain()->position_accessor();
@@ -500,7 +500,7 @@ class SeparatedPressureSource
 		Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 		//	get position accessor
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
 		// set volume and p values to zero
@@ -554,7 +554,7 @@ class SeparatedPressureSource
 	}
 
   		private:
-	static const size_t max_number_of_ips = 20;
+	static constexpr size_t max_number_of_ips = 20;
 
   		public:
 	virtual void operator() (MathVector<dim>& value,
@@ -577,7 +577,7 @@ class SeparatedPressureSource
 		const int si = this->subset();
 		for(size_t s = 0; s < this->num_series(); ++s)
 			evaluate<dim>(this->values(s), this->ips(s), this->time(s), si,
-			              elem, NULL, this->template local_ips<dim>(s),
+			              elem, nullptr, this->template local_ips<dim>(s),
 			              this->num_ip(s), u);
 	}
 
@@ -587,7 +587,7 @@ class SeparatedPressureSource
 		const int si = this->subset();
 		for(size_t s = 0; s < this->num_series(); ++s)
 			evaluate<dim>(this->values(s), this->ips(s), this->time(s), si,
-			              elem, NULL, this->template local_ips<dim>(s),
+			              elem, nullptr, this->template local_ips<dim>(s),
 			              this->num_ip(s), &(u->solution(this->time_point(s))));
 	}
 
@@ -604,36 +604,36 @@ class SeparatedPressureSourceInter
   	virtual public INewtonUpdate
   	{
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	algebra type
-	typedef typename TGridFunction::algebra_type algebra_type;
+	using algebra_type = typename TGridFunction::algebra_type;
 
 	/// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// MathVector<dim> attachment
-	//		typedef MathVector<dim> vecDim;
-	//		typedef Attachment<vecDim> AMathVectorDim;
+	// using vecDim = MathVector<dim>;
+	// using AMathVectorDim = Attachment<vecDim>;
 
 	/// attachment accessor
-	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
-	typedef Grid::AttachmentAccessor<elem_type,ANumber > aElementNumber;
+	using aVertexNumber = PeriodicAttachmentAccessor<Vertex,ANumber >;
+	using aElementNumber = Grid::AttachmentAccessor<elem_type,ANumber >;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
+	using VertexIterator = typename TGridFunction::template traits<Vertex>::const_iterator;
 
   		private:
 	// old pressure attachment accessor
@@ -658,7 +658,7 @@ class SeparatedPressureSourceInter
 	grid_type* m_grid;
 
 	//  pressure index
-	static const size_t _P_ = dim;
+	static constexpr size_t _P_ = dim;
 
   		private:
 
@@ -751,9 +751,9 @@ class SeparatedPressureSourceInter
 	                     const MathVector<refDim> vLocIP[],
 	                     const size_t nip,
 	                     LocalVector* u,
-	                     const MathMatrix<refDim, dim>* vJT = NULL) const
+	                     const MathMatrix<refDim, dim>* vJT = nullptr) const
 	{
-		UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Unsupported element type");
+		UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Unsupported element type");
 		elem_type* element = static_cast<elem_type*>(elem);
 
 		//	reference object id
@@ -764,7 +764,7 @@ class SeparatedPressureSourceInter
 		const domain_type& domain = *m_u->domain().get();
 
 		//    get position accessor
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
 		position_accessor_type aaPos = m_u->domain()->position_accessor();
@@ -836,7 +836,7 @@ class SeparatedPressureSourceInter
 		Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 		//	get position accessor
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 		const position_accessor_type& posAcc = domain.position_accessor();
 
 		// set volume and p values to zero
@@ -890,7 +890,7 @@ class SeparatedPressureSourceInter
 	}
 
   		private:
-	static const size_t max_number_of_ips = 20;
+	static constexpr size_t max_number_of_ips = 20;
 
   		public:
 	virtual void operator() (MathVector<dim>& value,
@@ -914,7 +914,7 @@ class SeparatedPressureSourceInter
 		const int si = this->subset();
 		for(size_t s = 0; s < this->num_series(); ++s)
 			evaluate<dim>(this->values(s), this->ips(s), t, si,
-			              elem, NULL, this->template local_ips<dim>(s),
+			              elem, nullptr, this->template local_ips<dim>(s),
 			              this->num_ip(s), u);
 	}
 

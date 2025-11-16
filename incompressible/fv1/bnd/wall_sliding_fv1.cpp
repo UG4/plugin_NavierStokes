@@ -188,7 +188,7 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 						" Cannot update Finite Volume Geometry.");
 
 //	find and set the local and the global positions of the IPs for imports
-	typedef typename TFVGeom::BF BF;
+	using BF = typename TFVGeom::BF;
 	typename std::vector<int>::const_iterator subsetIter;
 
 	m_vLocIP.clear(); m_vGloIP.clear();
@@ -233,10 +233,10 @@ add_jac_A_elem(LocalMatrix& J, const LocalVector& u, GridObject* elem, const Mat
 
 // 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
-	typedef typename TFVGeom::BF BF;
+	using BF = typename TFVGeom::BF;
 
 // 	loop registered boundary segments
-	typename std::vector<int>::const_iterator subsetIter;
+	std::vector<int>::const_iterator subsetIter;
 	size_t ip = 0;
 	for(subsetIter = m_vBndSubSetIndex.begin();
 		subsetIter != m_vBndSubSetIndex.end(); ++subsetIter)
@@ -347,7 +347,7 @@ add_def_A_elem(LocalVector& d, const LocalVector& u, GridObject* elem, const Mat
 
 	// 	get finite volume geometry
 	static const TFVGeom& geo = GeomProvider<TFVGeom>::get();
-	typedef typename TFVGeom::BF BF;
+	using BF = typename TFVGeom::BF;
 	
 	// 	loop registered boundary segments
 	typename std::vector<int>::const_iterator subsetIter;
@@ -573,7 +573,7 @@ NavierStokesWSBCFV1<TDomain>::
 register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
-	typedef this_type T;
+	using T = this_type;
 
 	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);

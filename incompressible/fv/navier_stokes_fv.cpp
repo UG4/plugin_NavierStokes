@@ -170,7 +170,7 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 	}
 	UG_CATCH_THROW("NavierStokes: Cannot update Finite Volume Geometry.");
 
-	static const int refDim = TElem::dim;
+	static constexpr int refDim = TElem::dim;
 	{
 		const MathVector<dim>* vSCVFip = vgeo.scvf_global_ips();
 		const size_t numSCVFip = vgeo.num_scvf_ips();
@@ -632,7 +632,7 @@ template<>
 void NavierStokesFV<Domain2d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<dim> FVGeom;
+	using FVGeom = DimFVGeometry<dim>;
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
@@ -643,7 +643,7 @@ template<>
 void NavierStokesFV<Domain3d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID)
 {
-	typedef DimFVGeometry<dim> FVGeom;
+	using FVGeom = DimFVGeometry<dim>;
 	register_func<Tetrahedron, FVGeom, FVGeom >();
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
@@ -655,7 +655,7 @@ template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFV<TDomain>::register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
-	typedef this_type T;
+	using T = this_type;
 
 	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, VGeom, PGeom>);

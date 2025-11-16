@@ -72,22 +72,22 @@ struct FunctionalityFVCR
  * available Domain and Algebra types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TDomain, typename TAlgebra>
 static void DomainAlgebra(Registry& reg, string grp)
 {
-	//static const int dim = TDomain::dim;
+	//static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
 	string tag = GetDomainAlgebraTag<TDomain,TAlgebra>();
 
-	typedef ApproximationSpace<TDomain> approximation_space_type;
-	typedef GridFunction<TDomain, TAlgebra> function_type;
+	using approximation_space_type = ApproximationSpace<TDomain>;
+	using function_type = GridFunction<TDomain, TAlgebra>;
 
 	//	NavierStokesInflow FVCR
 	{
-		typedef NavierStokesInflowFVCR<TDomain, TAlgebra> T;
-		typedef NavierStokesInflowBase<TDomain, TAlgebra> TBase;
+		using T = NavierStokesInflowFVCR<TDomain, TAlgebra>;
+		using TBase = NavierStokesInflowBase<TDomain, TAlgebra>;
 		string name = string("NavierStokesInflowFVCR").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesFVCR<TDomain> >)>("MasterElemDisc")
@@ -120,16 +120,16 @@ static void DomainAlgebra(Registry& reg, string grp)
 		reg.add_function("CROrderMinimumDegree", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool)>(&CROrderMinimumDegree), grp);
 	}
 /*-- End of the segment. --*/
-	typedef ug::GridFunction<TDomain, TAlgebra> TFct;
-	static const int dim = TDomain::dim;
+	using TFct = GridFunction<TDomain, TAlgebra>;
+	static constexpr int dim = TDomain::dim;
 
 	// Turbulent viscosity data
 	// Smagorinsky model
 	{
 		string name = string("CRSmagorinskyTurbViscData").append(suffix);
-		typedef CRSmagorinskyTurbViscData<TFct> T;
-		typedef CplUserData<number, dim> TBase;
-		typedef INewtonUpdate TBase2;
+		using T = CRSmagorinskyTurbViscData<TFct>;
+		using TBase = CplUserData<number, dim>;
+		using TBase2 = INewtonUpdate;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>,number)>("Approximation space, grid function, model parameter")
 			.add_method("set_model_parameter", &T::set_model_parameter)
@@ -147,9 +147,9 @@ static void DomainAlgebra(Registry& reg, string grp)
 	// Dynamic model
 	{
 		string name = string("CRDynamicTurbViscData").append(suffix);
-		typedef CRDynamicTurbViscData<TFct> T;
-		typedef CplUserData<number, dim> TBase;
-		typedef INewtonUpdate TBase2;
+		using T = CRDynamicTurbViscData<TFct>;
+		using TBase = CplUserData<number, dim>;
+		using TBase2 = INewtonUpdate;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -169,9 +169,9 @@ static void DomainAlgebra(Registry& reg, string grp)
 	// SeparatedPressureSource
 	{
 		string name = string("SeparatedPressureSource").append(suffix);
-		typedef SeparatedPressureSource<TFct> T;
-		typedef CplUserData<MathVector<dim>, dim> TBase;
-		typedef INewtonUpdate TBase2;
+		using T = SeparatedPressureSource<TFct>;
+		using TBase = CplUserData<MathVector<dim>, dim>;
+		using TBase2 = INewtonUpdate;
 		reg.add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
 				.add_method("set_source", static_cast<void (T::*)(SmartPtr<CplUserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
@@ -188,8 +188,8 @@ static void DomainAlgebra(Registry& reg, string grp)
 	
 	//	DiscConstraintFVCR
 	{
-		typedef DiscConstraintFVCR<TFct> T;
-		typedef IDomainConstraint<typename TFct::domain_type,typename TFct::algebra_type> TBase;
+		using T = DiscConstraintFVCR<TFct>;
+		using TBase = IDomainConstraint<typename TFct::domain_type,typename TFct::algebra_type>;
 		string name = string("DiscConstraintFVCR").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.template add_constructor<void (*)(SmartPtr<TFct>)>("Grid function")
@@ -222,8 +222,8 @@ static void Algebra(Registry& reg, string grp)
 	
 	//	CR ILU Threshold
 	{
-		typedef CRILUTPreconditioner<TAlgebra> T;
-		typedef IPreconditioner<TAlgebra> TBase;
+		using T = CRILUTPreconditioner<TAlgebra>;
+		using TBase = IPreconditioner<TAlgebra>;
 		string name = string("CRILUT").append(suffix);
 		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
 		.add_constructor()
@@ -247,8 +247,8 @@ static void Algebra(Registry& reg, string grp)
 	
 	//	parallel CR ILU Threshold
 	{
-		typedef PCRILUTPreconditioner<TAlgebra> T;
-		typedef IPreconditioner<TAlgebra> TBase;
+		using T = PCRILUTPreconditioner<TAlgebra>;
+		using TBase = IPreconditioner<TAlgebra>;
 		string name = string("PCRILUT").append(suffix);
 		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
 		.add_constructor()
@@ -278,19 +278,19 @@ static void Algebra(Registry& reg, string grp)
  * available Domain types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
-	static const int dim = TDomain::dim;
+	static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
 	//	Navier-Stokes FVCR
 	{
-		typedef NavierStokesFVCR<TDomain> T;
-		typedef IncompressibleNavierStokesBase<TDomain> TBase;
+		using T = NavierStokesFVCR<TDomain>;
+		using TBase = IncompressibleNavierStokesBase<TDomain>;
 		string name = string("NavierStokesFVCR").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
@@ -304,8 +304,8 @@ static void Domain(Registry& reg, string grp)
 
 	//	NavierStokesNoNormalStressOutflow FVCR
 	{
-		typedef NavierStokesNoNormalStressOutflowFVCR<TDomain> T;
-		typedef NavierStokesNoNormalStressOutflowBase<TDomain> TBase;
+		using T = NavierStokesNoNormalStressOutflowFVCR<TDomain>;
+		using TBase = NavierStokesNoNormalStressOutflowBase<TDomain>;
 		string name = string("NavierStokesNoNormalStressOutflowFVCR").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
@@ -315,8 +315,8 @@ static void Domain(Registry& reg, string grp)
 
 	//	CRNavierStokesSymBC
 	{
-		typedef CRNavierStokesSymBC<TDomain> T;
-		typedef IElemDisc<TDomain> TBase;
+		using T = CRNavierStokesSymBC<TDomain>;
+		using TBase = IElemDisc<TDomain>;
 		string name = string("CRNavierStokesSymBC").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
@@ -352,7 +352,7 @@ static void Dimension(Registry& reg, string grp)
 void Init___NavierStokes___FVCR(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::FunctionalityFVCR Functionality;
+	using Functionality = NavierStokes::FunctionalityFVCR;
 
 	try{
 //		RegisterDimensionDependent<Functionality>(*reg,grp);

@@ -40,26 +40,26 @@ namespace ug{
 
 template <int dim> struct face_type_traits
 {
-    typedef void face_type0;
-	typedef void face_type1;
+	using face_type0 = void;
+    using face_type1 = void;
 };
 
 template <> struct face_type_traits<1>
 {
-    typedef ReferenceVertex face_type0;
-	typedef ReferenceVertex face_type1;
+	using face_type0 = ReferenceVertex;
+	using face_type1 = ReferenceVertex;
 };
 
 template <> struct face_type_traits<2>
 {
-    typedef ReferenceEdge face_type0;
-	typedef ReferenceEdge face_type1;
+	using face_type0 = ReferenceEdge;
+	using face_type1 = ReferenceEdge;
 };
 
 template <> struct face_type_traits<3>
 {
-    typedef ReferenceTriangle face_type0;
-	typedef ReferenceQuadrilateral face_type1;
+	using face_type0 = ReferenceTriangle;
+	using face_type1 = ReferenceQuadrilateral;
 };
 
 // parameters:
@@ -70,27 +70,27 @@ template <> struct face_type_traits<3>
 template<typename side_type,typename secure_container,typename TGridFunction>
 	void get_constrained_sides_cr(secure_container& sides,const TGridFunction& u,std::vector<MultiIndex<2> > multInd,size_t fct = 0){
 	size_t nOfSides = sides.size();
-	ConstrainingEdge* cEdge=NULL;
-	ConstrainingFace* cFace=NULL;
+	ConstrainingEdge* cEdge= nullptr;
+	ConstrainingFace* cFace= nullptr;
 	Edge* edge;
 	Face* face;
 	size_t nc;
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 	///	create Multiindex
 	std::vector<MultiIndex<2> > seMultInd;
 	for (size_t i=0;i<nOfSides;i++){
 		if (dim==2){
 			cEdge = dynamic_cast<ConstrainingEdge*>(sides[i]);
-			if (cEdge==NULL) continue;
+			if (cEdge== nullptr) continue;
 			nc = cEdge->num_constrained_edges();
 			cEdge->constrained_edge(0);
 		}
 		else{
 			cFace = dynamic_cast<ConstrainingFace*>(sides[i]);
-			if (cFace==NULL) continue;
+			if (cFace==nullptr) continue;
 			nc = cFace->num_constrained_faces();
 		}
 		for (size_t k=0;k<nc;k++){
@@ -115,13 +115,13 @@ template<typename side_type,typename secure_container,typename TGridFunction>
 template <typename TGridFunction,typename side_type,typename constraining_side_type,typename VType>
 void constrainingSideAveraging(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaData,SmartPtr<TGridFunction> m_uInfo){
 	//	domain type
-	typedef typename TGridFunction::domain_type domain_type;
-	typedef typename domain_type::grid_type grid_type;
-	static const int dim = domain_type::dim;
+	using domain_type = typename TGridFunction::domain_type;
+	using grid_type = typename domain_type::grid_type;
+	static constexpr int dim = domain_type::dim;
 	/// side iterator
-	typedef typename TGridFunction::template traits<constraining_side_type>::const_iterator cSideIterator;
-	typedef typename domain_type::position_accessor_type position_accessor_type;
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using cSideIterator = typename TGridFunction::template traits<constraining_side_type>::const_iterator;
+	using position_accessor_type = typename domain_type::position_accessor_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 	domain_type& domain = *m_uInfo->domain().get();
 	DimCRFVGeometry<dim> geo;
 	position_accessor_type posAcc = m_uInfo->domain()->position_accessor();
@@ -130,7 +130,7 @@ void constrainingSideAveraging(PeriodicAttachmentAccessor<side_type,Attachment<V
 	for(  ;cSideIter !=cSideIterEnd; ++cSideIter){
 		constraining_side_type* cSide = *cSideIter;
 		typename grid_type::template traits<elem_type>::secure_container assoElements;
-		typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+		using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 		side_secure_container sides;
 		// get associated element
 		domain.grid()->associated_elements(assoElements, cSide);
@@ -164,65 +164,65 @@ template <typename TGridFunction>
 class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domain_type, typename TGridFunction::algebra_type>
 {
 	public:
-		typedef typename TGridFunction::domain_type TDomain;
-		typedef typename TGridFunction::algebra_type TAlgebra;
+		using TDomain = typename TGridFunction::domain_type;
+		using TAlgebra = typename TGridFunction::algebra_type;
 
 	///	world Dimension
-		static const int dim = TDomain::dim;
+		static constexpr int dim = TDomain::dim;
 
 	///	Algebra type
-		typedef TAlgebra algebra_type;
+		using algebra_type = TAlgebra;
 
 	///	Type of algebra matrix
-		typedef typename algebra_type::matrix_type matrix_type;
+		using matrix_type = typename algebra_type::matrix_type;
 
 	///	Type of algebra vector
-		typedef typename algebra_type::vector_type vector_type;
+		using vector_type = typename algebra_type::vector_type;
 
 	///	Type of Domain
-		typedef TDomain domain_type;
+		using domain_type = TDomain;
 
 	/// blockSize of used algebra
-		static const int blockSize = algebra_type::blockSize;
+		static constexpr int blockSize = algebra_type::blockSize;
 
 	///	grid type
-		typedef typename domain_type::grid_type grid_type;
+		using grid_type = typename domain_type::grid_type;
 
 	/// element type
-		typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+		using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// side type
-		typedef typename elem_type::side side_type;
+		using side_type = typename elem_type::side;
 
 	/// element iterator
-		typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+		using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// side iterator
-		typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+		using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
-		static const size_t _P_ = dim;
+		static constexpr size_t _P_ = dim;
 
 	///	Type of geometric base object
-		typedef typename domain_traits<TDomain::dim>::grid_base_object grid_base_object;
+		using grid_base_object = typename domain_traits<TDomain::dim>::grid_base_object;
 
 	/// position accessor
-		typedef typename domain_type::position_accessor_type position_accessor_type;
+		using position_accessor_type = typename domain_type::position_accessor_type;
 	
-		static const size_t maxShapeSize = 2*DimCRFVGeometry<dim>::maxNumSCV-1;
+		static constexpr size_t maxShapeSize = 2*DimCRFVGeometry<dim>::maxNumSCV-1;
 
-		typedef std::vector<std::pair<DoFIndex, MathVector<dim> > > vIndexPosPair;
-		typedef std::vector<std::vector<std::pair<DoFIndex, MathVector<dim> > > > vvIndexPosPair;
-		typedef std::pair<MathVector<dim>, MathVector<dim> > MathVector_Pair;
-		
-		typedef MathMatrix<dim,dim> dimMat;
-		typedef Attachment<dimMat> AMathDimMat;
-		typedef PeriodicAttachmentAccessor<side_type,AMathDimMat > aSideDimMat;
-		typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
-	
-		typedef Attachment<std::vector< MathVector<dim> > > ANumberArray;
-		typedef Attachment<std::vector< DoFIndex > > ASizetArray;
-		typedef PeriodicAttachmentAccessor<side_type,ANumberArray> aSideNumberArray;
-		typedef PeriodicAttachmentAccessor<side_type,ASizetArray> aSideSizetArray;
+		using vIndexPosPair = std::vector<std::pair<DoFIndex, MathVector<dim> > >;
+		using vvIndexPosPair = std::vector<std::vector<std::pair<DoFIndex, MathVector<dim> > > >;
+		using MathVector_Pair = std::pair<MathVector<dim>, MathVector<dim> >;
+
+		using dimMat = MathMatrix<dim,dim>;
+		using AMathDimMat = Attachment<dimMat>;
+		using aSideDimMat = PeriodicAttachmentAccessor<side_type,AMathDimMat >;
+		using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
+
+		using ANumberArray = Attachment<std::vector< MathVector<dim> > >;
+		using ASizetArray = Attachment<std::vector< DoFIndex > >;
+		using aSideNumberArray = PeriodicAttachmentAccessor<side_type,ANumberArray>;
+		using aSideSizetArray = PeriodicAttachmentAccessor<side_type,ASizetArray>;
 	
 		aSideDimMat acGrad;
 		aSideNumber acVol;
@@ -233,9 +233,9 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		ANumber aVol;
 		ANumberArray aGradSh;
 		ASizetArray aGradShInd;
-		
-		typedef typename face_type_traits<dim>::face_type0 face_type0;
-		typedef typename face_type_traits<dim>::face_type1 face_type1;
+
+		using face_type0 = typename face_type_traits<dim>::face_type0;
+		using face_type1 = typename face_type_traits<dim>::face_type1;
 
 	private:
 		SmartPtr<TGridFunction> m_u;
@@ -380,13 +380,13 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					//	evaluate finite volume geometry
 					geo.update(elem, &(vCorner[0]), domain.subset_handler().get());
 					
-					static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
+					static constexpr size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 					
 					MathMatrix<maxNumSCVF,dim> uValue;
 					
 					typename grid_type::template traits<side_type>::secure_container sides;
 					
-					UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+					UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 					
 					domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 					
@@ -464,7 +464,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 		// add linear pressure part and linear velocity upwind part to jacobian
 		virtual void adjust_jacobian(matrix_type& J, const vector_type& u,
 				                             ConstSmartPtr<DoFDistribution> dd, int type, number time = 0.0,
-				                             ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = NULL,const number s_a0 = 1.0){
+				                             ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = nullptr,const number s_a0 = 1.0){
 			if ((m_bLinUpConvJacobian==false)&&(m_bLinPressureJacobian==false)) return;
 			// compute new velocity gradient shapes in adaptive case
 			if ((m_bAdaptive==true)&&(m_bLinUpConvJacobian==true)) compute_grad_shapes();
@@ -517,7 +517,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					/// handle convection
 					if (m_bLinUpConvJacobian==true){
 					
-						static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
+						static constexpr size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 						MathVector<dim> StdVel[maxNumSCVF];
 					
 						m_u->dof_indices(elem,0,ind);
@@ -655,8 +655,8 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			std::vector<DoFIndex> multInd;
 			
 			position_accessor_type aaPos =  m_u->domain()->position_accessor();
-			
-			typedef typename grid_type::template traits<side_type>::secure_container secure_container;
+
+			using secure_container = typename grid_type::template traits<side_type>::secure_container;
 			
 			secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
@@ -774,8 +774,8 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			std::vector<DoFIndex> multInd;
 			
 			position_accessor_type posAcc = m_u->domain()->position_accessor();
-			
-			typedef typename grid_type::template traits<side_type>::secure_container secure_container;
+
+			using secure_container = typename grid_type::template traits<side_type>::secure_container;
 			
 			secure_container sides;
 			std::vector<MathVector<dim> > vCorner;
@@ -809,11 +809,11 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 					else
 						geo.update_hanging(elem, &(vCorner[0]), domain.subset_handler().get());
 						
-					static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
+					static constexpr size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 
 					MathMatrix<maxNumSCVF,dim> uValue;
 
-					UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+					UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 					domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 					
@@ -1034,7 +1034,7 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 						}
 					}
 					
-					static const size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
+					static constexpr size_t maxNumSCVF = DimCRFVGeometry<dim>::maxNumSCVF;
 					MathVector<dim> StdVel[maxNumSCVF];
 
 					for(size_t ip = 0; ip < geo.num_scvf(); ++ip)
@@ -1148,11 +1148,11 @@ class DiscConstraintFVCR: public IDomainConstraint<typename TGridFunction::domai
 			/// \{
 		virtual void adjust_defect(vector_type& d, const vector_type& u,
 				                           ConstSmartPtr<DoFDistribution> dd, int type, number time = 0.0,
-				                           ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = SPNULL,
-										   const std::vector<number>* vScaleMass = NULL,
-										   const std::vector<number>* vScaleStiff = NULL)
+				                           ConstSmartPtr<VectorTimeSeries<vector_type> > vSol = nullptr,
+										   const std::vector<number>* vScaleMass = nullptr,
+										   const std::vector<number>* vScaleStiff = nullptr)
 		{
-			if (vSol == SPNULL)
+			if (vSol == nullptr)
 				if (m_bLinUpConvDefect==false)
 					add_pressure_defect(d,u,dd);
 				else

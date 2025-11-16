@@ -148,14 +148,14 @@ class NavierStokesFV1
 {
 	protected:
 	///	Base class type
-		typedef IncompressibleNavierStokesBase<TDomain> base_type;
+		using base_type = IncompressibleNavierStokesBase<TDomain>;
 
 	///	own type
-		typedef NavierStokesFV1<TDomain> this_type;
+		using this_type = NavierStokesFV1<TDomain>;
 
 	public:
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	public:
 	///	Constructor (setting default values)
@@ -203,15 +203,15 @@ class NavierStokesFV1
 
 	///	sets a stabilization for upwinding (Physical Advection Correction)
         void set_upwind(SmartPtr<INavierStokesFV1Stabilization<dim> > spStab)
-        	{m_spConvStab = spStab; m_spConvUpwind = SPNULL;}
+        	{m_spConvStab = spStab; m_spConvUpwind = nullptr;}
 
 	///	sets an upwinding for the convective term of momentum equation
 		void set_upwind(SmartPtr<INavierStokesUpwind<dim> > spUpwind)
-			{m_spConvStab = SPNULL; m_spConvUpwind = spUpwind;}
+			{m_spConvStab = nullptr; m_spConvUpwind = spUpwind;}
 
 	///	sets the upwind based on a string identifier
 		void set_upwind(const std::string& name)
-			{m_spConvStab = SPNULL; m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);
+			{m_spConvStab = nullptr; m_spConvUpwind = CreateNavierStokesUpwind<dim>(name);
 			if(m_spStab.valid() && m_spStab->upwind().invalid()) m_spStab->set_upwind(m_spConvUpwind);}
 
 		void set_pac_upwind(bool bPac)
@@ -611,7 +611,7 @@ class NavierStokesFV1
 		SmartPtr<INavierStokesUpwind<dim> > m_spConvUpwind;
 
 	/// abbreviation for pressure
-		static const size_t _P_ = dim;
+		static constexpr size_t _P_ = dim;
 
 		using base_type::m_bPecletBlend;
 		using base_type::m_bFullNewtonFactor;

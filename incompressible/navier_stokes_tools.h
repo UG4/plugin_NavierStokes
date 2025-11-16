@@ -53,39 +53,39 @@ namespace ug{
 template <typename TGridFunction>
 void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	// get grid
 	grid_type& grid = *uLagrange.domain()->grid();
 
 	// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	//  volume attachment
-	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aVertexNumber;
+	using aVertexNumber = PeriodicAttachmentAccessor<Vertex,ANumber >;
 	aVertexNumber m_acVolume;
 	ANumber m_aVolume;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// vertex iterator
-	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexIterator;
+	using VertexIterator = typename TGridFunction::template traits<Vertex>::const_iterator;
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	position_accessor_type& posAcc = uLagrange.domain()->position_accessor();
 	
 	// scalar function or vector function
@@ -127,9 +127,9 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 	// create Multiindex
 	std::vector<DoFIndex> multInd;
 
-	static const size_t MaxNumSidesOfElem = 10;
+	static constexpr size_t MaxNumSidesOfElem = 10;
 
-	typedef MathVector<dim> MVD;
+	using MVD = MathVector<dim>;
 	std::vector<MVD> uValue(MaxNumSidesOfElem);
 	
 	// set lagrange function to zero
@@ -175,7 +175,7 @@ void interpolateCRToLagrange(TGridFunction& uLagrange,TGridFunction& uCR){
 
 			typename grid_type::template traits<side_type>::secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 			grid.associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
@@ -235,39 +235,39 @@ template <typename TGridFunction>
 void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	// get grid
 	grid_type& grid = *u.domain()->grid();
 
 	// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
     /// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	//  volume attachment
-	typedef PeriodicAttachmentAccessor<side_type,ANumber > aSideNumber;
+	using aSideNumber = PeriodicAttachmentAccessor<side_type,ANumber >;
 	aSideNumber m_acVolume;
 	ANumber m_aVolume;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// side iterator
-	typedef typename TGridFunction::template traits<side_type>::const_iterator SideIterator;
+	using SideIterator = typename TGridFunction::template traits<side_type>::const_iterator;
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	position_accessor_type& posAcc = u.domain()->position_accessor();
 
 	DimCRFVGeometry<dim> geo;
@@ -321,13 +321,13 @@ void vorticityFVCR(TGridFunction& vort,TGridFunction& u)
 
 			typename grid_type::template traits<side_type>::secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 			grid.associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
-			static const size_t MaxNumSidesOfElem = 18;
+			static constexpr size_t MaxNumSidesOfElem = 18;
 
-			typedef MathVector<dim> MVD;
+			using MVD = MathVector<dim>;
 			std::vector<MVD> uValue(MaxNumSidesOfElem);
 
 			for (size_t s=0;s < nofsides;s++)
@@ -387,36 +387,36 @@ template <typename TGridFunction>
 void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 {
 	///	domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	// get grid
 	grid_type& grid = *u.domain()->grid();
 
 	// position accessor type
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	//  volume attachment
-	typedef PeriodicAttachmentAccessor<Vertex,ANumber > aSideNumber;
+	using aSideNumber = PeriodicAttachmentAccessor<Vertex,ANumber >;
 	aSideNumber m_acVolume;
 	ANumber m_aVolume;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// side iterator
-	typedef typename TGridFunction::template traits<Vertex>::const_iterator VertexConstIterator;
+	using VertexConstIterator = typename TGridFunction::template traits<Vertex>::const_iterator;
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	position_accessor_type& posAcc = u.domain()->position_accessor();
 
 	DimFV1Geometry<dim> geo;
@@ -467,9 +467,9 @@ void vorticityFV1(TGridFunction& vort,TGridFunction& u)
 			//	evaluate finite volume geometry
 			geo.update(elem, &(coCoord[0]), u.domain()->subset_handler().get());
 
-			static const size_t MaxNumSidesOfElem = 18;
+			static constexpr size_t MaxNumSidesOfElem = 18;
 
-			typedef MathVector<dim> MVD;
+			using MVD = MathVector<dim>;
 			std::vector<MVD> uValue(MaxNumSidesOfElem);
 
 			for (size_t co=0;co < numVertices;co++)
@@ -594,8 +594,8 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 	const number horizGhia7500[17] ={0.00000,0.43979,0.44030,0.43564,0.41824,0.35060,0.28117,0.27348,0.00824,-0.30448,-0.36213,-0.41050,-0.48590,-0.52347,-0.55216,-0.53858,0.00000};
 	const number horizGhia10000[17]={0.00000,0.43983,0.43733,0.43124,0.41487,0.35070,0.28003,0.27224,0.00831,-0.30719,-0.36737,-0.41496,-0.45863,-0.49099,-0.52987,-0.54302,0.00000};
 
-	const number* vertGhia = NULL;
-	const number* horizGhia = NULL;
+	const number* vertGhia = nullptr;
+	const number* horizGhia = nullptr;
 	switch (Re)
 	{
 		case 100:	vertGhia = vertGhia_100;   horizGhia = horizGhia100; break;
@@ -648,8 +648,8 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 	const number vertErturk_21000[23]={1.0000,0.5003,0.4895,0.4983,0.4897,0.4742,0.4580,0.4425,0.4277,0.4132,0.3992,-0.0232,-0.2892,-0.3066,-0.3239,-0.3412,-0.3585,-0.3758,-0.3925,-0.4121,-0.4463,-0.3562,0.0000};
 
 
-	const number* horizErturk = NULL;
-	const number* vertErturk = NULL;
+	const number* horizErturk = nullptr;
+	const number* vertErturk = nullptr;
 	switch (Re)
 	{
 		case 1000:	horizErturk = horizErturk_1000;  vertErturk = vertErturk_1000; break;
@@ -670,7 +670,7 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 	GlobalGridFunctionNumberData<TGridFunction> vGFEval(u, vVelCmp[1].c_str());
 	std::vector<MathVector<2> > vPos(numGhiaPoints);
 
-	if(vertGhia != NULL && horizGhia != NULL)
+	if(vertGhia != nullptr && horizGhia != nullptr)
 	{
 		UG_LOG("  ------ Ghia, Re = " << Re << ": u values on a vertical line through x = 0.5  ------\n");
 		for(size_t i = 0; i < numGhiaPoints; ++i) vPos[i] = MathVector<2>(vertGhiaPosX, vertGhiaPosY[i]);
@@ -703,7 +703,7 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 		DrivenCavityEvalAtPoints<TGridFunction>(vPos, vGFEval, horizUG4_3200);
 	}
 
-	if(horizErturk != NULL && vertErturk != NULL)
+	if(horizErturk != nullptr && vertErturk != nullptr)
 	{
 		vPos.resize(numErturkPoints);
 		UG_LOG("  ------ Erturk, Re = " << Re << ": u values on a vertical line through x = 0.5  ------\n");
@@ -731,22 +731,22 @@ void DrivenCavityLinesEval(SmartPtr<TGridFunction> u, std::vector<std::string> v
 template<typename TGridFunction>
 void cflNumber(TGridFunction& u,number deltaT){
 	/// domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	// cfl number
 	number maxCfl=0;
@@ -763,7 +763,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
@@ -803,7 +803,7 @@ void cflNumber(TGridFunction& u,number deltaT){
 
 			typename grid_type::template traits<side_type>::secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
@@ -855,22 +855,22 @@ number kineticEnergy(TGridFunction& u){
 	number totalVol=0;
 
 	/// domain type
-	typedef typename TGridFunction::domain_type domain_type;
+	using domain_type = typename TGridFunction::domain_type;
 
 	///	world dimension
-	static const int dim = domain_type::dim;
+	static constexpr int dim = domain_type::dim;
 
 	/// element iterator
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator ElemIterator;
+	using ElemIterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 	/// element type
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object elem_type;
+	using elem_type = typename TGridFunction::template dim_traits<dim>::grid_base_object;
 
 	/// side type
-	typedef typename elem_type::side side_type;
+	using side_type = typename elem_type::side;
 
 	///	grid type
-	typedef typename domain_type::grid_type grid_type;
+	using grid_type = typename domain_type::grid_type;
 
 	//	get domain of grid function
 	domain_type& domain = *u.domain().get();
@@ -883,7 +883,7 @@ number kineticEnergy(TGridFunction& u){
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	// assemble deformation tensor fluxes
@@ -924,7 +924,7 @@ number kineticEnergy(TGridFunction& u){
 
 			typename grid_type::template traits<side_type>::secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
@@ -985,15 +985,15 @@ std::vector<number> DragLift(SmartPtr<TGridFunction> spGridFct,
                               number kinVisco, number density,
                               int quadOrder)
 {
-	static const int dim = TGridFunction::dim;
-	static const int WorldDim = TGridFunction::dim;
-	typedef typename TGridFunction::template dim_traits<dim>::grid_base_object grid_base_object;
-	typedef typename TGridFunction::template dim_traits<dim>::const_iterator const_iterator;
+	static constexpr int dim = TGridFunction::dim;
+	static constexpr int WorldDim = TGridFunction::dim;
+	using grid_base_object = typename TGridFunction::template dim_traits<dim>::grid_base_object;
+	using const_iterator = typename TGridFunction::template dim_traits<dim>::const_iterator;
 
 
 //	read subsets
 	SubsetGroup innerSSGrp(spGridFct->domain()->subset_handler());
-	if(InnerSubsets != NULL){
+	if(InnerSubsets != nullptr){
 		innerSSGrp.add(TokenizeString(InnerSubsets));
 		if(!SameDimensionsInAllSubsets(innerSSGrp))
 			UG_THROW("DragDrift: Subsets '"<<InnerSubsets<<"' do not have same dimension."
@@ -1006,7 +1006,7 @@ std::vector<number> DragLift(SmartPtr<TGridFunction> spGridFct,
 
 //	read subsets
 	SubsetGroup bndSSGrp(spGridFct->domain()->subset_handler());
-	if(BndSubsets != NULL)
+	if(BndSubsets != nullptr)
 		bndSSGrp.add(TokenizeString(BndSubsets));
 	else
 		UG_THROW("DragDrift: No boundary subsets passed.");
@@ -1050,8 +1050,8 @@ std::vector<number> DragLift(SmartPtr<TGridFunction> spGridFct,
 
 	//	this is the base element type (e.g. Face). This is the type when the
 	//	iterators above are dereferenciated.
-		typedef typename domain_traits<dim>::element_type Element;
-		typedef typename domain_traits<dim>::side_type Side;
+		using Element = typename domain_traits<dim>::element_type;
+		using Side = typename domain_traits<dim>::side_type;
 
 	//	vector of corner coordinates of element corners (to be filled for each elem)
 		std::vector<MathVector<WorldDim> > vCorner;
@@ -1091,7 +1091,7 @@ std::vector<number> DragLift(SmartPtr<TGridFunction> spGridFct,
 				for(size_t sh = 0; sh < vInd.size(); ++sh)
 					vvValue[fct][sh] = DoFRef(*spGridFct, vInd[sh]);
 			}
-			const static int _P_ = dim;
+			static constexpr int _P_ = dim;
 
 		//	loop sub elements
 			for(size_t side = 0; side < vSide.size(); ++side)

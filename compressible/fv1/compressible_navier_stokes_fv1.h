@@ -124,22 +124,21 @@ namespace NavierStokes{
  * </ul>
  *
  * \tparam	TDomain		Domain
- * \tparam	TAlgebra	Algebra
  */
-template<	typename TDomain>
+template<typename TDomain>
 class CompressibleNavierStokesFV1
 	: public CompressibleNavierStokesBase<TDomain>
 {
 	protected:
 	///	Base class type
-		typedef CompressibleNavierStokesBase<TDomain> base_type;
+		using base_type = CompressibleNavierStokesBase<TDomain>;
 
 	///	own type
-		typedef CompressibleNavierStokesFV1<TDomain> this_type;
+		using this_type = CompressibleNavierStokesFV1<TDomain>;
 
 	public:
 	///	World dimension
-		static const int dim = base_type::dim;
+		static constexpr int dim = base_type::dim;
 
 	public:
 	///	Constructor (setting default values)
@@ -487,9 +486,9 @@ class CompressibleNavierStokesFV1
 		SmartPtr<INavierStokesUpwind<dim> > m_spConvUpwind;
 
 	/// abbreviation for pressure
-		static const size_t _P_ = dim;
+		static constexpr size_t _P_ = dim;
 	/// abbreviation for density
-		static const size_t _Rho_ = dim + 1;
+		static constexpr size_t _Rho_ = dim + 1;
 
 		using base_type::m_bMachNrBlend;
 		using base_type::m_bFullNewtonFactor;

@@ -177,9 +177,8 @@ prep_elem_loop(const ReferenceObjectID roid, const int si)
 						" Density has not been set, but is required.");
 
 //	set local positions for imports
-	typedef typename reference_element_traits<TElem>::reference_element_type
-																ref_elem_type;
-	static const int refDim = ref_elem_type::dim;
+	using ref_elem_type = typename reference_element_traits<TElem>::reference_element_type;
+	static constexpr int refDim = ref_elem_type::dim;
 
 	if(!TFVGeom::usesHangingNodes)
 	{
@@ -219,9 +218,8 @@ prep_elem(const LocalVector& u, GridObject* elem, const ReferenceObjectID roid, 
 	if(TFVGeom::usesHangingNodes)
 	{
 	//	set local positions for imports
-		typedef typename reference_element_traits<TElem>::reference_element_type
-																	ref_elem_type;
-		static const int refDim = ref_elem_type::dim;
+		using ref_elem_type = typename reference_element_traits<TElem>::reference_element_type;
+		static constexpr int refDim = ref_elem_type::dim;
 
 	//	request ip series
 		m_imKinViscosity.template set_local_ips<refDim>(geo.scvf_local_ips(),
@@ -829,7 +827,7 @@ NavierStokesFVCR<TDomain>::
 register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
-	typedef this_type T;
+	using T = this_type;
 
 	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, TFVGeom>);

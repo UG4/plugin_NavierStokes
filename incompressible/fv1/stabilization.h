@@ -62,27 +62,27 @@ class INavierStokesFV1Stabilization
 {
 	protected:
 	///	used traits
-		typedef fv1_dim_traits<dim, dim> traits;
+		using traits = fv1_dim_traits<dim, dim>;
 
 	public:
 	///	number of SubControlVolumes
-		static const size_t maxNumSCV = traits::maxNumSCV;
+		static constexpr size_t maxNumSCV = traits::maxNumSCV;
 
 	///	max number of SubControlVolumeFaces
-		static const size_t maxNumSCVF = traits::maxNumSCVF;
+		static constexpr size_t maxNumSCVF = traits::maxNumSCVF;
 
 	/// max number of shape functions
-		static const size_t maxNumSH = traits::maxNSH;
+		static constexpr size_t maxNumSH = traits::maxNSH;
 
 	private:
 	/// abbreviation for own type
-		typedef INavierStokesFV1Stabilization<dim> this_type;
+		using this_type = INavierStokesFV1Stabilization<dim>;
 
 	public:
 	///	constructor
 		INavierStokesFV1Stabilization()
 		:	m_numScvf(0), m_numSh(0),
-			m_spUpwind(NULL)
+			m_spUpwind(nullptr)
 		{
 			m_vUpdateFunc.clear();
 		}
@@ -107,7 +107,7 @@ class INavierStokesFV1Stabilization
 		//	get unique geometry id
 			size_t id = GetUniqueFVGeomID<TFVGeom>();
 		//	check that function exists
-			if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == NULL)
+			if(id >= m_vUpdateFunc.size() || m_vUpdateFunc[id] == nullptr)
 				UG_THROW("No update function registered for Geometry "<<id);
 		//	set current geometry
 			m_id = id;
@@ -274,14 +274,14 @@ class INavierStokesFV1Stabilization
 
 	protected:
 	///	type of update function
-		typedef void (this_type::*UpdateFunc)(	const FVGeometryBase* geo,
-												const LocalVector& vCornerValue,
-												const MathVector<dim> vStdVel[],
-												const bool bStokes,
-												const DataImport<number, dim>& kinVisco,
-												const DataImport<number, dim>& density,
-												const DataImport<MathVector<dim>, dim>* pSource,
-												const LocalVector* pvCornerValueOldTime, number dt);
+	using UpdateFunc = void(this_type::*)(	const FVGeometryBase* geo,
+		                                      const LocalVector& vCornerValue,
+		                                      const MathVector<dim> vStdVel[],
+		                                      const bool bStokes,
+		                                      const DataImport<number, dim>& kinVisco,
+		                                      const DataImport<number, dim>& density,
+		                                      const DataImport<MathVector<dim>, dim>* pSource,
+		                                      const LocalVector* pvCornerValueOldTime, number dt);
 
 	public:
 	///	register a update function for a Geometry
@@ -306,7 +306,7 @@ class INavierStokesSRFV1Stabilization
 {
 	private:
 	/// Abbreviation for own type
-		typedef INavierStokesSRFV1Stabilization<dim> this_type;
+		using this_type = INavierStokesSRFV1Stabilization<dim>;
 
 	protected:
 		enum DiffusionLength
@@ -428,13 +428,13 @@ class NavierStokesFIELDSStabilization
 {
 	public:
 	///	Base class
-		typedef INavierStokesSRFV1Stabilization<TDim> base_type;
+		using base_type = INavierStokesSRFV1Stabilization<TDim>;
 
 	///	This class
-		typedef NavierStokesFIELDSStabilization<TDim> this_type;
+		using this_type = NavierStokesFIELDSStabilization<TDim>;
 
 	///	Dimension
-		static const int dim = TDim;
+		static constexpr int dim = TDim;
 
 	protected:
 	//	explicitly forward some function
@@ -482,15 +482,15 @@ class NavierStokesFIELDSStabilization
 		template <typename TElem>
 		void register_func()
 		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(const TGeom* geo,
-											 const LocalVector& vCornerValue,
-											 const MathVector<dim> vStdVel[],
-											 const bool bStokes,
-											 const DataImport<number, dim>& kinVisco,
- 											 const DataImport<number, dim>& density,
-											 const DataImport<MathVector<dim>, dim>* pSource,
-											 const LocalVector* pvCornerValueOldTime, number dt);
+			using TGeom = FV1Geometry<TElem, dim>;
+			using TFunc = void(this_type::*)(const TGeom* geo,
+			                                 const LocalVector& vCornerValue,
+			                                 const MathVector<dim> vStdVel[],
+			                                 const bool bStokes,
+			                                 const DataImport<number, dim>& kinVisco,
+			                                 const DataImport<number, dim>& density,
+			                                 const DataImport<MathVector<dim>, dim>* pSource,
+			                                 const LocalVector* pvCornerValueOldTime, number dt);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
 		}
@@ -510,13 +510,13 @@ class NavierStokesFLOWStabilization
 {
 	public:
 	///	Base class
-		typedef INavierStokesSRFV1Stabilization<TDim> base_type;
+		using base_type = INavierStokesSRFV1Stabilization<TDim>;
 
 	///	This class
-		typedef NavierStokesFLOWStabilization<TDim> this_type;
+		using this_type = NavierStokesFLOWStabilization<TDim>;
 
 	///	Dimension
-		static const int dim = TDim;
+		static constexpr int dim = TDim;
 
 	protected:
 	//	explicitly forward some function
@@ -564,17 +564,17 @@ class NavierStokesFLOWStabilization
 		template <typename TElem>
 		void register_func()
 		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(const TGeom* geo,
-											 const LocalVector& vCornerValue,
-											 const MathVector<dim> vStdVel[],
-											 const bool bStokes,
-											 const DataImport<number, dim>& kinVisco,
-											 const DataImport<number, dim>& density,
-											 const DataImport<MathVector<dim>, dim>* pSource,
-											 const LocalVector* pvCornerValueOldTime, number dt);
+			using TGeom = FV1Geometry<TElem, dim>;
+			using TFunc = void(this_type::*)(const TGeom* geo,
+			                                 const LocalVector& vCornerValue,
+			                                 const MathVector<dim> vStdVel[],
+			                                 const bool bStokes,
+			                                 const DataImport<number, dim>& kinVisco,
+			                                 const DataImport<number, dim>& density,
+			                                 const DataImport<MathVector<dim>, dim>* pSource,
+			                                 const LocalVector* pvCornerValueOldTime, number dt);
 
-			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
+			this->register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
 		}
 };
 
@@ -588,13 +588,13 @@ class NavierStokesFV1WithoutStabilization
 {
 	public:
 	///	Base class
-		typedef INavierStokesFV1Stabilization<TDim> base_type;
+		using base_type = INavierStokesFV1Stabilization<TDim>;
 
 	///	This class
-		typedef NavierStokesFV1WithoutStabilization<TDim> this_type;
+		using this_type = NavierStokesFV1WithoutStabilization<TDim>;
 
 	///	Dimension
-		static const int dim = TDim;
+		static constexpr int dim = TDim;
 
 	protected:
 	//	explicitly forward some function
@@ -632,15 +632,15 @@ class NavierStokesFV1WithoutStabilization
 		template <typename TElem>
 		void register_func()
 		{
-			typedef FV1Geometry<TElem, dim> TGeom;
-			typedef void (this_type::*TFunc)(const TGeom* geo,
-											 const LocalVector& vCornerValue,
-											 const MathVector<dim> vStdVel[],
-											 const bool bStokes,
-											 const DataImport<number, dim>& kinVisco,
-											 const DataImport<number, dim>& density,
-											 const DataImport<MathVector<dim>, dim>* pSource,
-											 const LocalVector* pvCornerValueOldTime, number dt);
+			using TGeom = FV1Geometry<TElem, dim>;
+			using TFunc = void(this_type::*)(const TGeom* geo,
+			                                 const LocalVector& vCornerValue,
+			                                 const MathVector<dim> vStdVel[],
+			                                 const bool bStokes,
+			                                 const DataImport<number, dim>& kinVisco,
+			                                 const DataImport<number, dim>& density,
+			                                 const DataImport<MathVector<dim>, dim>* pSource,
+			                                 const LocalVector* pvCornerValueOldTime, number dt);
 
 			this->template register_update_func<TGeom, TFunc>(&this_type::template update<TElem>);
 		}

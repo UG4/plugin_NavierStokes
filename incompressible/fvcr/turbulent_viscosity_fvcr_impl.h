@@ -43,7 +43,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::transferToLowerLe
 		for (size_t lev=approximationSpace.num_levels()-2;(int)lev>=0;lev--){
 			const DoFDistribution& lDD = *approximationSpace.dof_distribution(GridLevel(lev, GridLevel::LEVEL));
 			const MultiGrid& grid = *lDD.multi_grid();
-			typedef typename DoFDistribution::traits<side_type>::const_iterator coarseLevelSideIter;
+			using coarseLevelSideIter = typename DoFDistribution::traits<side_type>::const_iterator;
 			coarseLevelSideIter clsIter, clsIterEnd;
 			clsIter = lDD.template begin<side_type>(si);
 			clsIterEnd = lDD.template end<side_type>(si);
@@ -109,7 +109,7 @@ template <typename VType>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
 																			 SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 	
 	std::vector<DoFIndex> multInd;
 	
@@ -126,7 +126,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	// assemble deformation tensor fluxes
@@ -165,10 +165,10 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::elementFilter(Per
 
 			map.global_to_local(localBary,bary);
 
-			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+			using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 			side_secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 			if (m_bAdaptive){
@@ -262,7 +262,7 @@ template <typename VType>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(PeriodicAttachmentAccessor<side_type,Attachment<VType> >& aaUHat,aSideNumber& aaVol,
 																		 SmartPtr<TGridFunction> u,PeriodicAttachmentAccessor<side_type,Attachment<VType> >* aaU){
 	bool useGridFunction = true;
-	if (u==NULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 
 	std::vector<DoFIndex> multInd;
 	//	get domain of grid function
@@ -278,7 +278,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 	
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 	
 	// assemble deformation tensor fluxes
@@ -316,11 +316,11 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 			DimReferenceMapping<dim, dim>& map = ReferenceMappingProvider::get<dim, dim>(roid, coCoord);
 			
 			map.global_to_local(localBary,bary);
-			
-			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+
+			using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 			side_secure_container sides;
 			
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 			
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 			
@@ -405,7 +405,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::scvFilter(Periodi
 template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformationTensor(aSideTensor& aaDefTensor,aSideNumber& aaVol,SmartPtr<TGridFunction> u,aSideDimVector* aaU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 
 	//	get domain
 	domain_type& domain = *m_uInfo->domain().get();
@@ -431,7 +431,7 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	//	get position accessor
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	const position_accessor_type& posAcc = domain.position_accessor();
 
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si){
@@ -451,16 +451,16 @@ void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::assembleDeformati
 				coCoord[i] = posAcc[vVrt[i]];
 			};
 
-			static const size_t MaxNumSidesOfElem = 10;
+			static constexpr size_t MaxNumSidesOfElem = 10;
 
-			typedef MathVector<dim> MVD;
+			using MVD = MathVector<dim>;
 			std::vector<MVD> uValue(MaxNumSidesOfElem);
 			MVD ipVelocity;
 
-			typedef typename grid_type::template traits<side_type>::secure_container side_secure_container;
+			using side_secure_container = typename grid_type::template traits<side_type>::secure_container;
 			side_secure_container sides;
 
-			UG_ASSERT(dynamic_cast<elem_type*>(elem) != NULL, "Only elements of type elem_type are currently supported");
+			UG_ASSERT(dynamic_cast<elem_type*>(elem) != nullptr, "Only elements of type elem_type are currently supported");
 
 			domain.grid()->associated_elements_sorted(sides, static_cast<elem_type*>(elem) );
 
@@ -598,7 +598,7 @@ template <typename TData, int dim, typename TImpl,typename TGridFunction>
 void StdTurbulentViscosityData<TData,dim,TImpl,TGridFunction>::addUiUjTerm(aSideTensor& aaResult,const number factor,
 																		   SmartPtr<TGridFunction> u,aSideDimVector* aaU){
 	bool useGridFunction = true;
-	if (u==SPNULL) useGridFunction = false;
+	if (u==nullptr) useGridFunction = false;
 	
 	//	get domain of grid function
 	domain_type& domain = *m_uInfo->domain().get();
@@ -646,7 +646,7 @@ void CRSmagorinskyTurbViscData<TGridFunction>::update(){
 	//	Vertex* vVrt[domain_traits<dim>::MaxNumVerticesOfElem];
 
 	// assemble deformation tensor fluxes
-	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,NULL);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,nullptr);
 	// compute turbulent viscosity , loop over sides
 	for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 	{
@@ -682,7 +682,7 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 
 	//	get position accessor
 	// for debug 
-	typedef typename domain_type::position_accessor_type position_accessor_type;
+	using position_accessor_type = typename domain_type::position_accessor_type;
 	// for debug 
 	const position_accessor_type& posAcc = domain.position_accessor();
 
@@ -702,26 +702,26 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 	this->elementFilter(m_acUHat,m_acVolumeHat,m_u,&m_acUHat);
 	// use Mij attachment to store first Lij part
 	// u_i u_j
-	this->addUiUjTerm(m_acMij,1.0,m_u,NULL);
+	this->addUiUjTerm(m_acMij,1.0,m_u,nullptr);
 	// \hat{u_i u_j}
-	this->elementFilter(m_acLij,m_acVolumeHat,SPNULL,&m_acMij);
+	this->elementFilter(m_acLij,m_acVolumeHat,nullptr,&m_acMij);
 	// \hat{u_i u_j} - \hat{u_i} \hat{u_j}
-	this->addUiUjTerm(m_acLij,-1.0,SPNULL,&m_acUHat);
+	this->addUiUjTerm(m_acLij,-1.0,nullptr,&m_acUHat);
 
 	// Mij term
 	// first term |\hat{S}| \hat{S}
 	// assemble \hat{S} using \hat{u}
-	this->assembleDeformationTensor(m_acDeformationHat,m_acVolume,SPNULL,&m_acUHat);
+	this->assembleDeformationTensor(m_acDeformationHat,m_acVolume,nullptr,&m_acUHat);
 	// normalize \hat{S}
 	this->scaleTensorByNorm(m_acDeformationHat);
 	// Mij second term \hat{|S|S}
 	// compute S
-	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,NULL);
+	this->assembleDeformationTensor(m_acDeformation,m_acVolume,m_u,nullptr);
 	// compute |S| S
 	this->scaleTensorByNorm(m_acDeformation);
 	// filter |S| S
 	//for debug UG_LOG("------------------------------------------------------\n");
-	this->elementFilter(m_acMij,m_acVolumeHat,SPNULL,&m_acDeformation);
+	this->elementFilter(m_acMij,m_acVolumeHat,nullptr,&m_acDeformation);
 
 	// complete Mij term computation by scaling and adding the two terms,
 	// solve the local least squares problem and compute local c and local turbulent viscosity
@@ -781,9 +781,9 @@ void CRDynamicTurbViscData<TGridFunction>::update(){
 		// filter c
 		if (m_timeFilter==false)
 			// c has been stored in viscosity attachment
-			this->elementFilter(m_acTurbulentC,m_acVolumeHat,SPNULL,&m_acTurbulentViscosity);
+			this->elementFilter(m_acTurbulentC,m_acVolumeHat,nullptr,&m_acTurbulentViscosity);
 		else
-			this->elementFilter(m_acTurbulentCNew,m_acVolumeHat,SPNULL,&m_acTurbulentViscosity);
+			this->elementFilter(m_acTurbulentCNew,m_acVolumeHat,nullptr,&m_acTurbulentViscosity);
 		// compute turbulent viscosity
 		for(int si = 0; si < domain.subset_handler()->num_subsets(); ++si)
 		{

@@ -73,7 +73,7 @@ register_update_func(TAssFunc func)
 
 //	make sure that there is enough space
 	if((size_t)id >= m_vUpdateFunc.size())
-		m_vUpdateFunc.resize(id+1, NULL);
+		m_vUpdateFunc.resize(id+1, nullptr);
 
 //	set pointer
 	m_vUpdateFunc[id] = (UpdateFunc)func;
@@ -133,11 +133,11 @@ update(const FV1Geometry<TElem, dim>* geo,
        const LocalVector* pvCornerValueOldTime, number dt)
 {
 //	abbreviation for pressure
-	static const size_t _P_ = dim;
+	static constexpr size_t _P_ = dim;
 
 //	Some constants
-	static const size_t numIp = FV1Geometry<TElem, dim>::numSCVF;
-	static const size_t numSh = FV1Geometry<TElem, dim>::numSCV;
+	static constexpr size_t numIp = FV1Geometry<TElem, dim>::numSCVF;
+	static constexpr size_t numSh = FV1Geometry<TElem, dim>::numSCV;
 
 //	compute upwind (no convective terms for the Stokes eq. => no upwind)
 	if (! bStokes) this->compute_upwind(geo, vStdVel);
@@ -177,7 +177,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 			number diag = vViscoPerDiffLenSq[ip];
 
 		//	Time part
-			if(pvCornerValueOldTime != NULL)
+			if(pvCornerValueOldTime != nullptr)
 				diag += 1./dt;
 
 		//	Convective Term (no convective terms in the Stokes eq.)
@@ -194,11 +194,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 
 			//	Source
 				number rhs = 0.0;
-				if(pSource != NULL)
+				if(pSource != nullptr)
 					rhs = (*pSource)[ip][d];
 
 			//	Time
-				if(pvCornerValueOldTime != NULL)
+				if(pvCornerValueOldTime != nullptr)
 				{
 				//	interpolate old time step
 					number oldIPVel = 0.0;
@@ -255,7 +255,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 	//	once
 
 	//	size of the system
-		static const size_t N = numIp;
+		static constexpr size_t N = numIp;
 
 	//	a fixed size matrix
 		DenseMatrix< FixedArray2<number, N, N> > mat;
@@ -267,7 +267,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 		for(size_t ip = 0; ip < numIp; ++ip)
 		{
 		//	Time part
-			if(pvCornerValueOldTime != NULL)
+			if(pvCornerValueOldTime != nullptr)
 				mat(ip, ip) += 1./dt;
 
 		//	Diffusion part
@@ -360,11 +360,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 
 			//	Source
 				f[ip] = 0.0;
-				if(pSource != NULL)
+				if(pSource != nullptr)
 					f[ip] = (*pSource)[ip][d];
 
 			//	Time
-				if(pvCornerValueOldTime != NULL)
+				if(pvCornerValueOldTime != nullptr)
 				{
 				//	interpolate old time step
 				//	\todo: Is this ok? Or do we need the old stabilized vel ?
@@ -447,11 +447,11 @@ update(const FV1Geometry<TElem, dim>* geo,
        const LocalVector* pvCornerValueOldTime, number dt)
 {
 	//	abbreviation for pressure
-	static const size_t _P_ = dim;
+	static constexpr size_t _P_ = dim;
 
 	//	Some constants
-	static const size_t numIp = FV1Geometry<TElem, dim>::numSCVF;
-	static const size_t numSh = FV1Geometry<TElem, dim>::numSCV;
+	static constexpr size_t numIp = FV1Geometry<TElem, dim>::numSCVF;
+	static constexpr size_t numSh = FV1Geometry<TElem, dim>::numSCV;
 
 //	compute upwind and downwind (no convective terms for the Stokes eq. => no upwind)
 	if (! bStokes)
@@ -500,7 +500,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 			number diag = vViscoPerDiffLenSq[ip];
 
 		//	Time part
-			if(pvCornerValueOldTime != NULL)
+			if(pvCornerValueOldTime != nullptr)
 				diag += 1./dt;
 
 		//	Convective Term  (no convective terms in the Stokes eq.)
@@ -517,11 +517,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 
 			//	Source
 				number rhs = 0.0;
-				if(pSource != NULL)
+				if(pSource != nullptr)
 					rhs = (*pSource)[ip][d];
 
 			//	Time
-				if(pvCornerValueOldTime != NULL)
+				if(pvCornerValueOldTime != nullptr)
 				{
 				//	interpolate old time step
 					number oldIPVel = 0.0;
@@ -601,7 +601,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 	//	once.
 
 	//	size of the system
-		static const size_t N = numIp;
+		static constexpr size_t N = numIp;
 
 	//	a fixed size matrix
 		DenseMatrix< FixedArray2<number, N, N> > mat;
@@ -613,7 +613,7 @@ update(const FV1Geometry<TElem, dim>* geo,
 		for(size_t ip = 0; ip < numIp; ++ip)
 		{
 		//	Time part
-			if(pvCornerValueOldTime != NULL)
+			if(pvCornerValueOldTime != nullptr)
 				mat(ip, ip) += 1./dt;
 
 		//	Diffusion part
@@ -738,11 +738,11 @@ update(const FV1Geometry<TElem, dim>* geo,
 				const typename FV1Geometry<TElem, dim>::SCVF& scvf = geo->scvf(ip);
 
 			//	Source
-				if(pSource != NULL)
+				if(pSource != nullptr)
 					f[ip] += (*pSource)[ip][d];
 
 			//	Time
-				if(pvCornerValueOldTime != NULL)
+				if(pvCornerValueOldTime != nullptr)
 				{
 				//	interpolate old time step
 				//	\todo: Is this ok? Or do we need the old stabilized vel ?
@@ -816,8 +816,8 @@ update(const FV1Geometry<TElem, dim>* geo,
        const LocalVector* pvCornerValueOldTime, number dt)
 {
 //	Some constants
-	static const size_t numIP = FV1Geometry<TElem, dim>::numSCVF;
-	static const size_t numSh = FV1Geometry<TElem, dim>::numSCV;
+	static constexpr size_t numIP = FV1Geometry<TElem, dim>::numSCVF;
+	static constexpr size_t numSh = FV1Geometry<TElem, dim>::numSCV;
 
 //	Compute upwind (no convective terms for the Stokes eq. => no upwind)
 	if (! bStokes) this->compute_upwind(geo, vStdVel);

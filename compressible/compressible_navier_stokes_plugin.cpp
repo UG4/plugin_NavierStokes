@@ -98,8 +98,8 @@ static void Domain(Registry& reg, string grp)
 
 //	Compressible Navier-Stokes Base
 	{
-		typedef CompressibleNavierStokesBase<TDomain> T;
-		typedef NavierStokesBase<TDomain> TBase;
+		using T = CompressibleNavierStokesBase<TDomain>;
+		using TBase = NavierStokesBase<TDomain>;
 		string name = string("CompressibleNavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_method("set_adiabatic_index", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_adiabatic_index), "", "AdiabaticIndex")
@@ -134,7 +134,7 @@ static void Dimension(Registry& reg, string grp)
 void Init___CompressibleNavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/CompressibleNavierStokes/");
-	typedef NavierStokes::FunctionalityComp Functionality;
+	using Functionality = NavierStokes::FunctionalityComp;
 
 	try{
 		//RegisterDimension2d3dDependent<Functionality>(*reg,grp);

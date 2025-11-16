@@ -57,18 +57,18 @@ class INavierStokesUpwind
 {
 	protected:
 	///	used traits
-		typedef fv1_dim_traits<dim, dim> traits;
+		using traits = fv1_dim_traits<dim, dim>;
 
 	public:
 	///	max number of SubControlVolumeFaces
-		static const size_t maxNumSCVF = traits::maxNumSCVF + 10;
+		static constexpr size_t maxNumSCVF = traits::maxNumSCVF + 10;
 
 	/// max number of shape functions
-		static const size_t maxNumSH = traits::maxNSH + 10;
+		static constexpr size_t maxNumSH = traits::maxNSH + 10;
 
 	public:
 	/// Abbreviation for own type
-		typedef INavierStokesUpwind<dim> this_type;
+		using this_type = INavierStokesUpwind<dim>;
 
 	public:
 	///	constructor
@@ -268,13 +268,12 @@ class INavierStokesUpwind
 	protected:
 
 	///	type of update function
-//		typedef void (this_type::*ComputeFunc)(
-		typedef void (*ComputeFunc)(
-								const FVGeometryBase* obj,
-								const MathVector<dim> vIPVel[maxNumSCVF],
-								number vUpShapeSh[maxNumSCVF][maxNumSH],
-								number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-								number vConvLength[maxNumSCVF]);
+	using ComputeFunc = void(*)(
+		const FVGeometryBase* obj,
+		const MathVector<dim> vIPVel[maxNumSCVF],
+		number vUpShapeSh[maxNumSCVF][maxNumSH],
+		number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+		number vConvLength[maxNumSCVF]);
 
 	///	Vector holding all update functions
 		std::vector<ComputeFunc> m_vComputeFunc;
@@ -295,7 +294,7 @@ register_update_func(TAssFunc func)
 
 //	make sure that there is enough space
 	if((size_t)id >= m_vComputeFunc.size())
-		m_vComputeFunc.resize(id+1, NULL);
+		m_vComputeFunc.resize(id+1, nullptr);
 
 //	set pointer
 	m_vComputeFunc[id] = reinterpret_cast<ComputeFunc>(func);
@@ -314,7 +313,7 @@ set_geometry_type()
 	size_t id = GetUniqueFVGeomID<TFVGeom>();
 
 //	check that function exists
-	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == NULL)
+	if(id >= m_vComputeFunc.size() || m_vComputeFunc[id] == nullptr)
 		UG_THROW("No update function registered for Geometry "<<id);
 
 //	set current geometry
@@ -362,11 +361,11 @@ class NavierStokesUpwindRegister
 {
 	public:
 	///	Base class
-		typedef INavierStokesUpwind<dim> base_type;
+		using base_type = INavierStokesUpwind<dim>;
 
 	protected:
-		static const size_t maxNumSCVF = base_type::maxNumSCVF;
-		static const size_t maxNumSH = base_type::maxNumSH;
+		static constexpr size_t maxNumSCVF = base_type::maxNumSCVF;
+		static constexpr size_t maxNumSH = base_type::maxNumSH;
 
 	public:
 	///	constructor
@@ -395,14 +394,13 @@ class NavierStokesUpwindRegister
 		template <typename TElem>
 		void register_func()
 		{
-			typedef TFVGeom<TElem, dim> TGeom;
-//			typedef void (TImpl::*TFunc)(
-			typedef void (*TFunc)(
-					const TGeom* obj,
-					const MathVector<dim> vIPVel[maxNumSCVF],
-					number vUpShapeSh[maxNumSCVF][maxNumSH],
-					number vUpShapeIp[maxNumSCVF][maxNumSCVF],
-					number vConvLength[maxNumSCVF]);
+			using TGeom = TFVGeom<TElem, dim>;
+			using TFunc = void(*)(
+				const TGeom* obj,
+				const MathVector<dim> vIPVel[maxNumSCVF],
+				number vUpShapeSh[maxNumSCVF][maxNumSH],
+				number vUpShapeIp[maxNumSCVF][maxNumSCVF],
+				number vConvLength[maxNumSCVF]);
 
 			getImpl().template register_update_func<TGeom, TFunc>(&TImpl::template compute<TElem>);
 		}

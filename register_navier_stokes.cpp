@@ -85,12 +85,12 @@ static void Algebra(Registry& reg, string grp)
  * available Domain types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
-	static const int dim = TDomain::dim;
+	static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
@@ -103,8 +103,8 @@ static void Domain(Registry& reg, string grp)
 
 //	Navier-Stokes Base
 	{
-		typedef NavierStokesBase<TDomain> T;
-		typedef IElemDisc<TDomain> TBase;
+		using T = NavierStokesBase<TDomain>;
+		using TBase = IElemDisc<TDomain>;
 		string name = string("NavierStokesBase").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -134,7 +134,7 @@ static void Domain(Registry& reg, string grp)
  * available Dimension types, based on the current build options.
  *
  * @param reg				registry
- * @param parentGroup		group for sorting of functionality
+ * @param grp				group for sorting of functionality
  */
 template <int dim>
 static void Dimension(Registry& reg, string grp)
@@ -155,7 +155,7 @@ static void Dimension(Registry& reg, string grp)
 
 //	INavierStokesUpwind
 	{
-		typedef INavierStokesUpwind<dim> T;
+		using T = INavierStokesUpwind<dim>;
 		string name = string("INavierStokesUpwind").append(suffix);
 		reg.add_class_<T>(name, grp);
 		reg.add_class_to_group(name, "INavierStokesUpwind", tag);
@@ -163,8 +163,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesNoUpwind
 	{
-		typedef NavierStokesNoUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		using T = NavierStokesNoUpwind<dim>;
+		using TBase = INavierStokesUpwind<dim>;
 		string name = string("NavierStokesNoUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -174,8 +174,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesFullUpwind
 	{
-		typedef NavierStokesFullUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		using T = NavierStokesFullUpwind<dim>;
+		using TBase = INavierStokesUpwind<dim>;
 		string name = string("NavierStokesFullUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -185,8 +185,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesSkewedUpwind
 	{
-		typedef NavierStokesSkewedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		using T = NavierStokesSkewedUpwind<dim>;
+		using TBase = INavierStokesUpwind<dim>;
 		string name = string("NavierStokesSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -196,8 +196,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesLinearProfileSkewedUpwind
 	{
-		typedef NavierStokesLinearProfileSkewedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		using T = NavierStokesLinearProfileSkewedUpwind<dim>;
+		using TBase = INavierStokesUpwind<dim>;
 		string name = string("NavierStokesLinearProfileSkewedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -207,8 +207,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesPositiveUpwind
 	{
-		typedef NavierStokesPositiveUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		using T = NavierStokesPositiveUpwind<dim>;
+		using TBase = INavierStokesUpwind<dim>;
 		string name = string("NavierStokesPositiveUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -218,8 +218,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesRegularUpwind
 	{
-		typedef NavierStokesRegularUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		using T = NavierStokesRegularUpwind<dim>;
+		using TBase = INavierStokesUpwind<dim>;
 		string name = string("NavierStokesRegularUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 			.add_constructor()
@@ -229,8 +229,8 @@ static void Dimension(Registry& reg, string grp)
 
 //	NavierStokesWeightedUpwind
 /*	{
-		typedef NavierStokesWeightedUpwind<dim> T;
-		typedef INavierStokesUpwind<dim> TBase;
+		using T = NavierStokesWeightedUpwind<dim>;
+		using TBase = INavierStokesUpwind<dim>;
 		string name = string("NavierStokesWeightedUpwind").append(suffix);
 		reg.add_class_<T, TBase>(name, grp)
 		.template add_constructor<void (*)(number)>("Weight factor")
@@ -250,7 +250,7 @@ extern "C" void
 InitUGPlugin_NavierStokes(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::Functionality Functionality;
+	using Functionality = NavierStokes::Functionality;
 
 	try{
 		RegisterDimension2d3dDependent<Functionality>(*reg,grp);

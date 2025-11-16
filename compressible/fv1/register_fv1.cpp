@@ -86,14 +86,14 @@ static void Algebra(Registry& reg, string grp)
 template <typename TDomain>
 static void Domain(Registry& reg, string grp)
 {
-	static const int dim = TDomain::dim;
+	static constexpr int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
 	string tag = GetDomainTag<TDomain>();
 
 	//	Compressible Navier-Stokes FV1
 	{
-		typedef CompressibleNavierStokesFV1<TDomain> T;
-		typedef CompressibleNavierStokesBase<TDomain> TBase;
+		using T = CompressibleNavierStokesFV1<TDomain>;
+		using TBase = CompressibleNavierStokesBase<TDomain>;
 		string name = string("CompressibleNavierStokesFV1").append(suffix);
 		reg.add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
@@ -127,7 +127,7 @@ static void Dimension(Registry& reg, string grp)
 void Init___CompressibleNavierStokes___FV1(Registry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::FunctionalityCompFV1 Functionality;
+	using Functionality = NavierStokes::FunctionalityCompFV1;
 
 	try{
 		//RegisterDimension2d3dDependent<Functionality>(*reg,grp);

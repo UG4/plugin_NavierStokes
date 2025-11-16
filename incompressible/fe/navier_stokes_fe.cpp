@@ -567,7 +567,7 @@ template<>
 void NavierStokesFE<Domain2d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
 {
-	typedef DimFEGeometry<dim> FVGeom;
+	using FVGeom = DimFEGeometry<dim>;
 	register_func<Triangle, FVGeom, FVGeom >();
 	register_func<Quadrilateral, FVGeom, FVGeom >();
 }
@@ -578,7 +578,7 @@ template<>
 void NavierStokesFE<Domain3d>::
 register_all_funcs(const LFEID& vLfeID, const LFEID& pLfeID, const int quadOrder)
 {
-	typedef DimFEGeometry<dim> FVGeom;
+	using FVGeom = DimFEGeometry<dim>;
 	register_func<Tetrahedron, FVGeom, FVGeom >();
 	register_func<Prism, FVGeom, FVGeom >();
 	register_func<Hexahedron, FVGeom, FVGeom >();
@@ -590,7 +590,7 @@ template<typename TElem, typename VGeom, typename PGeom>
 void NavierStokesFE<TDomain>::register_func()
 {
 	ReferenceObjectID id = geometry_traits<TElem>::REFERENCE_OBJECT_ID;
-	typedef this_type T;
+	using T = this_type;
 
 	this->clear_add_fct(id);
 	this->set_prep_elem_loop_fct(	id, &T::template prep_elem_loop<TElem, VGeom, PGeom>);
