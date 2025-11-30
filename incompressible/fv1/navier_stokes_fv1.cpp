@@ -1059,6 +1059,8 @@ ex_velocity_grad(MathMatrix<dim, dim> vValue[],
 
 	//	storage for shape function at ip
 		MathVector<refDim> vLocGrad[numSH];
+		MathVector<refDim> locGrad;
+		MathVector<refDim> vGlobGrad;
 
 	//	Reference Mapping
 		MathMatrix<dim, refDim> JTInv;
@@ -1069,30 +1071,35 @@ ex_velocity_grad(MathMatrix<dim, dim> vValue[],
 		{
 		//	evaluate at shapes at ip
 			rTrialSpace.grads(vLocGrad, vLocIP[ip]);
-
-		//  Loop dimensions for direction
-			for(int d1 = 0; d1 < dim; ++d1)
+			
+		//    compute global grad
+			mapping.jacobian_transposed_inverse(JTInv, vLocIP[ip]);
+			MatSet(vValue[ip],0.0);
+			
+			for(size_t sh = 0; sh < numSH; ++sh)
 			{
-				//  Loop dimensions for derivative
-				for(int d2 = 0; d2 <dim; ++d2)
+				MatVecMult(vGlobGrad, JTInv, vLocGrad[sh]);
+				
+			//  Loop dimensions for direction
+				for(int d1 = 0; d1 < dim; ++d1)
 				{
-
-				//	compute grad at ip
-					vValue[ip](d1, d2) = 0.0;
-					for(size_t sh = 0; sh < numSH; ++sh) {
-						vValue[ip](d1, d2) += u(d1, sh)*vLocGrad[sh][d2];		
+					for(int d2 = 0; d2 <dim; ++d2)
+					{
+						vValue[ip](d1, d2) += u(d1, sh)*vGlobGrad[d2];
+						
 						if(bDeriv)
-							vvvDeriv[ip][d1][sh](d1,d2) = vLocGrad[sh][d2];
-
+							vvvDeriv[ip][d1][sh](d1,d2) = vGlobGrad[d2];
+						
 					}
 				}
-			}
-			if(bDeriv)
-			{
-				for(size_t sh = 0; sh < numSH; ++sh)
+				if(bDeriv)
 				{
+
 					MatSet(vvvDeriv[ip][_P_][sh],0.0);
+
 				}
+				
+				
 			}
 		}
 	}
