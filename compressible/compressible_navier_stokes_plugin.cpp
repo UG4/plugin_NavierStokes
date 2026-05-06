@@ -63,8 +63,8 @@ struct FunctionalityComp
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain, typename TAlgebra>
-static void DomainAlgebra(Registry& reg, string grp)
+template <typename TDomain, typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void DomainAlgebra(TRegistry& reg, string grp)
 {}
 
 /**
@@ -76,8 +76,8 @@ static void DomainAlgebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TAlgebra>
-static void Algebra(Registry& reg, string grp)
+template <typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void Algebra(TRegistry& reg, string grp)
 {}
 
 /**
@@ -89,8 +89,8 @@ static void Algebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain>
-static void Domain(Registry& reg, string grp)
+template <typename TDomain, typename TRegistry=ug::bridge::Registry>
+static void Domain(TRegistry& reg, string grp)
 {
 	const int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
@@ -128,23 +128,31 @@ static void Dimension(Registry& reg, string grp)
 }; // end Functionality
 } // end namespace NavierStokes
 
-/**
- * This function is called when the plugin is loaded.
- */
-void Init___CompressibleNavierStokes(Registry* reg, string grp)
+/// \addtogroup compressible_navier_stokes_bridge
+template <typename TRegistry=ug::bridge::Registry>
+void RegisterBridge_CompressibleNavierStokes(TRegistry& reg, string grp, 
+											  void (*initFV1Func)(TRegistry*, string))
 {
 	grp.append("SpatialDisc/CompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityComp Functionality;
 
 	try{
-		//RegisterDimension2d3dDependent<Functionality>(*reg,grp);
-		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
-//		RegisterAlgebraDependent<Functionality>(*reg,grp);
-		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
+		//RegisterDimension2d3dDependent<Functionality, TRegistry>(reg,grp);
+		RegisterDomain2d3dDependent<Functionality, TRegistry>(reg,grp);
+//		RegisterAlgebraDependent<Functionality, TRegistry>(reg,grp);
+		//RegisterDomain2d3dAlgebraDependent<Functionality, TRegistry>(reg,grp);
 
-		Init___CompressibleNavierStokes___FV1(reg, grp);
+		initFV1Func(&reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
+}
+
+/**
+ * This function is called when the plugin is loaded.
+ */
+void Init___CompressibleNavierStokes(Registry* reg, string grp)
+{
+	RegisterBridge_CompressibleNavierStokes(*reg, grp, Init___CompressibleNavierStokes___FV1);
 }
 
 

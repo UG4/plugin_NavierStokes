@@ -76,8 +76,8 @@ struct FunctionalityIncomp
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain, typename TAlgebra>
-static void DomainAlgebra(Registry& reg, string grp)
+template <typename TDomain, typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void DomainAlgebra(TRegistry& reg, string grp)
 {
 	static const int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
@@ -218,8 +218,8 @@ static void DomainAlgebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TAlgebra>
-static void Algebra(Registry& reg, string grp)
+template <typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void Algebra(TRegistry& reg, string grp)
 {
 	string suffix = GetAlgebraSuffix<TAlgebra>();
 	string tag = GetAlgebraTag<TAlgebra>();
@@ -234,8 +234,8 @@ static void Algebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain>
-static void Domain(Registry& reg, string grp)
+template <typename TDomain, typename TRegistry=ug::bridge::Registry>
+static void Domain(TRegistry& reg, string grp)
 {
 	const int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
@@ -308,28 +308,42 @@ static void Common(Registry& reg, string grp)
 }; // end Functionality
 } // end namespace NavierStokes
 
+/// \addtogroup incompressible_navier_stokes_bridge
+template <typename TRegistry=ug::bridge::Registry>
+void RegisterBridge_IncompressibleNavierStokes(TRegistry& reg, string grp,
+	void (*initFV1Func)(TRegistry*, string),
+	void (*initFVCRFunc)(TRegistry*, string),
+	void (*initFVFunc)(TRegistry*, string),
+	void (*initFEFunc)(TRegistry*, string))
+{
+	grp.append("SpatialDisc/NavierStokes/");
+	typedef NavierStokes::FunctionalityIncomp Functionality;
+
+	try{
+		RegisterDomain2d3dDependent<Functionality, TRegistry>(reg, grp);
+//		RegisterAlgebraDependent<Functionality, TRegistry>(reg, grp);
+		RegisterDomain2d3dAlgebraDependent<Functionality, TRegistry>(reg, grp);
+		RegisterCommon<Functionality>(reg, grp);
+
+//		Init___NavierStokes(reg, grp);
+		initFV1Func(&reg, grp);
+		initFVCRFunc(&reg, grp);
+		initFVFunc(&reg, grp);
+		initFEFunc(&reg, grp);
+	}
+	UG_REGISTRY_CATCH_THROW(grp);
+}
 
 /**
  * This function is called when the plugin is loaded.
  */
 void Init___IncompressibleNavierStokes(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::FunctionalityIncomp Functionality;
-
-	try{
-		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
-//		RegisterAlgebraDependent<Functionality>(*reg,grp);
-		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
-		RegisterCommon<Functionality>(*reg,grp);
-
-//		Init___NavierStokes(reg, grp);
-		Init___NavierStokes___FV1(reg, grp);
-		Init___NavierStokes___FVCR(reg, grp);
-		Init___NavierStokes___FV(reg, grp);
-		Init___NavierStokes___FE(reg, grp);
-	}
-	UG_REGISTRY_CATCH_THROW(grp);
+	RegisterBridge_IncompressibleNavierStokes(*reg, grp,
+		Init___NavierStokes___FV1,
+		Init___NavierStokes___FVCR,
+		Init___NavierStokes___FV,
+		Init___NavierStokes___FE);
 }
 
 

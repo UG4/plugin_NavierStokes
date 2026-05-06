@@ -60,8 +60,8 @@ struct Functionality
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain, typename TAlgebra>
-static void DomainAlgebra(Registry& reg, string grp)
+template <typename TDomain, typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void DomainAlgebra(TRegistry& reg, string grp)
 {}
 
 
@@ -74,8 +74,8 @@ static void DomainAlgebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TAlgebra>
-static void Algebra(Registry& reg, string grp)
+template <typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void Algebra(TRegistry& reg, string grp)
 {}
 
 /**
@@ -87,8 +87,8 @@ static void Algebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain>
-static void Domain(Registry& reg, string grp)
+template <typename TDomain, typename TRegistry=ug::bridge::Registry>
+static void Domain(TRegistry& reg, string grp)
 {
 	static const int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
@@ -243,25 +243,46 @@ static void Dimension(Registry& reg, string grp)
 }; // end Functionality
 } // end namespace NavierStokes
 
+/// \addtogroup navier_stokes_bridge
+template <typename TRegistry=ug::bridge::Registry>
+void RegisterBridge_NavierStokes(TRegistry& reg, string grp)
+{
+	grp.append("SpatialDisc/NavierStokes/");
+	typedef NavierStokes::Functionality Functionality;
+
+	try{
+#ifndef UG_USE_PYBIND11
+		RegisterDimension2d3dDependent<Functionality>(reg,grp);
+		RegisterDomain2d3dDependent<Functionality>(reg,grp);
+		Init___CompressibleNavierStokes(reg, grp);
+		Init___IncompressibleNavierStokes(reg, grp);
+#else
+		RegisterDimension2d3dDependent<Functionality, TRegistry>(reg,grp);
+		RegisterDomain2d3dDependent<Functionality, TRegistry>(reg,grp);
+		Init___CompressibleNavierStokes<TRegistry>(reg, grp);
+		Init___IncompressibleNavierStokes<TRegistry>(reg, grp);
+#endif
+	}
+	UG_REGISTRY_CATCH_THROW(grp);
+}
+
 /**
  * This function is called when the plugin is loaded.
  */
 extern "C" void
 InitUGPlugin_NavierStokes(Registry* reg, string grp)
 {
-	grp.append("SpatialDisc/NavierStokes/");
-	typedef NavierStokes::Functionality Functionality;
-
-	try{
-		RegisterDimension2d3dDependent<Functionality>(*reg,grp);
-		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
-		Init___CompressibleNavierStokes(reg, grp);
-		Init___IncompressibleNavierStokes(reg, grp);
-//		RegisterAlgebraDependent<Functionality>(*reg,grp);
-		//RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
-	}
-	UG_REGISTRY_CATCH_THROW(grp);
+	RegisterBridge_NavierStokes(*reg, grp);
 }
 
+
+#ifdef UG_USE_PYBIND11 // Expose for pybind11.
+namespace NavierStokes{
+	void InitUGPlugin(ug::pybind::Registry* reg, string grp)
+	{
+		RegisterBridge_NavierStokes<ug::pybind::Registry>(*reg, grp);
+	}
+}
+#endif
 
 }// namespace ug

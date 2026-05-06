@@ -34,9 +34,12 @@
 # Simply specify the plugins name and a list of your source files.
 ################################################################################
 
+
+message(STATUS "# NavierStokes - BEGIN ##############################################################################")
+
 # Name of your plugin and sources.
 set(pluginName	NavierStokes)
-set(SOURCES		sample_plugin.cpp)
+# set(SOURCES		sample_plugin.cpp)
 
 set(SOURCES	navier_stokes_base.cpp
 			upwind_interface.cpp
@@ -87,6 +90,7 @@ project(UG_PLUGIN_${pluginName})
 # include the definitions and dependencies for ug-plugins.
 include(${UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake)
 
+if(NOT USE_PYBIND11)
 if(buildEmbeddedPlugins)
 	# add the sources to ug4's sources
 	EXPORTSOURCES(${CMAKE_CURRENT_SOURCE_DIR} ${SOURCES})
@@ -95,3 +99,44 @@ else(buildEmbeddedPlugins)
 	add_library(${pluginName} SHARED ${SOURCES})
 	target_link_libraries (${pluginName} ug4)
 endif(buildEmbeddedPlugins)
+endif(NOT USE_PYBIND11)
+
+
+################################################################################
+# Python binding (static plugin, dynamic python interface).
+################################################################################
+if(USE_PYBIND11)
+
+	include_directories(${SUPERLU_INCLUDE_DIRS})
+	
+	###############################################
+	# 0) Let's try to locate ug_4 static library....
+	###############################################
+	
+	set(UG4_STATIC_LIBRARY ug4_s)
+	if (BUILD_WITH_PIP)
+		get_libug4_from_pip(PYUG4_STATIC_LIBRARY)
+		message(STATUS "Library found: ${PYUG4_STATIC_LIBRARY}")
+		set(UG4_STATIC_LIBRARY ${PYUG4_STATIC_LIBRARY})
+	endif()
+	message(STATUS "Using libug4_s: ${UG4_STATIC_LIBRARY}")
+	
+
+	###############################################
+	# 1) Create (static) library for plugin.
+	###############################################
+	add_library(NavierStokes STATIC ${SOURCES})
+
+	###############################################
+ 	# 2) Create (dynamic) python library module.
+ 	# First argumentin 'python_add_library' must match module name in PYBIND11_MODULE call!
+	###############################################
+	SET(myPluginSources navier_stokes_pybind.cpp)
+	SET(myLibraries ug4 NavierStokes)
+	python_add_library(pynavierstokes MODULE ${myPluginSources} ${SOURCES} WITH_SOABI)
+	target_link_libraries (pynavierstokes PRIVATE NavierStokes ${UG4_STATIC_LIBRARY})
+	set_target_properties(pynavierstokes PROPERTIES INSTALL_RPATH "$ORIGIN/..:$ORIGIN/../../../lib")
+	install(TARGETS pynavierstokes LIBRARY DESTINATION ug4py COMPONENT pymodules)
+endif(USE_PYBIND11)
+
+message(STATUS "# NavierStokes - END ##############################################################################")
