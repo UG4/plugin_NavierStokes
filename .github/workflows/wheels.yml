@@ -25,7 +25,9 @@ jobs:
           mkdir ug4-git
           mkdir ug4-git/plugins
           mkdir ug4-git/plugins/NavierStokes
-          mv external ug4-git/plugins/NavierStokes
+          mv compressible ug4-git/plugins/NavierStokes
+          mv incompressible ug4-git/plugins/NavierStokes
+          mv lua ug4-git/plugins/NavierStokes
           mv CMakeLists.txt ug4-git/plugins/NavierStokes
           mv *.cpp ug4-git/plugins/NavierStokes
           mv *.h ug4-git/plugins/NavierStokes
