@@ -101,7 +101,7 @@ static void Domain(TRegistry& reg, string grp)
 		typedef CompressibleNavierStokesBase<TDomain> T;
 		typedef NavierStokesBase<TDomain> TBase;
 		string name = string("CompressibleNavierStokesBase").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.add_method("set_adiabatic_index", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_adiabatic_index), "", "AdiabaticIndex")
 			.add_method("set_adiabatic_index", static_cast<void (T::*)(number)>(&T::set_adiabatic_index), "", "AdiabaticIndex")
 #ifdef UG_FOR_LUA
@@ -130,19 +130,21 @@ static void Dimension(Registry& reg, string grp)
 
 /// \addtogroup compressible_navier_stokes_bridge
 template <typename TRegistry=ug::bridge::Registry>
-void RegisterBridge_CompressibleNavierStokes(TRegistry& reg, string grp, 
-											  void (*initFV1Func)(TRegistry*, string))
+void RegisterBridge_CompressibleNavierStokes(TRegistry& reg, string grp)
 {
 	grp.append("SpatialDisc/CompressibleNavierStokes/");
 	typedef NavierStokes::FunctionalityComp Functionality;
 
 	try{
 		//RegisterDimension2d3dDependent<Functionality, TRegistry>(reg,grp);
+		#ifndef UG_USE_PYBIND11
+		RegisterDomain2d3dDependent<Functionality>(reg,grp);
+		#else
 		RegisterDomain2d3dDependent<Functionality, TRegistry>(reg,grp);
+		#endif
+	
 //		RegisterAlgebraDependent<Functionality, TRegistry>(reg,grp);
 		//RegisterDomain2d3dAlgebraDependent<Functionality, TRegistry>(reg,grp);
-
-		initFV1Func(&reg, grp);
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
@@ -150,10 +152,26 @@ void RegisterBridge_CompressibleNavierStokes(TRegistry& reg, string grp,
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___CompressibleNavierStokes(Registry* reg, string grp)
+template <typename TRegistry=ug::bridge::Registry>
+void Init___CompressibleNavierStokes_(TRegistry& reg, string grp)
 {
-	RegisterBridge_CompressibleNavierStokes(*reg, grp, Init___CompressibleNavierStokes___FV1);
+	RegisterBridge_CompressibleNavierStokes(reg, grp);
+	Init___CompressibleNavierStokes___FV1(reg, grp);
 }
+
+
+void Init___CompressibleNavierStokes(Registry& reg, string grp)
+{ Init___CompressibleNavierStokes_<Registry>(reg, grp); }
+
+
+
+#ifdef UG_USE_PYBIND11
+namespace NavierStokes{	
+	using TRegistry = ug::pybind::Registry;
+	void Init___CompressibleNavierStokes(TRegistry& reg, string grp)
+	{ Init___CompressibleNavierStokes_<TRegistry>(reg, grp); }
+}
+#endif
 
 
 }// namespace ug

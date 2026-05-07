@@ -40,6 +40,10 @@ namespace ug{
 
 void Init___NavierStokes___FV(ug::bridge::Registry* reg, std::string grp);
 
+#ifdef UG_USE_PYBIND11
+void Init___NavierStokes___FV(ug::pybind::Registry* reg, std::string grp);
+#endif
+
 }// namespace ug
 
 #endif /* __H__UG__PLUGINS__NAVIER_STOKES__INCOMPRESSIBLE__FV__REGISTER_FV__ */

@@ -36,27 +36,25 @@
 #include "registry/registry.h"
 #include <string>
 
+#ifdef UG_USE_PYBIND11
+#include "bindings/pybind/ug_pybind.h"
+#endif
+
 namespace ug{
 
-void Init___CompressibleNavierStokes(bridge::Registry* reg, std::string grp);
-void Init___IncompressibleNavierStokes(bridge::Registry* reg, std::string grp);
-
-template <typename TRegistry=ug::bridge::Registry>
-void RegisterBridge_CompressibleNavierStokes(TRegistry& reg, std::string grp, 
-										  void (*initFV1Func)(TRegistry*, std::string));
-
-template <typename TRegistry=ug::bridge::Registry>
-void RegisterBridge_IncompressibleNavierStokes(TRegistry& reg, std::string grp,
-	void (*initFV1Func)(TRegistry*, std::string),
-	void (*initFVCRFunc)(TRegistry*, std::string),
-	void (*initFVFunc)(TRegistry*, std::string),
-	void (*initFEFunc)(TRegistry*, std::string));
+void Init___CompressibleNavierStokes(bridge::Registry& reg, std::string grp);
+void Init___IncompressibleNavierStokes(bridge::Registry& reg, std::string grp);
+extern "C" void InitUGPlugin_NavierStokes(bridge::Registry* reg, std::string grp);
 
 
 #ifdef UG_USE_PYBIND11
-namespace NavierStokes{
 
-	void InitUGPlugin(ug::pybind::Registry* reg, std::string grp);
+void Init___CompressibleNavierStokes(ug::pybind::Registry& reg, std::string grp);
+void Init___IncompressibleNavierStokes(ug::pybind::Registry& reg, std::string grp);
+
+namespace NavierStokes{
+	using TRegistry = ug::pybind::Registry;
+	void InitUGPlugin(TRegistry* reg, std::string grp);
 }
 #endif
 

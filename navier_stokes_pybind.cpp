@@ -30,14 +30,20 @@
  * GNU Lesser General Public License for more details.
  */
 
+#ifdef UG_USE_PYBIND11
 #include <pybind11/pybind11.h>
 
 #include "navier_stokes_base.h"
 #include "incompressible/incompressible_navier_stokes_base.h"
 #include "compressible/compressible_navier_stokes_base.h"
 
-#ifdef UG_USE_PYBIND11
+
+
 namespace py = pybind11;
+
+#include "registry/registry.h"
+#include "register_navier_stokes.h"
+#include "bindings/pybind/ug_pybind.h"
 
 PYBIND11_MODULE(pyNavierStokes, m)
 {

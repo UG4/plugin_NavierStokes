@@ -95,7 +95,7 @@ static void Domain(TRegistry& reg, string grp)
 		typedef CompressibleNavierStokesFV1<TDomain> T;
 		typedef CompressibleNavierStokesBase<TDomain> TBase;
 		string name = string("CompressibleNavierStokesFV1").append(suffix);
-		reg.add_class_<T, TBase >(name, grp)
+		reg.template add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
 			.add_method("set_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_upwind))
@@ -114,7 +114,7 @@ static void Domain(TRegistry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <int dim>
+template <int dim, typename TRegistry=ug::bridge::Registry>
 static void Dimension(Registry& reg, string grp)
 {}
 
@@ -130,7 +130,12 @@ void RegisterBridge_CompressibleNavierStokes_FV1(TRegistry& reg, string grp)
 
 	try{
 		//RegisterDimension2d3dDependent<Functionality, TRegistry>(reg,grp);
-		RegisterDomain2d3dDependent<Functionality, TRegistry>(reg,grp);
+		#ifndef UG_USE_PYBIND11
+		RegisterDomain2d3dDependent<Functionality>(reg,grp);
+		#else
+		// TODO : Generates compile error...		
+		// RegisterDomain2d3dDependent<Functionality, TRegistry>(reg,grp);
+		#endif
 //		RegisterAlgebraDependent<Functionality, TRegistry>(reg,grp);
 		//RegisterDomain2d3dAlgebraDependent<Functionality, TRegistry>(reg,grp);
 	}
@@ -140,9 +145,13 @@ void RegisterBridge_CompressibleNavierStokes_FV1(TRegistry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___CompressibleNavierStokes___FV1(Registry* reg, string grp)
-{
-	RegisterBridge_CompressibleNavierStokes_FV1(*reg, grp);
-}
+
+void Init___CompressibleNavierStokes___FV1(Registry& reg, string grp)
+{ RegisterBridge_CompressibleNavierStokes_FV1<Registry>(reg, grp); }
+
+#ifdef UG_USE_PYBIND11
+void Init___CompressibleNavierStokes___FV1(ug::pybind::Registry& reg, string grp)
+{ RegisterBridge_CompressibleNavierStokes_FV1<ug::pybind::Registry>(reg, grp); }
+#endif
 
 }// namespace ug

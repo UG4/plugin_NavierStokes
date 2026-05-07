@@ -60,8 +60,8 @@ struct FunctionalityFV
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain, typename TAlgebra>
-static void DomainAlgebra(Registry& reg, string grp)
+template <typename TDomain, typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void DomainAlgebra(TRegistry& reg, string grp)
 {
 	//static const int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
@@ -75,7 +75,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef NavierStokesInflowFV<TDomain, TAlgebra> T;
 		typedef NavierStokesInflowBase<TDomain, TAlgebra> TBase;
 		string name = string("NavierStokesInflowFV").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesFV<TDomain> >)>("MasterElemDisc")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflowFV", tag);
@@ -91,8 +91,8 @@ static void DomainAlgebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TAlgebra>
-static void Algebra(Registry& reg, string grp)
+template <typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void Algebra(TRegistry& reg, string grp)
 {
 	string suffix = GetAlgebraSuffix<TAlgebra>();
 	string tag = GetAlgebraTag<TAlgebra>();
@@ -108,8 +108,8 @@ static void Algebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain>
-static void Domain(Registry& reg, string grp)
+template <typename TDomain, typename TRegistry=ug::bridge::Registry>
+static void Domain(TRegistry& reg, string grp)
 {
 	//static const int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
@@ -120,7 +120,7 @@ static void Domain(Registry& reg, string grp)
 		typedef NavierStokesFV<TDomain> T;
 		typedef IncompressibleNavierStokesBase<TDomain> TBase;
 		string name = string("NavierStokesFV").append(suffix);
-		reg.add_class_<T, TBase >(name, grp)
+		reg.template add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
 			.add_method("set_quad_order", &T::set_quad_order)
@@ -133,7 +133,7 @@ static void Domain(Registry& reg, string grp)
 		typedef NavierStokesNoNormalStressOutflowFV<TDomain> T;
 		typedef NavierStokesNoNormalStressOutflowBase<TDomain> TBase;
 		string name = string("NavierStokesNoNormalStressOutflowFV").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflowFV", tag);
@@ -150,8 +150,8 @@ static void Domain(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <int dim>
-static void Dimension(Registry& reg, string grp)
+template <int dim, typename TRegistry=ug::bridge::Registry>
+static void Dimension(TRegistry& reg, string grp)
 {
 	string suffix = GetDimensionSuffix<dim>();
 	string tag = GetDimensionTag<dim>();
@@ -164,18 +164,33 @@ static void Dimension(Registry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___NavierStokes___FV(Registry* reg, string grp)
+template <typename TRegistry=ug::bridge::Registry>
+void Init___NavierStokes___FV_(TRegistry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::FunctionalityFV Functionality;
 
 	try{
+		#ifndef UG_USE_PYBIND11
 //		RegisterDimensionDependent<Functionality>(*reg,grp);
 		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
 //		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
+		#else
+		RegisterDomain2d3dDependent<Functionality, TRegistry>(*reg,grp);
+		RegisterDomain2d3dAlgebraDependent<Functionality, TRegistry>(*reg,grp);
+		#endif
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
+
+void Init___NavierStokes___FV(Registry* reg, string grp)
+{ Init___NavierStokes___FV_<Registry>(reg, grp); }
+
+#ifdef UG_USE_PYBIND11
+void Init___NavierStokes___FV(ug::pybind::Registry* reg, string grp)
+{ Init___NavierStokes___FV_<ug::pybind::Registry>(reg, grp); }
+#endif
+
 
 }// namespace ug

@@ -74,8 +74,8 @@ struct FunctionalityFVCR
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain, typename TAlgebra>
-static void DomainAlgebra(Registry& reg, string grp)
+template <typename TDomain, typename TAlgebra, typename TRegistry=ug::bridge::Registry>
+static void DomainAlgebra(TRegistry& reg, string grp)
 {
 	//static const int dim = TDomain::dim;
 	string suffix = GetDomainAlgebraSuffix<TDomain,TAlgebra>();
@@ -89,7 +89,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef NavierStokesInflowFVCR<TDomain, TAlgebra> T;
 		typedef NavierStokesInflowBase<TDomain, TAlgebra> TBase;
 		string name = string("NavierStokesInflowFVCR").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< NavierStokesFVCR<TDomain> >)>("MasterElemDisc")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesInflowFVCR", tag);
@@ -99,7 +99,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 	{
 		reg.add_function("OrderCRCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool)>(&OrderCRCuthillMcKee), grp);
 	}
-	
+
 	//	Order CR-Cuthill-McKee
 	{
 		reg.add_function("CROrderCuthillMcKee", static_cast<void (*)(approximation_space_type&,function_type&, bool,bool,bool,bool)>(&CROrderCuthillMcKee), grp);
@@ -130,7 +130,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef CRSmagorinskyTurbViscData<TFct> T;
 		typedef CplUserData<number, dim> TBase;
 		typedef INewtonUpdate TBase2;
-		reg.add_class_<T, TBase,TBase2>(name, grp)
+		reg.template add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>,number)>("Approximation space, grid function, model parameter")
 			.add_method("set_model_parameter", &T::set_model_parameter)
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -150,7 +150,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef CRDynamicTurbViscData<TFct> T;
 		typedef CplUserData<number, dim> TBase;
 		typedef INewtonUpdate TBase2;
-		reg.add_class_<T, TBase,TBase2>(name, grp)
+		reg.template add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
 			.add_method("set_kinematic_viscosity", static_cast<void (T::*)(number)>(&T::set_kinematic_viscosity), "", "KinematicViscosity")
@@ -172,7 +172,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef SeparatedPressureSource<TFct> T;
 		typedef CplUserData<MathVector<dim>, dim> TBase;
 		typedef INewtonUpdate TBase2;
-		reg.add_class_<T, TBase,TBase2>(name, grp)
+		reg.template add_class_<T, TBase,TBase2>(name, grp)
 			.template add_constructor<void (*)(SmartPtr<ApproximationSpace<TDomain> >,SmartPtr<TFct>)>("Approximation space, grid function")
 				.add_method("set_source", static_cast<void (T::*)(SmartPtr<CplUserData<MathVector<dim>, dim> >)>(&T::set_source), "", "Source")
 				.add_method("set_source", static_cast<void (T::*)(number)>(&T::set_source), "", "F_x")
@@ -191,7 +191,7 @@ static void DomainAlgebra(Registry& reg, string grp)
 		typedef DiscConstraintFVCR<TFct> T;
 		typedef IDomainConstraint<typename TFct::domain_type,typename TFct::algebra_type> TBase;
 		string name = string("DiscConstraintFVCR").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 		.template add_constructor<void (*)(SmartPtr<TFct>)>("Grid function")
 		// bool bLinUpConvDefect,bool bLinUpConvJacobian,bool bLinPressureDefect,bool bLinPressureJacobian,bool bAdaptive
 		.template add_constructor<void (*)(SmartPtr<TFct>,bool,bool,bool,bool,bool)>("Grid function,lin up def,lin up jac,lin p def,lin p jac,adaptivity")
@@ -214,8 +214,8 @@ static void DomainAlgebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TAlgebra>
-static void Algebra(Registry& reg, string grp)
+template <typename TAlgebra,typename TRegistry=ug::bridge::Registry>
+static void Algebra(TRegistry& reg, string grp)
 {
 	string suffix = GetAlgebraSuffix<TAlgebra>();
 	string tag = GetAlgebraTag<TAlgebra>();
@@ -225,7 +225,7 @@ static void Algebra(Registry& reg, string grp)
 		typedef CRILUTPreconditioner<TAlgebra> T;
 		typedef IPreconditioner<TAlgebra> TBase;
 		string name = string("CRILUT").append(suffix);
-		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
+		reg.template add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
 		.add_constructor()
 		.template add_constructor<void (*)(number)>("threshold parameter")
 		.template add_constructor<void (*)(number,number)>("threshold parameters")
@@ -250,7 +250,7 @@ static void Algebra(Registry& reg, string grp)
 		typedef PCRILUTPreconditioner<TAlgebra> T;
 		typedef IPreconditioner<TAlgebra> TBase;
 		string name = string("PCRILUT").append(suffix);
-		reg.add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
+		reg.template add_class_<T,TBase>(name, grp, "Incomplete LU Decomposition with threshold")
 		.add_constructor()
 		.template add_constructor<void (*)(number)>("threshold parameter")
 		.template add_constructor<void (*)(number,number)>("threshold parameters")
@@ -280,8 +280,8 @@ static void Algebra(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <typename TDomain>
-static void Domain(Registry& reg, string grp)
+template <typename TDomain, typename TRegistry=ug::bridge::Registry>
+static void Domain(TRegistry& reg, string grp)
 {
 	static const int dim = TDomain::dim;
 	string suffix = GetDomainSuffix<TDomain>();
@@ -292,7 +292,7 @@ static void Domain(Registry& reg, string grp)
 		typedef NavierStokesFVCR<TDomain> T;
 		typedef IncompressibleNavierStokesBase<TDomain> TBase;
 		string name = string("NavierStokesFVCR").append(suffix);
-		reg.add_class_<T, TBase >(name, grp)
+		reg.template add_class_<T, TBase >(name, grp)
 			.template add_constructor<void (*)(const char*,const char*)>("Functions#Subset(s)")
 			.template add_constructor<void (*)(const std::vector<std::string>&, const std::vector<std::string>&)>("Functions#Subset(s)")
 			.add_method("set_upwind",  static_cast<void (T::*)(SmartPtr<INavierStokesUpwind<dim> >)>(&T::set_upwind))
@@ -307,7 +307,7 @@ static void Domain(Registry& reg, string grp)
 		typedef NavierStokesNoNormalStressOutflowFVCR<TDomain> T;
 		typedef NavierStokesNoNormalStressOutflowBase<TDomain> TBase;
 		string name = string("NavierStokesNoNormalStressOutflowFVCR").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
 			.set_construct_as_smart_pointer(true);
 		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflowFVCR", tag);
@@ -318,7 +318,7 @@ static void Domain(Registry& reg, string grp)
 		typedef CRNavierStokesSymBC<TDomain> T;
 		typedef IElemDisc<TDomain> TBase;
 		string name = string("CRNavierStokesSymBC").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterDisc")
 			.add_method("add", &T::add, "", "Subset(s)")
 			.set_construct_as_smart_pointer(true);
@@ -335,8 +335,8 @@ static void Domain(Registry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <int dim>
-static void Dimension(Registry& reg, string grp)
+template <int dim, typename TRegistry=ug::bridge::Registry>
+static void Dimension(TRegistry& reg, string grp)
 {
 	string suffix = GetDimensionSuffix<dim>();
 	string tag = GetDimensionTag<dim>();
@@ -349,19 +349,36 @@ static void Dimension(Registry& reg, string grp)
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___NavierStokes___FVCR(Registry* reg, string grp)
+template <typename TRegistry=ug::bridge::Registry>
+void Init___NavierStokes___FVCR_(TRegistry* reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::FunctionalityFVCR Functionality;
 
 	try{
 //		RegisterDimensionDependent<Functionality>(*reg,grp);
+#ifndef UG_USE_PYBIND11
 		RegisterDomain2d3dDependent<Functionality>(*reg,grp);
 		RegisterAlgebraDependent<Functionality>(*reg,grp);
 		RegisterDomain2d3dAlgebraDependent<Functionality>(*reg,grp);
+#else
+		RegisterDomain2d3dDependent<Functionality, TRegistry>(*reg,grp);
+		RegisterAlgebraDependent<Functionality, TRegistry>(*reg,grp);
+		RegisterDomain2d3dAlgebraDependent<Functionality, TRegistry>(*reg,grp);
+#endif
 	}
 	UG_REGISTRY_CATCH_THROW(grp);
 }
+
+
+void Init___NavierStokes___FVCR(Registry* reg, std::string grp)
+{ Init___NavierStokes___FVCR_<Registry>(reg, grp); }
+
+
+#ifdef UG_USE_PYBIND11
+void Init___NavierStokes___FVCR(ug::pybind::Registry* reg, std::string grp)
+{ Init___NavierStokes___FVCR_<ug::pybind::Registry>(reg, grp); }
+#endif
 
 }// namespace ug
 

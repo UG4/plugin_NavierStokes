@@ -90,8 +90,8 @@ static void DomainAlgebra(TRegistry& reg, string grp)
 	{
 		typedef NavierStokesInflowBase<TDomain, TAlgebra> T;
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
-		string name = string("NavierStokesInflowBase").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		std::string name = string("NavierStokesInflowBase").append(suffix);
+		reg.template add_class_<T, TBase>(name, grp)
 #ifdef UG_FOR_LUA
 			.add_method("add", static_cast<void (T::*)(const char*, const char*)>(&T::add), "", "Velocity")
 #endif
@@ -104,8 +104,8 @@ static void DomainAlgebra(TRegistry& reg, string grp)
 	{
 		typedef NavierStokesWall<TDomain, TAlgebra> T;
 		typedef IDiscretizationItem<TDomain, TAlgebra> TBase;
-		string name = string("NavierStokesWall").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		std::string name = string("NavierStokesWall").append(suffix);
+		reg.template add_class_<T, TBase>(name, grp)
 			.template add_constructor<void (*)(SmartPtr< IncompressibleNavierStokesBase<TDomain> >)>("MasterElemDisc")
 			.add_method("add", &T::add)
 			.set_construct_as_smart_pointer(true);
@@ -114,18 +114,18 @@ static void DomainAlgebra(TRegistry& reg, string grp)
 
 //  Wall object
 	{
-		string name = string("WallObject").append(suffix);
+		std::string name = string("WallObject").append(suffix);
 		typedef WallObject<function_type> T;
-		reg.add_class_<T>(name,grp)
+		reg.template add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>,size_t,number,char*)>("grid function,direction,coord,subset");
 		reg.add_class_to_group(name, "WallObject", tag);
 	}
 
 //  ConstantBoxFilter
 	{
-		string name = string("ConstantBoxFilter").append(suffix);
+		std::string name = string("ConstantBoxFilter").append(suffix);
 		typedef ConstantBoxFilter<function_type> T;
-		reg.add_class_<T>(name,grp)
+		reg.template add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.template add_constructor<void (*)(SmartPtr<function_type>,number)>("grid function,filter width")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
@@ -135,9 +135,9 @@ static void DomainAlgebra(TRegistry& reg, string grp)
 	
 //  VariableBoxFilter
 	{
-		string name = string("VariableBoxFilter").append(suffix);
+		std::string name = std::string("VariableBoxFilter").append(suffix);
 		typedef VariableBoxFilter<function_type> T;
-		reg.add_class_<T>(name,grp)
+		reg.template add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>,SmartPtr<function_type>,bool)>("grid function,filter width function,initialize filter width")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
 			.set_construct_as_smart_pointer(true);
@@ -146,9 +146,9 @@ static void DomainAlgebra(TRegistry& reg, string grp)
 
 //  FV1BoxFilter
 	{
-		string name = string("FV1BoxFilter").append(suffix);
+		std::string name = std::string("FV1BoxFilter").append(suffix);
 		typedef FV1BoxFilter<function_type> T;
-		reg.add_class_<T>(name,grp)
+		reg.template add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
 			.set_construct_as_smart_pointer(true);
@@ -157,9 +157,9 @@ static void DomainAlgebra(TRegistry& reg, string grp)
 
 //  FVCRBoxFilter
 	{
-		string name = string("FVCRBoxFilter").append(suffix);
+		std::string name = std::string("FVCRBoxFilter").append(suffix);
 		typedef FVCRBoxFilter<function_type> T;
-		reg.add_class_<T>(name,grp)
+		reg.template add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
 			.set_construct_as_smart_pointer(true);
@@ -168,9 +168,9 @@ static void DomainAlgebra(TRegistry& reg, string grp)
 
 //  ElementBoxFilter
 	{
-		string name = string("ElementBoxFilter").append(suffix);
+		std::string name = std::string("ElementBoxFilter").append(suffix);
 		typedef ElementBoxFilter<function_type> T;
-		reg.add_class_<T>(name,grp)
+		reg.template add_class_<T>(name,grp)
 			.template add_constructor<void (*)(SmartPtr<function_type>)>("grid function")
 			.add_method("apply",static_cast<void (T::*)(SmartPtr<function_type>)>(&T::apply), "", "apply filter")
 			.set_construct_as_smart_pointer(true);
@@ -246,7 +246,7 @@ static void Domain(TRegistry& reg, string grp)
 		typedef IncompressibleNavierStokesBase<TDomain> T;
 		typedef NavierStokesBase<TDomain> TBase;
 		string name = string("IncompressibleNavierStokesBase").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.add_method("set_density", static_cast<void (T::*)(SmartPtr<CplUserData<number, dim> >)>(&T::set_density), "", "Density")
 			.add_method("set_density", static_cast<void (T::*)(number)>(&T::set_density), "", "Density")
 #ifdef UG_FOR_LUA
@@ -270,7 +270,7 @@ static void Domain(TRegistry& reg, string grp)
 		typedef NavierStokesNoNormalStressOutflowBase<TDomain> T;
 		typedef IElemDisc<TDomain> TBase;
 		string name = string("NavierStokesNoNormalStressOutflowBase").append(suffix);
-		reg.add_class_<T, TBase>(name, grp)
+		reg.template add_class_<T, TBase>(name, grp)
 			.add_method("add", &T::add, "", "Subset(s)");
 		reg.add_class_to_group(name, "NavierStokesNoNormalStressOutflowBase", tag);
 	}
@@ -286,12 +286,12 @@ static void Domain(TRegistry& reg, string grp)
  * @param reg				registry
  * @param parentGroup		group for sorting of functionality
  */
-template <int dim>
-static void Dimension(Registry& reg, string grp)
+template <int dim, typename TRegistry=ug::bridge::Registry>
+static void Dimension(TRegistry& reg, std::string grp)
 {}
 
-
-static void Common(Registry& reg, string grp)
+template <typename TRegistry=ug::bridge::Registry>
+static void Common(TRegistry& reg, std::string grp)
 {
 	// write numbers into file
 	/* TODO: obsolete / replace by lua code */
@@ -310,42 +310,53 @@ static void Common(Registry& reg, string grp)
 
 /// \addtogroup incompressible_navier_stokes_bridge
 template <typename TRegistry=ug::bridge::Registry>
-void RegisterBridge_IncompressibleNavierStokes(TRegistry& reg, string grp,
-	void (*initFV1Func)(TRegistry*, string),
-	void (*initFVCRFunc)(TRegistry*, string),
-	void (*initFVFunc)(TRegistry*, string),
-	void (*initFEFunc)(TRegistry*, string))
+void RegisterBridge_IncompressibleNavierStokes(TRegistry& reg, string grp)
 {
 	grp.append("SpatialDisc/NavierStokes/");
 	typedef NavierStokes::FunctionalityIncomp Functionality;
 
 	try{
+		#ifndef UG_USE_PYBIND11
+		RegisterDomain2d3dDependent<Functionality>(reg, grp);
+		RegisterDomain2d3dAlgebraDependent<Functionality>(reg, grp);
+		//RegisterCommon<Functionality>(reg, grp);
+		#else
 		RegisterDomain2d3dDependent<Functionality, TRegistry>(reg, grp);
-//		RegisterAlgebraDependent<Functionality, TRegistry>(reg, grp);
 		RegisterDomain2d3dAlgebraDependent<Functionality, TRegistry>(reg, grp);
-		RegisterCommon<Functionality>(reg, grp);
+		//RegisterCommon<Functionality, TRegistry>(reg, grp);
+		#endif
+		
+		Init___NavierStokes___FV1(&reg, grp);
+		Init___NavierStokes___FV(&reg, grp);
+		Init___NavierStokes___FVCR(&reg, grp);
+		Init___NavierStokes___FE(&reg, grp);
+	}
+		
+		
+	
+	
 
 //		Init___NavierStokes(reg, grp);
-		initFV1Func(&reg, grp);
-		initFVCRFunc(&reg, grp);
-		initFVFunc(&reg, grp);
-		initFEFunc(&reg, grp);
-	}
+	
 	UG_REGISTRY_CATCH_THROW(grp);
 }
 
 /**
  * This function is called when the plugin is loaded.
  */
-void Init___IncompressibleNavierStokes(Registry* reg, string grp)
+void Init___IncompressibleNavierStokes(Registry& reg, string grp)
 {
-	RegisterBridge_IncompressibleNavierStokes(*reg, grp,
-		Init___NavierStokes___FV1,
-		Init___NavierStokes___FVCR,
-		Init___NavierStokes___FV,
-		Init___NavierStokes___FE);
+	RegisterBridge_IncompressibleNavierStokes<Registry>(reg, grp);
 }
 
-
+#ifdef UG_USE_PYBIND11
+namespace NavierStokes{	
+void Init___IncompressibleNavierStokes(ug::pybind::Registry& reg, string grp)
+{
+	using TRegistry = ug::pybind::Registry;
+	RegisterBridge_IncompressibleNavierStokes<TRegistry>(reg, grp);
+}
+}
+#endif
 
 }// namespace ug

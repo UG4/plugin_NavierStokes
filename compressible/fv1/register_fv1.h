@@ -38,9 +38,11 @@
 
 namespace ug{
 
-void Init___CompressibleNavierStokes___FV1(ug::bridge::Registry* reg, std::string grp);
-template <typename TRegistry=ug::bridge::Registry>
-void RegisterBridge_CompressibleNavierStokes_FV1(TRegistry& reg, std::string grp);
+    void Init___CompressibleNavierStokes___FV1(ug::bridge::Registry& reg, std::string grp);
+#ifdef UG_USE_PYBIND11
+    void Init___CompressibleNavierStokes___FV1(ug::pybind::Registry& reg, std::string grp);
+#endif
+
 }// namespace ug
 
 #endif /* __H__UG__PLUGINS__NAVIER_STOKES__COMPRESSIBLE__FV1__REGISTER_FV1__ */
