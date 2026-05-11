@@ -87,8 +87,13 @@ cmake_minimum_required(VERSION 2.8.12...3.20)
 
 project(UG_PLUGIN_${pluginName})
 
-# include the definitions and dependencies for ug-plugins.
-include(${UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake)
+# Include the definitions and dependencies for ug-plugins.
+if(NOT DEFINED UG_ROOT_CMAKE_PATH OR UG_ROOT_CMAKE_PATH STREQUAL "")
+    include(../../ugcore/cmake/ug_plugin_includes.cmake) 
+else()
+    include(${UG_ROOT_CMAKE_PATH}/ug_plugin_includes.cmake) 
+endif()
+
 
 if(NOT USE_PYBIND11)
 if(buildEmbeddedPlugins)
