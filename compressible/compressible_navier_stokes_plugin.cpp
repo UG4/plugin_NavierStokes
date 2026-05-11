@@ -163,14 +163,9 @@ void Init___CompressibleNavierStokes_(TRegistry& reg, string grp)
 void Init___CompressibleNavierStokes(Registry& reg, string grp)
 { Init___CompressibleNavierStokes_<Registry>(reg, grp); }
 
-
-
 #ifdef UG_USE_PYBIND11
-namespace NavierStokes{	
-	using TRegistry = ug::pybind::Registry;
-	void Init___CompressibleNavierStokes(TRegistry& reg, string grp)
-	{ Init___CompressibleNavierStokes_<TRegistry>(reg, grp); }
-}
+void Init___CompressibleNavierStokes(ug::pybind::Registry& reg, string grp)
+{ Init___CompressibleNavierStokes_<ug::pybind::Registry>(reg, grp); }
 #endif
 
 

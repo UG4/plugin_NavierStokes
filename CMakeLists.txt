@@ -107,7 +107,7 @@ endif(NOT USE_PYBIND11)
 ################################################################################
 if(USE_PYBIND11)
 
-	include_directories(${SUPERLU_INCLUDE_DIRS})
+	# include_directories(${SUPERLU_INCLUDE_DIRS})
 	
 	###############################################
 	# 0) Let's try to locate ug_4 static library....

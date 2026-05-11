@@ -45,13 +45,13 @@ namespace py = pybind11;
 #include "register_navier_stokes.h"
 #include "bindings/pybind/ug_pybind.h"
 
-PYBIND11_MODULE(pyNavierStokes, m)
+PYBIND11_MODULE(pynavierstokes, m)
 {
 	m.doc() = "UG4 Navier-Stokes Plugin Python Bindings";
-	m.attr("__name__") = "ug4py.navier_stokes";
+	m.attr("__name__") = "pynavierstokes";
 
 	ug::pybind::Registry registry(m);
-	std::string grp("NavierStokes");
+	std::string grp("navierstokes");
 
 	ug::NavierStokes::InitUGPlugin(&registry, grp);
 }

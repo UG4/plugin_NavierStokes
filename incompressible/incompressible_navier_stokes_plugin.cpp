@@ -350,12 +350,9 @@ void Init___IncompressibleNavierStokes(Registry& reg, string grp)
 }
 
 #ifdef UG_USE_PYBIND11
-namespace NavierStokes{	
 void Init___IncompressibleNavierStokes(ug::pybind::Registry& reg, string grp)
-{
-	using TRegistry = ug::pybind::Registry;
-	RegisterBridge_IncompressibleNavierStokes<TRegistry>(reg, grp);
-}
+{ 
+	RegisterBridge_IncompressibleNavierStokes<ug::pybind::Registry>(reg, grp);
 }
 #endif
 
