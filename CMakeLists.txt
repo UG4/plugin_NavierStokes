@@ -112,19 +112,24 @@ endif(NOT USE_PYBIND11)
 ################################################################################
 if(USE_PYBIND11)
 
-	# include_directories(${SUPERLU_INCLUDE_DIRS})
-	
-	###############################################
-	# 0) Let's try to locate ug_4 static library....
-	###############################################
+	#############################################################
+	# 0) Let's try to locate ug4 (static od dynamic) library....
+	#############################################################
 	
 	set(UG4_STATIC_LIBRARY ug4_s)
+	
+	if(buildDynamicLib)
+		set(UG4_LIBRARY ug4)
+	else(buildDynamicLib)
+		set(UG4_LIBRARY ug4_s)
+	endif(buildDynamicLib)
+	
 	if (BUILD_WITH_PIP)
-		get_libug4_from_pip(PYUG4_STATIC_LIBRARY)
+		get_libug4_from_pip(PYUG4_STATIC_LIBRARY ${UG4_LIBRARY})
 		message(STATUS "Library found: ${PYUG4_STATIC_LIBRARY}")
-		set(UG4_STATIC_LIBRARY ${PYUG4_STATIC_LIBRARY})
+		set(UG4_LIBRARY ${PYUG4_STATIC_LIBRARY})
 	endif()
-	message(STATUS "Using libug4_s: ${UG4_STATIC_LIBRARY}")
+	message(STATUS "Linking with: ${UG4_LIBRARY}")
 	
 
 	###############################################
@@ -138,10 +143,20 @@ if(USE_PYBIND11)
 	###############################################
 	SET(myPluginSources navier_stokes_pybind.cpp)
 	SET(myLibraries ug4 NavierStokes)
-	python_add_library(pynavierstokes MODULE ${myPluginSources} ${SOURCES} WITH_SOABI)
-	target_link_libraries (pynavierstokes PRIVATE NavierStokes ${UG4_STATIC_LIBRARY})
-	set_target_properties(pynavierstokes PROPERTIES INSTALL_RPATH "$ORIGIN/..:$ORIGIN/../../../lib")
-	install(TARGETS pynavierstokes LIBRARY DESTINATION ug4py COMPONENT pymodules)
+	SET(myModuleName pynavierstokes)
+	python_add_library(${myModuleName} MODULE ${myPluginSources} ${SOURCES} WITH_SOABI)
+	target_link_libraries (${myModuleName} PRIVATE NavierStokes ${UG4_LIBRARY})
+
+	# Link ug4 dynamically.
+	if(APPLE)
+    	set_target_properties(${myModuleName} PROPERTIES 
+    		INSTALL_RPATH "@loader_path/../lib" 
+			BUILD_WITH_INSTALL_RPATH TRUE)
+	elseif(LINUX AND NOT APPLE)
+		set_target_properties(${myModuleName} PROPERTIES INSTALL_RPATH "$ORIGIN:$ORIGIN/../lib")
+	endif()
+	
+	install(TARGETS ${myModuleName} LIBRARY DESTINATION ug4py COMPONENT pymodules)
 endif(USE_PYBIND11)
 
 message(STATUS "# NavierStokes - END ##############################################################################")

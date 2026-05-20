@@ -4,7 +4,7 @@ requires = [
     "cmake>=3.18",
     "ninja",
     "pybind11",
-    "ug4py-base>=0.3.0"
+    "ug4py-base>=0.4.1"
 ]
 build-backend = "scikit_build_core.build"
 
@@ -13,8 +13,9 @@ name = "ug4py-plugins-navierstokes"
 version = "0.0.2"
 description = "This is UG4-plugin for Navier-Stokes equations."
 readme = {file = "README.md", content-type = "text/markdown"}
-
-
+dependencies = [
+    ug4py-base>=0.4.1
+]
 
 [tool.scikit-build]
 #  cf. https://github.com/scikit-build/scikit-build-core
