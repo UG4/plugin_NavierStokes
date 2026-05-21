@@ -10,7 +10,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "ug4py-plugins-navierstokes"
-version = "0.0.2"
+version = "0.0.3"
 description = "This is UG4-plugin for Navier-Stokes equations."
 readme = {file = "README.md", content-type = "text/markdown"}
 dependencies = [
