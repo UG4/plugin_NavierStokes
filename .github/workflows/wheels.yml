@@ -58,7 +58,7 @@ jobs:
         uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_BUILD_VERBOSITY:  1
-          CIBW_BUILD: cp312-*
+          CIBW_BUILD: cp312-* cp314-*
           CIBW_SKIP: "*-win32 *-musllinux_* *linux_i686 *linux_s390x *linux_aarch64 *linux_s390x" 
           CIBW_BEFORE_ALL_LINUX: > 
             pwd && ls && 
@@ -70,7 +70,7 @@ jobs:
              contains(matrix.os, 'windows') && '-DUG_ROOT_CMAKE_PATH=C:/a/plugin_NavierStokes/plugin_NavierStokes/ug4-git/ugcore/cmake' || 
              contains(matrix.os, 'macos') && '-DUG_ROOT_CMAKE_PATH=/Users/runner/work/plugin_NavierStokes/plugin_NavierStokes/ug4-git/ugcore/cmake' }}
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libug4.so --exclude libCompileInfo.so -w {dest_dir} {wheel}"
-          CIBW_REPAIR_WHEEL_COMMAND_MACOS: "cp {wheel} {dest_dir}/" # dummy
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: "cp {wheel} {dest_dir}/" # dummy (required, as libug4 is not part of this wheel)
         with:
           package-dir: .
           output-dir: wheelhouse
