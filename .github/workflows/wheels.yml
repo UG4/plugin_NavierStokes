@@ -70,7 +70,7 @@ jobs:
              contains(matrix.os, 'windows') && '-DUG_ROOT_CMAKE_PATH=C:/a/plugin_NavierStokes/plugin_NavierStokes/ug4-git/ugcore/cmake' || 
              contains(matrix.os, 'macos') && '-DUG_ROOT_CMAKE_PATH=/Users/runner/work/plugin_NavierStokes/plugin_NavierStokes/ug4-git/ugcore/cmake' }}
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libug4.so --exclude libCompileInfo.so -w {dest_dir} {wheel}"
-          CIBW_REPAIR_WHEEL_COMMAND_MACOS: "ls {wheel}" # dummy
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: "cp {wheel} {dest_dir}/" # dummy
         with:
           package-dir: .
           output-dir: wheelhouse
